@@ -48,10 +48,9 @@ jobs:
           path: docs
           retention-days: 14
 
-      # Requires the SONAR_TOKEN repo secret (sonarcloud.io -> project -> Administration -> Analysis Method).
-      # Left as continue-on-error until that secret exists, so it never blocks the pipeline.
+      # Requires the SONAR_TOKEN repo secret and Automatic Analysis disabled in Sonar
+      # (Administration -> Analysis Method -> keep only CI-based Analysis).
       - name: SonarQube Cloud scan
         uses: sonarsource/sonarqube-scan-action@v6
-        continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
