@@ -1,6 +1,6 @@
 # Arquitectura técnica — `api`
 
-> Documento de referencia para quien escriba código en este repo (incluido tú mismo en 3 meses). Cubre **cómo** se construye el backend: estructura de carpetas, convenciones, reglas de dependencia. Para el **qué** y el **por qué** de producto (dominio, entidades, multi-tenancy, roadmap), ver el documento de arquitectura del sistema a nivel de producto que vive junto a este repo en `Fiaro/arquitectura-sistema-prestamos.md`.
+> Documento de referencia para quien escriba código en este repo (incluido tú mismo en 3 meses). Cubre **cómo** se construye el backend: estructura de carpetas, convenciones, reglas de dependencia. Para el **qué** y el **por qué** de producto (dominio, entidades, multi-tenancy, roadmap), ver [PRODUCT.md](./PRODUCT.md).
 >
 > Estado: este documento describe la arquitectura **objetivo**. El código todavía es el scaffold de `nest new` — nada de lo descrito en las secciones 3–7 está instalado o implementado aún. Se actualiza a medida que cada pieza se construye.
 
