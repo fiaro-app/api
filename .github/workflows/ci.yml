@@ -50,7 +50,7 @@ jobs:
       # Requires the SONAR_TOKEN repo secret (sonarcloud.io -> project -> Administration -> Analysis Method).
       # Left as continue-on-error until that secret exists, so it never blocks the pipeline.
       - name: SonarQube Cloud scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: sonarsource/sonarqube-scan-action@v6
         continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
