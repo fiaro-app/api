@@ -10,27 +10,43 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # Los hooks de git son para desarrollo local; en CI no hacen falta.
+      HUSKY: 0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # needed for Sonar blame/history analysis
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
+      # TypeScript incremental y la caché de Prettier entre ejecuciones: el CI solo revisa de nuevo
+      # lo que cambió. Ambas herramientas comparan contenido, así que la caché nunca da resultados viejos.
+      - name: Restore tool caches
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache
+          key: tools-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: tools-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - name: Lint
         run: pnpm run lint
+
+      - name: Format
+        run: pnpm run format:check
 
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Unit tests
-        run: pnpm run test
+      # Genera coverage/lcov.info, que el análisis de SonarCloud usa para medir la cobertura.
+      - name: Unit tests with coverage
+        run: pnpm run test:cov
 
       - name: E2E tests
         run: pnpm run test:e2e
@@ -42,7 +58,7 @@ jobs:
         run: pnpm run docs
 
       - name: Upload docs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs
           path: docs
@@ -51,6 +67,6 @@ jobs:
       # Requires the SONAR_TOKEN repo secret and Automatic Analysis disabled in Sonar
       # (Administration -> Analysis Method -> keep only CI-based Analysis).
       - name: SonarQube Cloud scan
-        uses: sonarsource/sonarqube-scan-action@v6
+        uses: sonarsource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
