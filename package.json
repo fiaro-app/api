@@ -2,7 +2,7 @@
   "name": "api",
   "version": "0.0.1",
   "description": "API de Fiaro — backend NestJS del sistema de control de cartera (gota a gota) para prestamistas informales.",
-  "author": "Alejo Zuleta <valenciazuletaj@gmail.com>",
+  "author": "Alejo Zuleta <jhoitan266@gmail.com>",
   "private": true,
   "license": "UNLICENSED",
   "homepage": "https://github.com/fiaro-app/api#readme",
