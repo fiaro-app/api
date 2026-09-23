@@ -13,8 +13,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      // main.ts y los módulos de Nest solo arman la aplicación: los cubren las pruebas e2e.
-      exclude: ['src/**/*.spec.ts', 'src/main.ts', 'src/**/*.module.ts'],
+      /** Solo arman la aplicación (los cubren las pruebas e2e) o son constantes sin lógica. */
+      exclude: [
+        'src/**/*.spec.ts',
+        'src/main.ts',
+        'src/app.setup.ts',
+        'src/**/*.module.ts',
+        'src/**/*.token.ts',
+      ],
       // lcov es el formato que lee SonarCloud; text lo muestra en la terminal.
       reporter: ['text', 'lcov'],
       // El mismo mínimo que exige la quality gate de SonarCloud para código nuevo.
