@@ -1,0 +1,4 @@
+# Nuestros propios paquetes se instalan apenas se publican: el período de espera de
+# pnpm (protección contra paquetes comprometidos) aplica solo a paquetes de terceros.
+minimumReleaseAgeExclude:
+  - '@fiaro-app/*'
