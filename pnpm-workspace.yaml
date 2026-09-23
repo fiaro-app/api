@@ -4,6 +4,7 @@ minimumReleaseAgeExclude:
   - '@fiaro-app/*'
 
 # Scripts de instalación de terceros: pnpm 11 no los ejecuta salvo autorización explícita.
-# unrs-resolver solo verifica su binario nativo, que ya llega como dependencia opcional.
+# Estos dos solo verifican su binario nativo, que ya llega como dependencia opcional.
 allowBuilds:
+  '@swc/core': false
   unrs-resolver: false
