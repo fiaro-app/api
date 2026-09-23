@@ -138,6 +138,21 @@ function httpQuery(
   ).query(path);
 }
 
+/**
+ * Estados de `count` peticiones enviadas una tras otra: el orden importa porque el contador del
+ * rate limit avanza con cada una.
+ */
+async function statusesOf(
+  count: number,
+  send: (index: number) => request.Test,
+) {
+  const statuses: number[] = [];
+  for (let i = 0; i < count; i++) {
+    statuses.push((await send(i)).status);
+  }
+  return statuses;
+}
+
 afterEach(async () => {
   vi.unstubAllEnvs();
   await app?.close();
@@ -260,7 +275,9 @@ describe('versionado por cabecera', () => {
   it('las rutas no llevan prefijo de versión', async () => {
     const api = await startApp();
 
-    await api.get('/v1/probe/ping').expect(404);
+    const { status } = await api.get('/v1/probe/ping');
+
+    expect(status).toBe(404);
   });
 
   it('la cabecera elige la versión', async () => {
@@ -276,22 +293,35 @@ describe('versionado por cabecera', () => {
   it('una ruta que declara la versión 1 también responde sin cabecera', async () => {
     const api = await startApp();
 
-    await api.get('/probe/explicit-v1').expect(200);
-    await api.get('/probe/explicit-v1').set('API-Version', '1').expect(200);
+    const withoutHeader = await api.get('/probe/explicit-v1');
+    const withHeader = await api
+      .get('/probe/explicit-v1')
+      .set('API-Version', '1');
+
+    expect(withoutHeader.status).toBe(200);
+    expect(withHeader.status).toBe(200);
   });
 
   it('una versión que la ruta no tiene responde 404', async () => {
     const api = await startApp();
 
-    await api.get('/probe/ping').set('API-Version', '9').expect(404);
-    await api.get('/probe/other').set('API-Version', '2').expect(404);
+    const unknownVersion = await api.get('/probe/ping').set('API-Version', '9');
+    const routeWithoutV2 = await api
+      .get('/probe/other')
+      .set('API-Version', '2');
+
+    expect(unknownVersion.status).toBe(404);
+    expect(routeWithoutV2.status).toBe(404);
   });
 
   it('las rutas VERSION_NEUTRAL responden con cualquier versión y sin ella', async () => {
     const api = await startApp();
 
-    await api.get('/neutral').expect(200);
-    await api.get('/neutral').set('API-Version', '9').expect(200);
+    const withoutHeader = await api.get('/neutral');
+    const withVersion = await api.get('/neutral').set('API-Version', '9');
+
+    expect(withoutHeader.status).toBe(200);
+    expect(withVersion.status).toBe(200);
   });
 
   it('avisa a las caches con Vary de que la respuesta depende de la versión', async () => {
@@ -385,6 +415,7 @@ describe('validación', () => {
 describe('rate limit', () => {
   const limit = 3;
   const throttle = { ttlMs: 60_000, limit };
+  const withinLimit = Array<number>(limit).fill(200);
 
   it('bloquea con 429 y Retry-After al pasar el límite', async () => {
     const api = await startApp({ throttle });
@@ -412,65 +443,53 @@ describe('rate limit', () => {
   it('cuenta por ruta: agotar una no bloquea las demás', async () => {
     const api = await startApp({ throttle });
 
-    for (let i = 0; i <= limit; i++) {
-      await api.get('/probe/ping');
-    }
+    const pings = await statusesOf(limit + 1, () => api.get('/probe/ping'));
+    const other = await api.get('/probe/other');
 
-    await api.get('/probe/ping').expect(429);
-    await api.get('/probe/other').expect(200);
+    expect(pings).toEqual([...withinLimit, 429]);
+    expect(other.status).toBe(200);
   });
 
   it('no cuenta los preflight de CORS', async () => {
     const api = await startApp({ throttle });
 
-    for (let i = 0; i < limit * 2; i++) {
-      await api
+    const preflights = await statusesOf(limit * 2, () =>
+      api
         .options('/probe/search')
         .set('Origin', ALLOWED_ORIGIN)
-        .set('Access-Control-Request-Method', 'QUERY')
-        .expect(204);
-    }
+        .set('Access-Control-Request-Method', 'QUERY'),
+    );
+    const pings = await statusesOf(limit + 1, () => api.get('/probe/ping'));
 
-    for (let i = 0; i < limit; i++) {
-      await api.get('/probe/ping').expect(200);
-    }
-    await api.get('/probe/ping').expect(429);
+    expect(preflights).toEqual(Array<number>(limit * 2).fill(204));
+    expect(pings).toEqual([...withinLimit, 429]);
   });
 
   it('sin proxy de confianza ignora X-Forwarded-For, que cualquiera puede falsificar', async () => {
     const api = await startApp({ throttle, trustProxy: 0 });
 
-    for (let i = 0; i < limit; i++) {
-      await api
+    const statuses = await statusesOf(limit + 1, (i) =>
+      api
         .get('/probe/ping')
-        .set('X-Forwarded-For', `203.0.113.${String(i + 1)}`)
-        .expect(200);
-    }
+        .set('X-Forwarded-For', `203.0.113.${String(i + 1)}`),
+    );
 
-    await api
-      .get('/probe/ping')
-      .set('X-Forwarded-For', '203.0.113.99')
-      .expect(429);
+    expect(statuses).toEqual([...withinLimit, 429]);
   });
 
   it('detrás de un proxy de confianza cuenta a cada cliente por separado', async () => {
     const api = await startApp({ throttle, trustProxy: 1 });
 
-    for (let i = 0; i < limit; i++) {
-      await api
-        .get('/probe/ping')
-        .set('X-Forwarded-For', '203.0.113.1')
-        .expect(200);
-    }
-    await api
-      .get('/probe/ping')
-      .set('X-Forwarded-For', '203.0.113.1')
-      .expect(429);
+    const fromClient = (ip: string) =>
+      api.get('/probe/ping').set('X-Forwarded-For', ip);
 
-    await api
-      .get('/probe/ping')
-      .set('X-Forwarded-For', '203.0.113.2')
-      .expect(200);
+    const firstClient = await statusesOf(limit + 1, () =>
+      fromClient('203.0.113.1'),
+    );
+    const secondClient = await fromClient('203.0.113.2');
+
+    expect(firstClient).toEqual([...withinLimit, 429]);
+    expect(secondClient.status).toBe(200);
   });
 });
 
@@ -503,8 +522,11 @@ describe('documentación', () => {
   it('no se publica cuando está desactivada', async () => {
     const api = await startApp({ swaggerEnabled: false });
 
-    await api.get('/docs').expect(404);
-    await api.get('/docs/openapi.json').expect(404);
+    const ui = await api.get('/docs');
+    const document = await api.get('/docs/openapi.json');
+
+    expect(ui.status).toBe(404);
+    expect(document.status).toBe(404);
   });
 });
 
