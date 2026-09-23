@@ -41,59 +41,20 @@ El valor diferencial del producto no es prestar dinero, es la **visibilidad**: m
 
 ## 4. Arquitectura hexagonal (repo `api`)
 
-### 4.1 Estructura de carpetas por módulo de dominio
+### 4.1 Estructura por capas
 
-```
-src/
-  modules/
-    loans/
-      domain/           # Entidades y lógica de negocio pura — CERO dependencias de Prisma/Nest
-      application/       # Casos de uso (use cases), puertos (interfaces de repositorio)
-      infrastructure/     # Adaptadores: PrismaLoanRepository, mappers, controllers
-    collections/
-      domain/ | application/ | infrastructure/
-    subscriptions/
-      domain/ | application/ | infrastructure/
-    auth/
-      ...
-  shared/
-    prisma/             # PrismaService, schema.prisma
-    guards/             # LenderScopeGuard, SubscriptionGuard, etc.
-```
+Tres capas en el primer nivel de `src/` —`domain`, `application` e `infrastructure`— más `config` e `i18n`. Dentro de las carpetas que crecen, una subcarpeta por funcionalidad (`domain/entities/loans/`, `application/use-cases/loans/`, `infrastructure/controllers/loans/`). El árbol completo, el propósito de cada carpeta y las convenciones de nombres están en [ARCHITECTURE.md §2](./ARCHITECTURE.md#2-estructura-de-carpetas).
 
 ### 4.2 Regla de dependencia (obligatoria)
 
-`domain` nunca importa de `infrastructure`. `application` puede depender de `domain`, nunca al revés. Esto se fuerza con lint, no con disciplina de equipo:
-
-```json
-// .eslintrc.json
-{
-  "plugins": ["boundaries"],
-  "settings": {
-    "boundaries/elements": [
-      { "type": "domain", "pattern": "src/modules/*/domain/**" },
-      { "type": "application", "pattern": "src/modules/*/application/**" },
-      { "type": "infrastructure", "pattern": "src/modules/*/infrastructure/**" }
-    ]
-  },
-  "rules": {
-    "boundaries/element-types": ["error", {
-      "rules": [
-        { "from": "domain", "allow": ["domain"] },
-        { "from": "application", "allow": ["domain", "application"] },
-        { "from": "infrastructure", "allow": ["domain", "application", "infrastructure"] }
-      ]
-    }]
-  }
-}
-```
+`domain` no importa de ninguna otra capa ni de librerías externas; `application` solo depende de `domain` (y de `@nestjs/common` para la inyección de dependencias); `infrastructure` puede depender de todo. Se fuerza con ESLint (`eslint-plugin-boundaries`), no con disciplina de equipo: el lint falla si una importación rompe la regla. Configuración y tabla completa en [ARCHITECTURE.md §3](./ARCHITECTURE.md#3-regla-de-dependencia-obligatoria-forzada-por-lint).
 
 ### 4.3 Prisma sin ensuciar el dominio
 
 Prisma genera su propio cliente tipado, pero ese tipo **no es tu entidad de dominio**. Se traduce con un mapper explícito, siempre en `infrastructure`:
 
 ```typescript
-// modules/loans/domain/loan.entity.ts — sin decoradores, sin Prisma
+// domain/entities/loans/loan.entity.ts — sin decoradores, sin Prisma
 export class Loan {
   private constructor(
     public readonly id: string,
@@ -111,7 +72,7 @@ export class Loan {
 ```
 
 ```typescript
-// modules/loans/infrastructure/loan.mapper.ts
+// infrastructure/persistence/loans/loan.mapper.ts
 export class LoanMapper {
   static toDomain(record: PrismaLoan): Loan {
     return Loan.reconstitute({ ...record });
@@ -124,7 +85,7 @@ export class LoanMapper {
 ```
 
 ```typescript
-// modules/loans/infrastructure/prisma-loan.repository.ts
+// infrastructure/persistence/loans/prisma-loan.repository.ts
 @Injectable()
 export class PrismaLoanRepository implements LoanRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -267,7 +228,7 @@ Temas abiertos para iteraciones posteriores al MVP, ninguno bloquea el diseño d
 
 ## 14. Registro de decisiones
 
-Decisiones D-01 a D-26 tomadas el 2026-09-22, al cerrar el diseño; D-27 en adelante, el 2026-09-23, al definir los contratos. Cada una tiene un ID para poder referenciarla desde código, PRs y otros documentos. Si una se revierte, se tacha y se agrega la nueva — no se borra.
+Decisiones D-01 a D-26 tomadas el 2026-09-22, al cerrar el diseño; D-27 en adelante, el 2026-09-23, al definir los contratos y configurar la API. Cada una tiene un ID para poder referenciarla desde código, PRs y otros documentos. Si una se revierte, se tacha y se agrega la nueva — no se borra.
 
 | ID | Tema | Decisión | Por qué |
 |---|---|---|---|
@@ -307,3 +268,5 @@ Decisiones D-01 a D-26 tomadas el 2026-09-22, al cerrar el diseño; D-27 en adel
 | D-34 | Datos de la persona | La cédula y `must_change_password` viven en `User`, no en `Membership` | Son de la persona y de su credencial: quien trabaja para dos prestamistas tiene una sola cédula y una sola contraseña |
 | D-35 | Estados y calendario del préstamo | `ACTIVE`, `PAID_OFF` (automático con saldo cero) y `CANCELED` (anulación por error antes de pagos). Quincenal = cada 15 días; mensual = mismo día de cada mes (o el último si el mes es más corto); una fecha que cae en día sin cobro pasa al siguiente día de cobro | Reglas necesarias para calcular ruta, mora y días de atraso sin ambigüedad |
 | D-36 | Unicidad del cuadre | Un cuadre por cobrador y día; reenviarlo lo actualiza y vuelve a `PENDING`; guarda los montos declarados al cerrar | Evita cuadres duplicados; el historial de cambios queda en la auditoría |
+| D-37 | Estructura de la API | Capas en el primer nivel (`domain`, `application`, `infrastructure`, `config`, `i18n`) y una subcarpeta por funcionalidad dentro de las carpetas que crecen; nombres en plural. Reemplaza la estructura por módulos | Separación de capas visible desde la raíz y fácil de forzar con lint, sin carpetas de 40 archivos mezclados |
+| D-38 | Herramientas de calidad de la API | ESLint (typescript-eslint con tipos + eslint-plugin-boundaries) en lugar de oxlint; Prettier; Husky + lint-staged + commitlint; pruebas compiladas con SWC y cobertura mínima de 80 % | boundaries es la única forma de forzar la regla de capas; los hooks detectan errores antes del CI y solo revisan lo que cambió |
