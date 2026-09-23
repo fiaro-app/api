@@ -10,6 +10,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     env:
       # Los hooks de git son para desarrollo local; en CI no hacen falta.
       HUSKY: 0
@@ -23,8 +26,12 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@fiaro-app'
 
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # TypeScript incremental y la caché de Prettier entre ejecuciones: el CI solo revisa de nuevo
       # lo que cambió. Ambas herramientas comparan contenido, así que la caché nunca da resultados viejos.
