@@ -60,7 +60,9 @@ Todavía no hay ninguna conectada; cada una llega con la pieza que la usa. Se do
 
 - `dev` es la rama de integración y la rama por defecto — todo PR apunta aquí.
 - `main` es producción — se actualiza vía PR desde `dev` cuando está estable.
-- Merge siempre por squash; la rama de origen se borra automáticamente al mergear.
+- **PR de funcionalidad** (rama → `dev`): merge por **squash**, un commit por PR.
+- **PR de release** (`dev` → `main`): **merge commit**. Así `main` y `dev` comparten historia y el siguiente release no tiene conflictos; con squash, `main` quedaría con un commit que `dev` no tiene.
+- La rama de origen se borra automáticamente al mergear (`dev` nunca, porque es la rama por defecto).
 - Sin protección de rama activa (equipo de una persona por ahora).
 
 ## Repos relacionados

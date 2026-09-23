@@ -25,86 +25,106 @@
 
 ## 2. Estructura de carpetas
 
-Capas arriba y, dentro de las carpetas que crecen, una subcarpeta por funcionalidad (`loans`, `clients`, `collections`...):
+Un módulo por funcionalidad del dominio, cada uno con su propia arquitectura hexagonal (`domain`, `application`, `infrastructure`). Lo que usan todos los módulos vive en `shared`, con las mismas tres capas:
 
 ```
 src/
-  main.ts                    # Arranca la aplicación
-  app.module.ts              # Raíz de composición: importa los módulos de infrastructure/modules
-  domain/                    # Reglas de negocio puras — cero dependencias externas
-    entities/                #   loans/loan.entity.ts
-    value-objects/           #   money.value-object.ts, phone.value-object.ts
-    enums/                   #   loans/loan-status.enum.ts
-    errors/                  #   loans/loan-already-paid.error.ts
-    policies/                #   loans/loan-cancellation.policy.ts
-    repositories/            #   loans/loan.repository.ts (interfaz)
-    tokens/                  #   loans/loan-repository.token.ts (token de inyección)
-    audit/                   #   Eventos de auditoría del dominio
-  application/               # Casos de uso: orquestan el dominio a través de puertos
-    use-cases/               #   loans/create-loan.use-case.ts
-    services/                #   Lógica compartida entre varios casos de uso
-    dtos/                    #   loans/create-loan.dto.ts (entrada y salida de un caso de uso)
-    ports/                   #   email-sender.port.ts, clock.port.ts (interfaces hacia afuera)
-    events/                  #   payments/payment-registered.event.ts y sus handlers
-    security/                #   Reglas de autorización: qué rol puede hacer qué sobre qué recurso
-    audit/                   #   Puerto y servicio para registrar auditoría desde los casos de uso
-  infrastructure/            # Adaptadores: todo lo que habla con el framework o el mundo exterior
-    modules/                 #   loans.module.ts — une controllers, casos de uso y adaptadores
-    controllers/             #   loans/loans.controller.ts; common/ para guards, pipes y decoradores HTTP
-    persistence/             #   prisma/ (schema, cliente) y loans/prisma-loan.repository.ts + mapper
-    filters/                 #   Filtro global de excepciones → ApiError de contracts
-    crypto/                  #   Hashing y cifrado
-    notifications/           #   Email (Resend), WhatsApp (Twilio)
-    messaging/               #   Colas (BullMQ)
-    store/                   #   Cache y almacenamiento clave-valor (Redis)
-    audit/                   #   Adaptador de auditoría (MongoDB)
-    metrics/                 #   Métricas y observabilidad
-    maintenance/             #   Modo mantenimiento (503 MAINTENANCE)
-    swagger/                 #   Documentación OpenAPI
-    i18n/                    #   Adaptador de traducciones
-  config/                    # Lectura y validación de variables de entorno
-  i18n/                      # Archivos de traducción
+  main.ts                        # Arranca la aplicación
+  app.module.ts                  # Raíz de composición: registra los módulos
+  modules/
+    <módulo>/                    # system, auth, tenants, subscriptions, lenders, memberships,
+                                 # clients, loans, collections, payments, settlements, notifications
+      <módulo>.module.ts         # Módulo de NestJS: une las capas del módulo
+      domain/                    # Reglas de negocio puras — cero dependencias externas
+        entities/                #   loan.entity.ts
+        value-objects/           #   installment-plan.value-object.ts
+        enums/                   #   loan-status.enum.ts
+        errors/                  #   loan-already-paid.error.ts
+        policies/                #   loan-cancellation.policy.ts
+        repositories/            #   loan.repository.ts (interfaz)
+        tokens/                  #   loan-repository.token.ts (token de inyección)
+      application/               # Casos de uso: orquestan el dominio a través de puertos
+        use-cases/               #   create-loan.use-case.ts
+        services/                #   Lógica compartida entre casos de uso del módulo
+        dtos/                    #   create-loan.dto.ts (entrada y salida de un caso de uso)
+        ports/                   #   Interfaces hacia afuera propias del módulo
+        events/                  #   loan-created.event.ts y sus handlers
+      infrastructure/            # Adaptadores del módulo
+        controllers/             #   loans.controller.ts
+        persistence/             #   prisma-loan.repository.ts, loan.mapper.ts
+  shared/                        # Código transversal, con las mismas tres capas
+    domain/
+      value-objects/             #   money, phone, national-id, business-date
+      errors/                    #   DomainError base
+      audit/                     #   Eventos de auditoría
+    application/
+      ports/                     #   clock.port.ts, id-generator.port.ts, email-sender.port.ts
+      security/                  #   Reglas de autorización: qué rol puede hacer qué sobre qué recurso
+      audit/                     #   Puerto y servicio para registrar auditoría
+    infrastructure/
+      persistence/               #   Esquema y cliente de Prisma (PrismaService)
+      http/                      #   Guards, pipes y decoradores HTTP (ZodValidationPipe, @QueryMethod)
+      filters/                   #   Filtro global de excepciones → ApiError de contracts
+      crypto/                    #   Hashing y cifrado
+      notifications/             #   Email (Resend), WhatsApp (Twilio)
+      messaging/                 #   Colas (BullMQ)
+      store/                     #   Cache y almacenamiento clave-valor (Redis)
+      audit/                     #   Adaptador de auditoría (MongoDB)
+      metrics/                   #   Métricas y observabilidad
+      maintenance/               #   Modo mantenimiento (503 MAINTENANCE)
+      swagger/                   #   Documentación OpenAPI
+      i18n/                      #   Adaptador de traducciones
+  config/                        # Lectura y validación de variables de entorno
+  i18n/                          # Archivos de traducción
 test/
-  *.e2e-spec.ts              # Pruebas e2e, una suite por flujo de negocio
+  *.e2e-spec.ts                  # Pruebas e2e, una suite por flujo de negocio
 ```
 
-Las carpetas vacías llevan un `.gitkeep` para que git las conserve; se borra al agregar el primer archivo. Las subcarpetas por funcionalidad se crean con su primer archivo.
+**Carpetas que se crean con su primer archivo.** Cada módulo nace con sus tres capas. Las subcarpetas del árbol (`entities`, `use-cases`, `controllers`...) aparecen cuando el módulo las necesita: no todos los módulos usan todas, y crearlas de antemano serían unas 170 carpetas vacías. Las carpetas vacías llevan un `.gitkeep` para que git las conserve; se borra al agregar el primer archivo.
 
 **Nombres de archivo:** kebab-case con un sufijo que dice qué es: `.entity.ts`, `.value-object.ts`, `.enum.ts`, `.error.ts`, `.policy.ts`, `.repository.ts` (interfaz en `domain`), `.token.ts`, `.use-case.ts`, `.service.ts`, `.dto.ts`, `.port.ts`, `.event.ts`, `.controller.ts`, `.module.ts`, `.mapper.ts`, `.filter.ts`, `.guard.ts`, `.pipe.ts`. Los adaptadores llevan el nombre de la tecnología: `prisma-loan.repository.ts`, `resend-email-sender.ts`.
 
 **`dtos` y `contracts`:** los requests y respuestas HTTP vienen de `@fiaro-app/contracts`. Los `dtos` de `application` son la entrada y salida de cada caso de uso, independientes de HTTP: el controller traduce del contrato al DTO del caso de uso.
 
-**`tokens`:** en TypeScript las interfaces desaparecen al compilar, así que NestJS no puede inyectar un `LoanRepository` por su tipo. Cada puerto o repositorio tiene un token (`Symbol`) en `domain/tokens` con el que se registra y se inyecta la implementación.
+**`tokens`:** en TypeScript las interfaces desaparecen al compilar, así que NestJS no puede inyectar un `LoanRepository` por su tipo. Cada puerto o repositorio tiene un token (`Symbol`) con el que se registra y se inyecta la implementación.
 
 ## 3. Regla de dependencia (obligatoria, forzada por lint)
 
-Cada capa solo puede importar lo que le corresponde. ESLint falla si se rompe la regla (`eslint-plugin-boundaries`, configurado en `eslint.config.js`):
+Cada capa solo puede importar lo que le corresponde. ESLint falla si se rompe la regla (`eslint-plugin-boundaries`, configurado en `eslint.config.js`). El plugin captura el nombre del módulo desde la ruta (`src/modules/<módulo>/...`), así que distingue el módulo propio de los ajenos:
 
-| Capa | Puede importar de | Librerías externas |
+| Quién importa | Puede importar de | Librerías externas |
 |---|---|---|
-| `domain` | `domain` | Ninguna |
-| `application` | `domain`, `application` | Solo `@nestjs/common` (inyección de dependencias) y `@fiaro-app/contracts` |
-| `infrastructure` | Todas las capas | Todas, y módulos de Node |
+| `domain` de un módulo | `domain` de su módulo, `shared/domain` | Ninguna |
+| `application` de un módulo | `domain` de su módulo; `application` de cualquier módulo; `shared/domain` y `shared/application` | Solo `@nestjs/common` (inyección de dependencias) y `@fiaro-app/contracts` |
+| `infrastructure` de un módulo | Las tres capas de su módulo, `shared`, `config`, `i18n` | Todas, y módulos de Node |
+| `<módulo>.module.ts` | Las capas de su módulo, otros `*.module.ts`, `shared/infrastructure`, `config` | Todas, y módulos de Node |
+| `shared/<capa>` | Las mismas reglas de capas dentro de `shared`; nunca un módulo | Como su capa equivalente |
 | `config` | `config` | Todas, y módulos de Node |
-| Raíz (`main.ts`, `app.module.ts`) | Todas las capas | Todas, y módulos de Node |
+| Raíz (`main.ts`, `app.module.ts`) | Módulos, `shared/infrastructure`, `config`, `i18n` | Todas, y módulos de Node |
 
 ```
-infrastructure → application → domain
-infrastructure ───────────────→ domain
+infrastructure → application → domain        (dentro de cada módulo)
+módulo A: application → módulo B: application (entre módulos, solo por sus casos de uso)
+módulos → shared                              (shared nunca depende de un módulo)
 ```
 
-**Por qué:** el dominio (las reglas del negocio) no debe depender de NestJS, de Prisma ni de ninguna librería. Así se prueba sin levantar nada, y cambiar de base de datos o de framework no toca las reglas del negocio. Las pruebas (`*.spec.ts`) están exentas: pueden importar Vitest y las utilidades de prueba de Nest.
+**Por qué:**
+- El dominio (las reglas del negocio) no depende de NestJS, de Prisma ni de ninguna librería: se prueba sin levantar nada, y cambiar de base de datos o de framework no toca las reglas del negocio.
+- Un módulo no conoce el dominio de otro: usa sus casos de uso. Así cada módulo puede cambiar su modelo interno sin romper a los demás, y los agregados se referencian por ID.
+- `shared` es la base común: si dependiera de un módulo, cualquier cambio en ese módulo afectaría a todos.
 
-La regla se verificó con archivos de prueba en cada capa: bloquea `domain → infrastructure`, `domain → @nestjs/common`, `application → infrastructure`, `application → express` y `config → domain`, y permite las importaciones válidas.
+Las pruebas (`*.spec.ts`) están exentas: pueden importar Vitest y las utilidades de prueba de Nest.
+
+La regla se verificó con archivos de prueba en dos módulos, en `shared` y en `config`: 19 de 19 casos se comportan como se espera (por ejemplo, bloquea `loans/domain → clients/domain`, `loans/application → clients/domain`, `loans/domain → @nestjs/common` y `shared → loans`, y permite `loans/application → clients/application`).
 
 ## 4. Prisma sin ensuciar el dominio
 
 Prisma genera su propio cliente tipado, pero ese tipo **no es la entidad de dominio**. La traducción es explícita, siempre en `infrastructure`, vía un mapper:
 
-- `domain/entities/<módulo>/<entidad>.entity.ts` — clase plana, constructor privado + factory (`reconstitute`, `create`), sin decoradores, sin imports de Prisma ni de Nest.
-- `domain/repositories/<módulo>/<entidad>.repository.ts` — la interfaz (el puerto) que usan los casos de uso.
-- `infrastructure/persistence/<módulo>/<entidad>.mapper.ts` — `toDomain(record: PrismaX): X` y `toPersistence(entity: X): Prisma.XCreateInput`.
-- `infrastructure/persistence/<módulo>/prisma-<entidad>.repository.ts` — implementa la interfaz, inyecta `PrismaService`, usa el mapper.
+- `modules/<módulo>/domain/entities/<entidad>.entity.ts` — clase plana, constructor privado + factory (`reconstitute`, `create`), sin decoradores, sin imports de Prisma ni de Nest.
+- `modules/<módulo>/domain/repositories/<entidad>.repository.ts` — la interfaz (el puerto) que usan los casos de uso.
+- `modules/<módulo>/infrastructure/persistence/<entidad>.mapper.ts` — `toDomain(record: PrismaX): X` y `toPersistence(entity: X): Prisma.XCreateInput`.
+- `modules/<módulo>/infrastructure/persistence/prisma-<entidad>.repository.ts` — implementa la interfaz, inyecta `PrismaService` (de `shared/infrastructure/persistence`), usa el mapper.
 
 Ejemplo completo en el documento de producto, sección 4.3.
 
@@ -117,19 +137,19 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
   - `GET` se reserva para lecturas por identificador o sin criterio (`GET /clients/:id`, `GET /collectors/me`).
   - `QUERY` para búsquedas y reportes: `QUERY /lenders/me/stats`, `QUERY /clients`, `QUERY /daily-settlements`, `QUERY /collectors/me/route`.
   - El body de un `QUERY` es un schema de `contracts` por caso de uso (`LoanStatsQuerySchema`, `ClientSearchQuerySchema`); si pagina, extiende `PageQuerySchema`, que ya trae los defaults de `page` y `pageSize`.
-  - Soporte de plataforma: Node 24 incluye `QUERY` en `http.METHODS`; se expone en Nest con un decorador propio (`@QueryMethod(path)`) en `infrastructure/controllers/common`. `fetch` en Expo y Next acepta el método tal cual. Por ser un método no simple, el navegador hace preflight CORS: `QUERY` debe estar en `Access-Control-Allow-Methods`.
+  - Soporte de plataforma: Node 24 incluye `QUERY` en `http.METHODS`; se expone en Nest con un decorador propio (`@QueryMethod(path)`) en `shared/infrastructure/http`. `fetch` en Expo y Next acepta el método tal cual. Por ser un método no simple, el navegador hace preflight CORS: `QUERY` debe estar en `Access-Control-Allow-Methods`.
 - **Respuestas de éxito:** el recurso o colección directo, sin envelope (`{ id, ... }` o `[{ ... }]`). Para listas paginadas, un envelope mínimo: `{ data: [...], meta: { page, pageSize, total } }`.
 - **Formato de datos:** JSON en camelCase (Prisma traduce a `snake_case` con `@map`), fechas de calendario `AAAA-MM-DD`, marcas de tiempo ISO 8601 con zona horaria, dinero en enteros y `null` explícito en las respuestas (D-31). Razones en el README de `contracts`.
-- **Errores:** filtro de excepción global (`infrastructure/filters`) que responde `ApiErrorSchema`: `{ statusCode, code, message, path, timestamp, issues }`. `code` es un string estable que las apps usan en lugar de parsear `message`: los generales están en `ErrorCodeSchema` (`VALIDATION_FAILED`, `SUBSCRIPTION_READ_ONLY`...) y cada módulo agrega los suyos (`LOAN_NOT_FOUND`). `issues` trae el detalle por campo cuando el código es `VALIDATION_FAILED`; en los demás casos es `null`. Los errores de `domain/errors` se traducen a su código HTTP en ese filtro.
-- **Validación:** con los schemas de Zod de `contracts`, no con DTOs de class-validator: el contrato es la única fuente de verdad. Un pipe propio (`ZodValidationPipe`, en `infrastructure/controllers/common`) valida los parámetros de ruta y el body contra la definición del endpoint. Los bodies son `z.strictObject`, así que un campo desconocido responde `400 VALIDATION_FAILED` en lugar de ignorarse.
+- **Errores:** filtro de excepción global (`shared/infrastructure/filters`) que responde `ApiErrorSchema`: `{ statusCode, code, message, path, timestamp, issues }`. `code` es un string estable que las apps usan en lugar de parsear `message`: los generales están en `ErrorCodeSchema` (`VALIDATION_FAILED`, `SUBSCRIPTION_READ_ONLY`...) y cada módulo agrega los suyos (`LOAN_NOT_FOUND`). `issues` trae el detalle por campo cuando el código es `VALIDATION_FAILED`; en los demás casos es `null`. Los errores de dominio (`DomainError` y sus subclases) se traducen a su código HTTP en ese filtro.
+- **Validación:** con los schemas de Zod de `contracts`, no con DTOs de class-validator: el contrato es la única fuente de verdad. Un pipe propio (`ZodValidationPipe`, en `shared/infrastructure/http`) valida los parámetros de ruta y el body contra la definición del endpoint. Los bodies son `z.strictObject`, así que un campo desconocido responde `400 VALIDATION_FAILED` en lugar de ignorarse.
 - **Compatibilidad con apps viejas:** las rutas no llevan prefijo de versión. Los cambios a la API son aditivos, los schemas de respuesta de `contracts` ignoran campos desconocidos y el version-gate (`GET /mobile/version`) bloquea las apps por debajo de `minimumSupportedVersion`. Un cambio incompatible sube esa versión mínima en el mismo despliegue.
 
 ## 6. Autenticación y autorización
 
-- **Autenticación con better-auth** (adaptador Prisma, login teléfono + contraseña, sesiones revocables), registrada en `infrastructure/modules/auth.module.ts` — es un adaptador, el dominio no conoce better-auth. Sujeto a spike; plan B: JWT + refresh con Passport. Ver PRODUCT.md §8 y D-08.
+- **Autenticación con better-auth** (adaptador Prisma, login teléfono + contraseña, sesiones revocables), registrada en `modules/auth/auth.module.ts` — es un adaptador, el dominio no conoce better-auth. Sujeto a spike; plan B: JWT + refresh con Passport. Ver PRODUCT.md §8 y D-08.
 - **Roles por membership**: `User` ↔ `Lender` con un conjunto de roles (`OWNER`, `LENDER`, `COLLECTOR`); los guards evalúan el conjunto, no un rol único (D-02).
-- **Reglas de autorización** en `application/security`: funciones puras (qué rol puede hacer qué sobre qué recurso), usadas por los guards y por los casos de uso.
-- `LenderScopeGuard` (en `infrastructure/controllers/common`): toma `lenderId` de la membership activa de la sesión, nunca del body/query. En modo cobrador valida además que el préstamo tenga una `CollectionAssignment` vigente para esa membership.
+- **Reglas de autorización** en `shared/application/security`: funciones puras (qué rol puede hacer qué sobre qué recurso), usadas por los guards y por los casos de uso.
+- `LenderScopeGuard` (en `shared/infrastructure/http`): toma `lenderId` de la membership activa de la sesión, nunca del body/query. En modo cobrador valida además que el préstamo tenga una `CollectionAssignment` vigente para esa membership.
 - `SubscriptionGuard`: bloquea `POST`, `PATCH` y `DELETE` cuando la suscripción del Tenant está en solo lectura; las lecturas (`GET` y `QUERY`) siguen funcionando y la respuesta de error usa el código `SUBSCRIPTION_READ_ONLY`. Gracia de 7 días; después solo lectura **excepto** registrar visitas/pagos (D-21).
 - Row Level Security de Postgres como segunda capa — se define junto con el esquema de Prisma, no reemplaza al guard de aplicación.
 

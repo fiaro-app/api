@@ -41,20 +41,20 @@ El valor diferencial del producto no es prestar dinero, es la **visibilidad**: m
 
 ## 4. Arquitectura hexagonal (repo `api`)
 
-### 4.1 Estructura por capas
+### 4.1 Estructura por módulos
 
-Tres capas en el primer nivel de `src/` —`domain`, `application` e `infrastructure`— más `config` e `i18n`. Dentro de las carpetas que crecen, una subcarpeta por funcionalidad (`domain/entities/loans/`, `application/use-cases/loans/`, `infrastructure/controllers/loans/`). El árbol completo, el propósito de cada carpeta y las convenciones de nombres están en [ARCHITECTURE.md §2](./ARCHITECTURE.md#2-estructura-de-carpetas).
+Un módulo por funcionalidad del dominio en `src/modules/<módulo>/` (`loans`, `clients`, `collections`...), cada uno con sus capas `domain`, `application` e `infrastructure`. El código transversal (auditoría, crypto, filtros, notificaciones, persistencia compartida, Swagger...) vive en `src/shared/`, con las mismas tres capas. El árbol completo, el propósito de cada carpeta y las convenciones de nombres están en [ARCHITECTURE.md §2](./ARCHITECTURE.md#2-estructura-de-carpetas).
 
 ### 4.2 Regla de dependencia (obligatoria)
 
-`domain` no importa de ninguna otra capa ni de librerías externas; `application` solo depende de `domain` (y de `@nestjs/common` para la inyección de dependencias); `infrastructure` puede depender de todo. Se fuerza con ESLint (`eslint-plugin-boundaries`), no con disciplina de equipo: el lint falla si una importación rompe la regla. Configuración y tabla completa en [ARCHITECTURE.md §3](./ARCHITECTURE.md#3-regla-de-dependencia-obligatoria-forzada-por-lint).
+Dentro de cada módulo, `domain` no importa de ninguna otra capa ni de librerías externas; `application` solo depende de `domain` (y de `@nestjs/common` para la inyección de dependencias); `infrastructure` puede depender de todo el módulo. Entre módulos, solo `application` usa el `application` de otro módulo; `shared` nunca depende de un módulo. Se fuerza con ESLint (`eslint-plugin-boundaries`), no con disciplina de equipo: el lint falla si una importación rompe la regla. Tabla completa en [ARCHITECTURE.md §3](./ARCHITECTURE.md#3-regla-de-dependencia-obligatoria-forzada-por-lint).
 
 ### 4.3 Prisma sin ensuciar el dominio
 
 Prisma genera su propio cliente tipado, pero ese tipo **no es tu entidad de dominio**. Se traduce con un mapper explícito, siempre en `infrastructure`:
 
 ```typescript
-// domain/entities/loans/loan.entity.ts — sin decoradores, sin Prisma
+// modules/loans/domain/entities/loan.entity.ts — sin decoradores, sin Prisma
 export class Loan {
   private constructor(
     public readonly id: string,
@@ -72,7 +72,7 @@ export class Loan {
 ```
 
 ```typescript
-// infrastructure/persistence/loans/loan.mapper.ts
+// modules/loans/infrastructure/persistence/loan.mapper.ts
 export class LoanMapper {
   static toDomain(record: PrismaLoan): Loan {
     return Loan.reconstitute({ ...record });
@@ -85,7 +85,7 @@ export class LoanMapper {
 ```
 
 ```typescript
-// infrastructure/persistence/loans/prisma-loan.repository.ts
+// modules/loans/infrastructure/persistence/prisma-loan.repository.ts
 @Injectable()
 export class PrismaLoanRepository implements LoanRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -268,5 +268,6 @@ Decisiones D-01 a D-26 tomadas el 2026-09-22, al cerrar el diseño; D-27 en adel
 | D-34 | Datos de la persona | La cédula y `must_change_password` viven en `User`, no en `Membership` | Son de la persona y de su credencial: quien trabaja para dos prestamistas tiene una sola cédula y una sola contraseña |
 | D-35 | Estados y calendario del préstamo | `ACTIVE`, `PAID_OFF` (automático con saldo cero) y `CANCELED` (anulación por error antes de pagos). Quincenal = cada 15 días; mensual = mismo día de cada mes (o el último si el mes es más corto); una fecha que cae en día sin cobro pasa al siguiente día de cobro | Reglas necesarias para calcular ruta, mora y días de atraso sin ambigüedad |
 | D-36 | Unicidad del cuadre | Un cuadre por cobrador y día; reenviarlo lo actualiza y vuelve a `PENDING`; guarda los montos declarados al cerrar | Evita cuadres duplicados; el historial de cambios queda en la auditoría |
-| D-37 | Estructura de la API | Capas en el primer nivel (`domain`, `application`, `infrastructure`, `config`, `i18n`) y una subcarpeta por funcionalidad dentro de las carpetas que crecen; nombres en plural. Reemplaza la estructura por módulos | Separación de capas visible desde la raíz y fácil de forzar con lint, sin carpetas de 40 archivos mezclados |
+| D-37 | Estructura de la API | Un módulo por funcionalidad en `src/modules/<módulo>/` con sus capas `domain`, `application` e `infrastructure`; lo transversal en `src/shared/` con las mismas capas; nombres de carpeta en plural. Entre módulos solo se usan los casos de uso (`application`) | Todo lo de una funcionalidad queda junto y cada módulo puede cambiar su modelo interno sin romper a los demás; ESLint fuerza las reglas |
 | D-38 | Herramientas de calidad de la API | ESLint (typescript-eslint con tipos + eslint-plugin-boundaries) en lugar de oxlint; Prettier; Husky + lint-staged + commitlint; pruebas compiladas con SWC y cobertura mínima de 80 % | boundaries es la única forma de forzar la regla de capas; los hooks detectan errores antes del CI y solo revisan lo que cambió |
+| D-39 | Método de merge | PR de funcionalidad → `dev`: squash. PR de release `dev` → `main`: merge commit. Configurado en los cuatro repos (el plan Free no permite forzarlo por rama, así que es convención) | Con squash en los releases, `main` acumula commits que `dev` no tiene y cada release siguiente genera conflictos |
