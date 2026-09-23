@@ -6,8 +6,32 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-/** Capas de la arquitectura (ver ARCHITECTURE.md §2 y §3). */
-const LAYERS = ['domain', 'application', 'infrastructure', 'config', 'i18n'];
+/** Capas de cada módulo y de `shared` (ver ARCHITECTURE.md §2 y §3). */
+const LAYERS = ['domain', 'application', 'infrastructure'];
+
+/** Archivos que importan: elementos de alguno de estos tipos. */
+const from = (...types) => ({ element: { types: { anyOf: types } } });
+
+/**
+ * Destino permitido: elementos de estos tipos. Con `sameModule`, solo del mismo módulo que el
+ * archivo que importa (el nombre del módulo se captura de la ruta `src/modules/<módulo>`).
+ */
+const elements = (types, { sameModule = false } = {}) => ({
+  to: {
+    element: {
+      types: { anyOf: types },
+      ...(sameModule && {
+        captured: { module: '{{ from.element.captured.module }}' },
+      }),
+    },
+  },
+});
+
+/** Destino permitido: paquetes externos (todos o solo los indicados) y módulos de Node. */
+const packages = (source) =>
+  source
+    ? { to: { module: { origin: 'external', source } } }
+    : { to: { module: { origin: ['external', 'core'] } } };
 
 export default defineConfig(
   globalIgnores(['dist/', 'coverage/', 'docs/']),
@@ -46,12 +70,29 @@ export default defineConfig(
     settings: {
       'import/resolver': { typescript: { alwaysTryTypes: true } },
       'boundaries/elements': [
+        // Capas de cada módulo: src/modules/<módulo>/<capa>.
         ...LAYERS.map((layer) => ({
           type: layer,
-          pattern: `src/${layer}`,
+          pattern: `src/modules/*/${layer}`,
+          partialMatch: false,
+          capture: ['module'],
+        })),
+        // <módulo>.module.ts: une las capas del módulo para NestJS.
+        {
+          type: 'module',
+          pattern: 'src/modules/*',
+          partialMatch: false,
+          capture: ['module'],
+        },
+        // Código transversal, con las mismas tres capas: src/shared/<capa>.
+        ...LAYERS.map((layer) => ({
+          type: `shared-${layer}`,
+          pattern: `src/shared/${layer}`,
           partialMatch: false,
         })),
-        // Raíz de composición: main.ts y app.module.ts arman la aplicación con todas las capas.
+        { type: 'config', pattern: 'src/config', partialMatch: false },
+        { type: 'i18n', pattern: 'src/i18n', partialMatch: false },
+        // Raíz de composición: main.ts y app.module.ts.
         { type: 'app', pattern: 'src', partialMatch: false },
       ],
     },
@@ -63,70 +104,102 @@ export default defineConfig(
           // Revisa también paquetes externos y módulos de Node, no solo los archivos del proyecto.
           checkAllOrigins: true,
           policies: [
-            // domain: solo se importa a sí mismo; ni framework ni librerías externas.
+            // domain: su propio domain y el domain compartido. Nunca el domain de otro módulo
+            // (los agregados se referencian por ID) ni librerías externas.
             {
-              from: { element: { type: 'domain' } },
-              allow: { to: { element: { type: 'domain' } } },
+              from: from('domain'),
+              allow: elements(['domain'], { sameModule: true }),
             },
-            // application: usa domain. De afuera, solo la inyección de dependencias de Nest y los contratos.
+            { from: from('domain'), allow: elements(['shared-domain']) },
+
+            // application: el domain de su módulo, el application de cualquier módulo (así un módulo
+            // usa los casos de uso de otro) y lo compartido.
             {
-              from: { element: { type: 'application' } },
-              allow: {
-                to: {
-                  element: { types: { anyOf: ['domain', 'application'] } },
-                },
-              },
+              from: from('application'),
+              allow: elements(['domain'], { sameModule: true }),
             },
             {
-              from: { element: { type: 'application' } },
-              allow: {
-                to: {
-                  module: {
-                    origin: 'external',
-                    source: ['@nestjs/common', '@fiaro-app/contracts'],
-                  },
-                },
-              },
+              from: from('application'),
+              allow: elements([
+                'application',
+                'shared-domain',
+                'shared-application',
+              ]),
             },
-            // infrastructure: adaptadores; puede usar todas las capas internas y cualquier librería.
+
+            // infrastructure: las capas de su módulo, lo compartido y la configuración.
             {
-              from: { element: { type: 'infrastructure' } },
-              allow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: [
-                        'domain',
-                        'application',
-                        'infrastructure',
-                        'config',
-                        'i18n',
-                      ],
-                    },
-                  },
-                },
-              },
+              from: from('infrastructure'),
+              allow: elements(LAYERS, { sameModule: true }),
             },
+            {
+              from: from('infrastructure'),
+              allow: elements([
+                'shared-domain',
+                'shared-application',
+                'shared-infrastructure',
+                'config',
+                'i18n',
+              ]),
+            },
+
+            // <módulo>.module.ts: las capas de su módulo, otros módulos de Nest y lo compartido.
+            {
+              from: from('module'),
+              allow: elements(LAYERS, { sameModule: true }),
+            },
+            {
+              from: from('module'),
+              allow: elements(['module', 'shared-infrastructure', 'config']),
+            },
+
+            // shared: las mismas reglas de capas, sin depender de ningún módulo.
+            { from: from('shared-domain'), allow: elements(['shared-domain']) },
+            {
+              from: from('shared-application'),
+              allow: elements(['shared-domain', 'shared-application']),
+            },
+            {
+              from: from('shared-infrastructure'),
+              allow: elements([
+                'shared-domain',
+                'shared-application',
+                'shared-infrastructure',
+                'config',
+                'i18n',
+              ]),
+            },
+
             // config: lectura y validación del entorno.
+            { from: from('config'), allow: elements(['config']) },
+
+            // Raíz de composición: registra los módulos y lo compartido.
             {
-              from: { element: { type: 'config' } },
-              allow: { to: { element: { type: 'config' } } },
+              from: from('app'),
+              allow: elements([
+                'module',
+                'shared-infrastructure',
+                'config',
+                'i18n',
+                'app',
+              ]),
             },
-            // Raíz de composición: une todo.
+
+            // Paquetes externos: application solo usa la inyección de dependencias de Nest y los
+            // contratos; domain ninguno; el resto, cualquiera.
             {
-              from: { element: { type: 'app' } },
-              allow: {
-                to: { element: { types: { anyOf: [...LAYERS, 'app'] } } },
-              },
+              from: from('application', 'shared-application'),
+              allow: packages(['@nestjs/common', '@fiaro-app/contracts']),
             },
-            // Librerías externas y módulos de Node: solo fuera de domain y application.
             {
-              from: {
-                element: {
-                  types: { anyOf: ['infrastructure', 'config', 'app'] },
-                },
-              },
-              allow: { to: { module: { origin: ['external', 'core'] } } },
+              from: from(
+                'infrastructure',
+                'shared-infrastructure',
+                'module',
+                'config',
+                'app',
+              ),
+              allow: packages(),
             },
           ],
         },
