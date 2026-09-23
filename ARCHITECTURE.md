@@ -10,7 +10,9 @@
 |---|---|---|
 | Framework | NestJS 12 (TypeScript 6.0, `strict`) | TypeScript fijado en `~6.0.3`: es el más nuevo que soporta typescript-eslint |
 | Runtime | Node 24 LTS, pnpm 11 | Versión en `.nvmrc` y `engines`; `packageManager` fijado en `package.json` |
-| Contratos | `@fiaro-app/contracts` | Schemas de Zod, tipos y endpoints compartidos con las apps |
+| Contratos | `@fiaro-app/contracts` | Schemas de Zod, tipos y endpoints compartidos con las apps. Paquete privado en GitHub Packages: el acceso está en el README |
+| Validación y docs de la API | Schemas de Zod (Standard Schema) + `@nestjs/swagger` | El pipe de validación y la documentación OpenAPI salen de los mismos schemas — ver secciones 5 y 11 |
+| Seguridad HTTP | Helmet, CORS, `cookie-parser`, `@nestjs/throttler` | Se configura antes del primer endpoint — ver sección 11 |
 | ORM | Prisma (se instala con el esquema) | Nunca se expone el tipo generado por Prisma fuera de `infrastructure` — ver sección 4 |
 | Base de datos | PostgreSQL (Neon) | |
 | Cache / colas | Redis (Upstash) + BullMQ | |
@@ -30,7 +32,8 @@ Un módulo por funcionalidad del dominio, cada uno con su propia arquitectura he
 ```
 src/
   main.ts                        # Arranca la aplicación
-  app.module.ts                  # Raíz de composición: registra los módulos
+  app.module.ts                  # Raíz de composición: registra los módulos y el rate limit
+  app.setup.ts                   # Configuración HTTP global: seguridad, versionado, validación y docs (§11)
   modules/
     <módulo>/                    # system, auth, tenants, subscriptions, lenders, memberships,
                                  # clients, loans, collections, payments, settlements, notifications
@@ -63,7 +66,7 @@ src/
       audit/                     #   Puerto y servicio para registrar auditoría
     infrastructure/
       persistence/               #   Esquema y cliente de Prisma (PrismaService)
-      http/                      #   Guards, pipes y decoradores HTTP (ZodValidationPipe, @QueryMethod)
+      http/                      #   Pipes, middlewares y opciones HTTP (SchemaValidationPipe, cabeceras de seguridad, CORS, versionado)
       filters/                   #   Filtro global de excepciones → ApiError de contracts
       crypto/                    #   Hashing y cifrado
       notifications/             #   Email (Resend), WhatsApp (Twilio)
@@ -74,7 +77,7 @@ src/
       maintenance/               #   Modo mantenimiento (503 MAINTENANCE)
       swagger/                   #   Documentación OpenAPI
       i18n/                      #   Adaptador de traducciones
-  config/                        # Lectura y validación de variables de entorno
+  config/                        # Lectura y validación de variables de entorno (env.ts, env.module.ts, env.token.ts)
   i18n/                          # Archivos de traducción
 test/
   *.e2e-spec.ts                  # Pruebas e2e, una suite por flujo de negocio
@@ -82,11 +85,13 @@ test/
 
 **Carpetas que se crean con su primer archivo.** Cada módulo nace con sus tres capas. Las subcarpetas del árbol (`entities`, `use-cases`, `controllers`...) aparecen cuando el módulo las necesita: no todos los módulos usan todas, y crearlas de antemano serían unas 170 carpetas vacías. Las carpetas vacías llevan un `.gitkeep` para que git las conserve; se borra al agregar el primer archivo.
 
-**Nombres de archivo:** kebab-case con un sufijo que dice qué es: `.entity.ts`, `.value-object.ts`, `.enum.ts`, `.error.ts`, `.policy.ts`, `.repository.ts` (interfaz en `domain`), `.token.ts`, `.use-case.ts`, `.service.ts`, `.dto.ts`, `.port.ts`, `.event.ts`, `.controller.ts`, `.module.ts`, `.mapper.ts`, `.filter.ts`, `.guard.ts`, `.pipe.ts`. Los adaptadores llevan el nombre de la tecnología: `prisma-loan.repository.ts`, `resend-email-sender.ts`.
+**Nombres de archivo:** kebab-case con un sufijo que dice qué es: `.entity.ts`, `.value-object.ts`, `.enum.ts`, `.error.ts`, `.policy.ts`, `.repository.ts` (interfaz en `domain`), `.token.ts`, `.use-case.ts`, `.service.ts`, `.dto.ts`, `.port.ts`, `.event.ts`, `.controller.ts`, `.module.ts`, `.mapper.ts`, `.filter.ts`, `.guard.ts`, `.pipe.ts`, `.middleware.ts`, `.options.ts`, `.setup.ts`. Los adaptadores llevan el nombre de la tecnología: `prisma-loan.repository.ts`, `resend-email-sender.ts`.
 
 **`dtos` y `contracts`:** los requests y respuestas HTTP vienen de `@fiaro-app/contracts`. Los `dtos` de `application` son la entrada y salida de cada caso de uso, independientes de HTTP: el controller traduce del contrato al DTO del caso de uso.
 
 **`tokens`:** en TypeScript las interfaces desaparecen al compilar, así que NestJS no puede inyectar un `LoanRepository` por su tipo. Cada puerto o repositorio tiene un token (`Symbol`) con el que se registra y se inyecta la implementación.
+
+**Comentarios:** solo TSDoc (`/** */`) y solo sobre lo que importa: comportamiento no obvio, contratos y flujos donde el orden importa (con `@remarks`). Nada de comentarios `//` que narren el código ni que expliquen el porqué de una decisión: eso va en este documento y en PRODUCT.md. En las pruebas, el nombre del `it()` es la explicación.
 
 ## 3. Regla de dependencia (obligatoria, forzada por lint)
 
@@ -137,12 +142,12 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
   - `GET` se reserva para lecturas por identificador o sin criterio (`GET /clients/:id`, `GET /collectors/me`).
   - `QUERY` para búsquedas y reportes: `QUERY /lenders/me/stats`, `QUERY /clients`, `QUERY /daily-settlements`, `QUERY /collectors/me/route`.
   - El body de un `QUERY` es un schema de `contracts` por caso de uso (`LoanStatsQuerySchema`, `ClientSearchQuerySchema`); si pagina, extiende `PageQuerySchema`, que ya trae los defaults de `page` y `pageSize`.
-  - Soporte de plataforma: Node 24 incluye `QUERY` en `http.METHODS`; se expone en Nest con un decorador propio (`@QueryMethod(path)`) en `shared/infrastructure/http`. `fetch` en Expo y Next acepta el método tal cual. Por ser un método no simple, el navegador hace preflight CORS: `QUERY` debe estar en `Access-Control-Allow-Methods`.
+  - Soporte de plataforma: Node 24 incluye `QUERY` en `http.METHODS` y NestJS 12 lo expone como `@QueryMethod(path)` (`@nestjs/common`). `fetch` en Expo y Next acepta el método tal cual. Por ser un método no simple, el navegador hace preflight CORS: `QUERY` está en `CORS_METHODS` (`shared/infrastructure/http/cors.options.ts`) y una prueba e2e lo verifica. Swagger UI documenta las rutas `QUERY` pero no permite ejecutarlas desde la interfaz.
 - **Respuestas de éxito:** el recurso o colección directo, sin envelope (`{ id, ... }` o `[{ ... }]`). Para listas paginadas, un envelope mínimo: `{ data: [...], meta: { page, pageSize, total } }`.
 - **Formato de datos:** JSON en camelCase (Prisma traduce a `snake_case` con `@map`), fechas de calendario `AAAA-MM-DD`, marcas de tiempo ISO 8601 con zona horaria, dinero en enteros y `null` explícito en las respuestas (D-31). Razones en el README de `contracts`.
-- **Errores:** filtro de excepción global (`shared/infrastructure/filters`) que responde `ApiErrorSchema`: `{ statusCode, code, message, path, timestamp, issues }`. `code` es un string estable que las apps usan en lugar de parsear `message`: los generales están en `ErrorCodeSchema` (`VALIDATION_FAILED`, `SUBSCRIPTION_READ_ONLY`...) y cada módulo agrega los suyos (`LOAN_NOT_FOUND`). `issues` trae el detalle por campo cuando el código es `VALIDATION_FAILED`; en los demás casos es `null`. Los errores de dominio (`DomainError` y sus subclases) se traducen a su código HTTP en ese filtro.
-- **Validación:** con los schemas de Zod de `contracts`, no con DTOs de class-validator: el contrato es la única fuente de verdad. Un pipe propio (`ZodValidationPipe`, en `shared/infrastructure/http`) valida los parámetros de ruta y el body contra la definición del endpoint. Los bodies son `z.strictObject`, así que un campo desconocido responde `400 VALIDATION_FAILED` en lugar de ignorarse.
-- **Compatibilidad con apps viejas:** las rutas no llevan prefijo de versión. Los cambios a la API son aditivos, los schemas de respuesta de `contracts` ignoran campos desconocidos y el version-gate (`GET /mobile/version`) bloquea las apps por debajo de `minimumSupportedVersion`. Un cambio incompatible sube esa versión mínima en el mismo despliegue.
+- **Errores:** filtro de excepción global (`shared/infrastructure/filters`) que responde `ApiErrorSchema`: `{ statusCode, code, message, path, timestamp, issues }`. `code` es un string estable que las apps usan en lugar de parsear `message`: los generales están en `ErrorCodeSchema` (`VALIDATION_FAILED`, `SUBSCRIPTION_READ_ONLY`...) y cada módulo agrega los suyos (`LOAN_NOT_FOUND`). `issues` trae el detalle por campo cuando el código es `VALIDATION_FAILED`; en los demás casos es `null`. Los errores de dominio (`DomainError` y sus subclases) se traducen a su código HTTP en ese filtro. **Estado:** el filtro todavía no existe; hoy la validación responde `{ code: 'VALIDATION_FAILED', message, issues }` y el rate limit `{ statusCode, message }`. El filtro los completará con `statusCode`, `path`, `timestamp` y el código `RATE_LIMITED`.
+- **Validación:** con los schemas de Zod de `contracts`, no con DTOs de class-validator: el contrato es la única fuente de verdad. Cada parámetro declara su schema (`@Body({ schema: CreateLoanSchema })`, `@Param({ data: 'id', schema })`) y el pipe global `SchemaValidationPipe` (`shared/infrastructure/http`) lo valida. Está construido sobre el `StandardSchemaValidationPipe` de NestJS 12, así que no hace falta una librería de terceros (`nestjs-zod` no soporta Nest 12). Los bodies son `z.strictObject`, así que un campo desconocido responde `400 VALIDATION_FAILED` en lugar de ignorarse. Un `@Body()` o `@Query()` **sin schema** es un error de programación y responde 500: el pipe de Nest lo dejaría pasar sin validar en silencio, y un olvido así abriría la puerta a datos sin revisar. Ver sección 11.
+- **Versionado y compatibilidad con apps viejas:** las rutas **no llevan prefijo de versión** (`/clients/:id`, igual que en `contracts`): la versión se elige con la cabecera `API-Version` y, si falta, se sirve la versión `1`, que es la que usan las apps ya instaladas. Los cambios aditivos (un campo o una ruta nueva) no cambian la versión: los schemas de respuesta de `contracts` ignoran campos desconocidos. Un cambio incompatible crea la versión 2 **junto a** la 1: las apps nuevas envían `API-Version: 2` y las instaladas siguen igual, sin cabecera. La versión 1 se retira cuando el version-gate (`GET /mobile/version`) ya bloquea a las apps por debajo de `minimumSupportedVersion` que la usan. Las rutas de infraestructura (`/health`, `/mobile/version`) son `VERSION_NEUTRAL`: responden con cualquier versión y siguen alcanzables aunque una se retire. Una versión que la ruta no tiene responde 404. Ver sección 11 (D-41).
 
 ## 6. Autenticación y autorización
 
@@ -157,9 +162,9 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 
 - **Unitarios:** `*.spec.ts` junto al archivo que prueban (`loan.entity.spec.ts` junto a `loan.entity.ts`). Importan `describe`, `it` y `expect` desde `vitest`: no hay variables globales de prueba en el código de producción.
 - **Dominio primero:** la lógica de `domain` y `application` se prueba sin `TestingModule` de Nest ni base de datos, con implementaciones en memoria de los puertos. Son las pruebas que más abundan y deben correr en milisegundos: es lo que mantiene la suite rápida cuando el proyecto crece.
-- **E2E:** en `test/*.e2e-spec.ts`, uno por flujo de negocio relevante (no uno por endpoint), con `Test.createTestingModule` de Nest y `supertest`. Configuración separada (`vitest.config.e2e.ts`): no se mezclan con las unitarias en `pnpm test`.
+- **E2E:** en `test/*.e2e-spec.ts`, uno por flujo de negocio relevante (no uno por endpoint), con `Test.createTestingModule` de Nest y `supertest`. Configuración separada (`vitest.config.e2e.ts`): no se mezclan con las unitarias en `pnpm test`. `test/security.e2e-spec.ts` es la excepción a "uno por flujo de negocio": prueba la aplicación ensamblada (`AppModule` + `configureApp`) con rutas de prueba, porque cada protección de la sección 11 puede estar bien por separado y aun así no estar conectada. Se verificó que cada una de esas pruebas falla al quitar su protección.
 - **SWC:** las pruebas se compilan con SWC (`unplugin-swc`), la configuración que recomienda NestJS para Vitest. Emite la metadata de decoradores que necesita la inyección de dependencias, y la cobertura de Vitest reconoce ese código generado y no lo cuenta como ramas sin probar.
-- **Cobertura:** `pnpm test:cov` exige al menos 80 % de líneas, funciones, ramas y sentencias, el mismo mínimo que la quality gate de SonarCloud. `main.ts` y los `*.module.ts` quedan fuera: solo arman la aplicación y los cubren las pruebas e2e.
+- **Cobertura:** `pnpm test:cov` exige al menos 80 % de líneas, funciones, ramas y sentencias, el mismo mínimo que la quality gate de SonarCloud. `main.ts`, `app.setup.ts` y los `*.module.ts` quedan fuera: solo arman la aplicación y los cubren las pruebas e2e; los `*.token.ts` también, por ser una constante sin lógica. La misma lista está en `sonar-project.properties` y deben coincidir.
 
 ## 8. Herramientas, hooks y caché
 
@@ -180,13 +185,27 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 | Vitest | Orden de ejecución por duración y fallos previos | Sí: no cambia resultados |
 | ESLint | **No se cachea** | Su caché guarda el resultado por archivo y no detecta cambios de tipos en otros archivos; con reglas que usan tipos daría resultados viejos. La velocidad viene de lint-staged, que solo revisa lo que cambió |
 
-**Scripts de instalación de terceros:** pnpm 11 no los ejecuta salvo autorización explícita en `pnpm-workspace.yaml` (`allowBuilds`). `@swc/core` y `unrs-resolver` quedan desactivados: solo verifican un binario nativo que ya llega como dependencia opcional.
+**Scripts de instalación de terceros:** pnpm 11 no los ejecuta salvo autorización explícita en `pnpm-workspace.yaml` (`allowBuilds`). `@swc/core` y `unrs-resolver` quedan desactivados: solo verifican un binario nativo que ya llega como dependencia opcional. `@scarf/scarf` (lo trae `swagger-ui-dist`) también: solo envía telemetría de uso.
 
 **Período de espera de pnpm:** pnpm 11 no instala versiones publicadas hace menos de un día, como protección contra paquetes comprometidos. El scope `@fiaro-app` queda exento (`minimumReleaseAgeExclude`) para instalar `contracts` apenas se publica.
 
 ## 9. Variables de entorno
 
-Ninguna está conectada todavía. Cada una se agrega junto con la pieza que la usa, validada en `config/` al arrancar, y se documenta en `.env.example` (nunca `.env` real, ver `.gitignore`) y aquí:
+Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts` al arrancar (si alguna es inválida el proceso no arranca y el error dice cuál), y se documenta en `.env.example` (nunca `.env` real, ver `.gitignore`) y aquí. En desarrollo se leen de un `.env` local, que Node carga sin dependencias (`process.loadEnvFile`, en `main.ts`); en producción las inyecta la plataforma y no hay archivo.
+
+**Conectadas** (seguridad HTTP, ver sección 11):
+
+| Variable | Por defecto | Para qué |
+|---|---|---|
+| `NODE_ENV` | `development` | `development`, `test` o `production` |
+| `PORT` | `3000` | Puerto HTTP |
+| `CORS_ORIGINS` | vacío | Orígenes (separados por coma, sin barra final) que pueden llamar a la API desde un navegador. Vacío: ninguno |
+| `TRUST_PROXY` | `0`; **obligatoria en producción** | Proxies de confianza delante de la API (`1` en Fly.io; `.env.example` la deja en `1`). De ahí sale la IP que cuenta el rate limit |
+| `THROTTLE_TTL_MS` | `60000` | Ventana del rate limit, en milisegundos |
+| `THROTTLE_LIMIT` | `100` | Peticiones permitidas por IP y por ruta dentro de la ventana |
+| `SWAGGER_ENABLED` | activa salvo en producción | Publica la documentación en `/docs` |
+
+**Pendientes** (cada una se agrega con su pieza):
 
 | Variable | Para qué | Se agrega con |
 |---|---|---|
@@ -196,8 +215,77 @@ Ninguna está conectada todavía. Cada una se agrega junto con la pieza que la u
 | `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | Firma de sesiones de better-auth | Autenticación |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | Storage de archivos (Cloudflare R2) | Logo del prestamista |
 | `SENTRY_DSN` | Errores en producción | Primer despliegue |
-| `PORT` | Puerto HTTP (Nest usa `3000` por defecto) | Primer despliegue |
 
 ## 10. Ramas y CI
 
 Ver el `README.md` de este repo para el flujo de ramas (`dev`/`main`) y el pipeline de CI. Este documento cubre solo arquitectura de código.
+
+## 11. Seguridad HTTP
+
+Todo esto se configura antes del primer endpoint, para que cada ruta nueva lo herede sin que nadie tenga que acordarse (D-40 a D-43). Vive en `src/app.setup.ts` (`configureApp`, que llaman `main.ts` y las pruebas e2e) y el rate limit en `AppModule`. Las piezas están en `shared/infrastructure/{http,swagger}` y la configuración en `config/`.
+
+| Protección | Qué hace | Por qué |
+|---|---|---|
+| Helmet | Cabeceras de seguridad y política de contenido (CSP) | Reduce lo que un navegador puede hacer con una respuesta de la API |
+| CORS | Solo los orígenes de `CORS_ORIGINS` pueden llamar desde un navegador | Evita que una página ajena use la sesión del usuario para leer sus datos |
+| `cookie-parser` | Llena `req.cookies` | Lectura de cookies propias; la sesión la manejará la autenticación |
+| Rate limit | 100 peticiones por minuto por IP y ruta; 429 al pasarse | Frena la fuerza bruta y el abuso |
+| Versionado | Cabecera `API-Version` (sin ella, la versión 1) | Permite cambiar la API sin romper las apps instaladas ni las rutas de `contracts` |
+| Validación | Schema de Zod en cada body y parámetro | Nada llega a un caso de uso sin validar |
+| Swagger | Documentación en `/docs`, apagada en producción | Documentación viva, sin publicar el mapa de la API donde no hace falta |
+
+### Orden de `configureApp`
+
+El orden es parte del diseño: `trust proxy` → Helmet → `cookie-parser` → CORS → versionado (con `Vary`) → pipe global → Swagger. Helmet va primero para que las cabeceras salgan también en los errores, los 404 y las respuestas de preflight. El rate limit no es un middleware sino un guard global, que corre después de todos ellos: un preflight de CORS se responde antes de llegar a las rutas y nunca gasta el límite.
+
+`configureApp` existe aparte de `main.ts` porque lo que se configura con `app.use()`, `enableCors()` o `useGlobalPipes()` no forma parte de `AppModule`: una prueba que solo importara el módulo probaría una aplicación sin protecciones.
+
+### Helmet: dos políticas de contenido
+
+- **API:** `default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`. Una respuesta de la API es JSON, nunca una página: si un navegador la interpretara como HTML no podría cargar ni ejecutar nada, y ningún sitio puede meterla en un iframe.
+- **`/docs`:** la política por defecto de Helmet, porque Swagger UI carga sus propios scripts y estilos. Sin `upgrade-insecure-requests`: Safari lo aplica también a `http://localhost` y la interfaz deja de cargar.
+
+Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` y `Cross-Origin-Resource-Policy: same-origin`, y quita `X-Powered-By` para no anunciar el framework.
+
+### CORS
+
+- **Lista blanca, nunca `*`.** `CORS_ORIGINS` acepta solo orígenes exactos (`https://app.fiaro.co`, sin barra final ni ruta); un comodín o un origen mal escrito impide arrancar. Con la lista vacía no se envía ninguna cabecera CORS.
+- **`credentials: true`** para que el panel web envíe la cookie de sesión. Por eso el origen no puede ser `*`: el navegador rechaza esa combinación.
+- **CORS protege al usuario, no a la API.** Un cliente que no es navegador (las apps móviles, `curl`) lo ignora, así que no reemplaza a la autenticación.
+- `QUERY` está en los métodos permitidos (§5), `API-Version` en las cabeceras permitidas y `maxAge` es de 10 minutos: el navegador recuerda el preflight en lugar de repetirlo en cada petición.
+
+### Rate limit
+
+`@nestjs/throttler` como guard global. Cada respuesta trae `X-RateLimit-Limit`, `X-RateLimit-Remaining` y `X-RateLimit-Reset`; al pasarse responde 429 con `Retry-After`. Lo que conviene saber:
+
+- **El contador es por IP y por ruta**, no global: agotar `GET /loans` no bloquea `GET /clients`. Sirve para frenar abuso, no para absorber un ataque de denegación de servicio (eso lo hace el borde: Fly.io o un CDN).
+- **`TRUST_PROXY` decide de dónde sale la IP.** Detrás de Fly.io, sin ella la IP sería siempre la del proxy y el límite contaría a todos los usuarios como uno; y si se confía de más, cualquiera falsifica `X-Forwarded-For` y evita el límite. Por eso es obligatoria en producción: `1` detrás de Fly.io, `0` si la API recibe tráfico directo. Dos pruebas e2e verifican ambos casos.
+- **Rutas sensibles:** el inicio de sesión llevará un límite más estricto con `@Throttle({ default: { limit: 5, ttl: 60_000 } })`, y `/health` llevará `@SkipThrottle()`. Las apps móviles sincronizan de golpe lo registrado sin señal (D-05): deben respetar `Retry-After` en lugar de reintentar de inmediato.
+- **Almacén en memoria:** vale mientras haya una sola instancia. Con dos o más, cada una cuenta por su lado y el límite real se multiplica. Al escalar hay que compartirlo (Redis/Upstash) con un `ThrottlerStorage`: `@nest-lab/throttler-storage-redis` 1.2.0 declara soporte solo hasta NestJS 11 (verificado el 2026-09-23), así que hay que revisar su compatibilidad con Nest 12 o implementar la interfaz sobre el cliente de Redis del proyecto.
+
+### Versionado
+
+- **Por cabecera, no por la URL:** `API-Version: 2`. Las rutas no cambian, así que coinciden siempre con las de `contracts` y las apps no necesitan una base de URL distinta por versión. La cabecera no lleva el prefijo `X-`, que el RFC 6648 desaconseja para cabeceras nuevas.
+- **Sin cabecera, versión 1.** Las apps instaladas no envían la cabecera y siguen funcionando cuando aparezca la versión 2. Las rutas de la versión 1 **no declaran versión**: heredan la de por defecto; solo las versiones nuevas se declaran.
+- **Por qué un extractor propio (`VersioningType.CUSTOM`) y no el tipo `HEADER` de Nest 12.** `HEADER` no aplica `defaultVersion` cuando falta la cabecera: con la configuración "obvia" (`HEADER` + `defaultVersion: '1'`) cada app que no la envía recibiría 404, y una ruta que declara `version: '1'` tampoco respondería sin ella. Está verificado, y una prueba e2e lo protege (ver `shared/infrastructure/http/api-versioning.ts`).
+- **Recetas.** Un cambio incompatible: `@Controller({ path: 'loans', version: '2' })` (o `@Version('2')` en un método) crea la versión 2 junto a la 1. Una ruta de infraestructura: `@Controller({ path: 'health', version: VERSION_NEUTRAL })`. Una versión que la ruta no tiene responde 404.
+- **Caches y CORS.** La misma URL devuelve contenido distinto según la cabecera, así que cada respuesta lleva `Vary: API-Version` para que ninguna cache entregue la de una versión a quien pidió otra. La cabecera está entre las permitidas de CORS; por ser propia, el navegador hace preflight incluso en un `GET` (lo recuerda 10 minutos).
+- **Swagger.** Un documento no puede describir dos versiones de una misma ruta (la última reemplaza a la anterior). Hoy solo existe la versión 1; cuando exista la 2 habrá que generar un documento por versión.
+
+### Validación
+
+- Un campo que el schema no declara → 400. Un `@Body()` o `@Query()` sin schema → 500 (falla cerrado; el mensaje queda en el log, no en la respuesta).
+- El pipe de Nest elimina las llaves `__proto__`, `prototype` y `constructor` del dato antes de validar (contaminación de prototipos).
+- De cada error solo salen `path` y `message` en `issues`: los schemas agregan más datos (límites, valores recibidos) que no deben salir.
+
+### Documentación (Swagger)
+
+- Publica `/docs` (interfaz) y `/docs/openapi.json` (documento), generados a partir de las rutas y del schema de cada `@Body({ schema })`: no hay nada que mantener a mano.
+- **Apagada en producción por defecto** (`SWAGGER_ENABLED`). Describe cada ruta, campo y regla de una API financiera: es información que un atacante aprovecha y que nadie necesita en producción.
+- **OpenAPI 3.2.** La 3.0 que Nest usa por defecto no define la operación `query`, y Swagger UI oculta las rutas `QUERY` (D-26), que serán casi todas las lecturas.
+
+### Lo que todavía no está
+
+- **Filtro global de excepciones** que responda `ApiError` (§5).
+- **Serializar las respuestas con schema** (`StandardSchemaSerializerInterceptor` y `@SerializeOptions({ schema })` de Nest 12), para que una ruta nunca devuelva campos que el contrato no declara.
+- **`Cache-Control: no-store`** en las respuestas con datos personales.

@@ -16,6 +16,7 @@ Detalle completo, estructura de carpetas y convenciones de código en [ARCHITECT
 
 - Node 24 (versión en `.nvmrc`)
 - pnpm 11 (`corepack enable` si no lo tienes activado)
+- Acceso de lectura a `@fiaro-app/contracts`, un paquete privado ([cómo](#acceso-a-fiaro-appcontracts))
 
 ## Empezar
 
@@ -23,6 +24,29 @@ Detalle completo, estructura de carpetas y convenciones de código en [ARCHITECT
 pnpm install      # también instala los hooks de git (script prepare)
 pnpm start:dev
 ```
+
+Con el servidor arriba, la documentación de la API está en <http://localhost:3000/docs> (solo fuera de producción).
+
+## Acceso a `@fiaro-app/contracts`
+
+Es un paquete privado en GitHub Packages, que exige autenticación para instalarlo aunque sea tuyo. El `.npmrc` del repo solo dice dónde está (`@fiaro-app:registry`); las credenciales van fuera del repo, en tu `~/.npmrc` (carpeta personal):
+
+```ini
+@fiaro-app:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+La línea del token no puede ir en el `.npmrc` del repo: pnpm 11 ignora las variables de entorno en las credenciales de un `.npmrc` de proyecto, para que un archivo commiteado no pueda filtrar secretos.
+
+Para instalar, con la sesión de `gh` (necesita el permiso `read:packages`: `gh auth refresh -s read:packages`):
+
+```bash
+NODE_AUTH_TOKEN=$(gh auth token) pnpm install
+```
+
+También sirve un token clásico con solo `read:packages` en `NODE_AUTH_TOKEN`. Definir esa variable vacía en tu shell (`export NODE_AUTH_TOKEN=`) evita el aviso `Failed to replace env in config` de pnpm en el resto de los comandos.
+
+El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso de lectura al repo `api` (Package settings → Manage Actions access).
 
 ## Scripts
 
@@ -54,7 +78,7 @@ Detalle y razones en [ARCHITECTURE.md §8](./ARCHITECTURE.md#8-herramientas-hook
 
 ## Variables de entorno
 
-Todavía no hay ninguna conectada; cada una llega con la pieza que la usa. Se documentan en [ARCHITECTURE.md](./ARCHITECTURE.md#9-variables-de-entorno) y en `.env.example` a medida que se agregan. Nunca se commitea un `.env` real.
+Se validan al arrancar: si alguna es inválida el proceso no arranca y el error dice cuál. En desarrollo todas son opcionales; copia `.env.example` a `.env` si quieres cambiar alguna (por ejemplo `CORS_ORIGINS`, para probar el panel web). En producción `TRUST_PROXY` es obligatoria. Cada una se explica en [ARCHITECTURE.md](./ARCHITECTURE.md#9-variables-de-entorno) y la seguridad HTTP que las usa, en la [sección 11](./ARCHITECTURE.md#11-seguridad-http). Nunca se commitea un `.env` real.
 
 ## Ramas y flujo de trabajo
 
