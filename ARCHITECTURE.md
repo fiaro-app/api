@@ -23,7 +23,8 @@
 | Hooks de git | Husky + lint-staged + commitlint | Ver sección 8 |
 | Docs | Compodoc | `pnpm docs` → `docs/` (no se commitea, se publica como artefacto de CI) |
 | Análisis estático | SonarQube Cloud (CI-based) | Quality gate: 80 % de cobertura en código nuevo |
-| Despliegue | Fly.io (Docker) | `Dockerfile` y `fly.toml` se agregan con el primer despliegue |
+| Entorno local | Docker Compose (OrbStack o Docker Desktop) | Postgres, Redis, Mongo, S3, Mailpit y la API con recarga en caliente; observabilidad opcional — ver sección 12 |
+| Despliegue | Fly.io (Docker) | El `Dockerfile` ya existe (target `prod`); `fly.toml` se agrega con el primer despliegue |
 
 ## 2. Estructura de carpetas
 
@@ -165,6 +166,7 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 - **E2E:** en `test/*.e2e-spec.ts`, uno por flujo de negocio relevante (no uno por endpoint), con `Test.createTestingModule` de Nest y `supertest`. Configuración separada (`vitest.config.e2e.ts`): no se mezclan con las unitarias en `pnpm test`. `test/security.e2e-spec.ts` es la excepción a "uno por flujo de negocio": prueba la aplicación ensamblada (`AppModule` + `configureApp`) con rutas de prueba, porque cada protección de la sección 11 puede estar bien por separado y aun así no estar conectada. Se verificó que cada una de esas pruebas falla al quitar su protección.
 - **SWC:** las pruebas se compilan con SWC (`unplugin-swc`), la configuración que recomienda NestJS para Vitest. Emite la metadata de decoradores que necesita la inyección de dependencias, y la cobertura de Vitest reconoce ese código generado y no lo cuenta como ramas sin probar.
 - **Cobertura:** `pnpm test:cov` exige al menos 80 % de líneas, funciones, ramas y sentencias, el mismo mínimo que la quality gate de SonarCloud. `main.ts`, `app.setup.ts` y los `*.module.ts` quedan fuera: solo arman la aplicación y los cubren las pruebas e2e; los `*.token.ts` también, por ser una constante sin lógica. La misma lista está en `sonar-project.properties` y deben coincidir.
+- **En contenedores:** `pnpm docker:test` corre la suite completa (unitarias con cobertura y e2e) dentro de Docker, con la infraestructura efímera de `compose.test.yaml` — ver sección 12.
 
 ## 8. Herramientas, hooks y caché
 
@@ -213,12 +215,17 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `REDIS_URL` | Cache + broker de BullMQ (Upstash) | Colas y caché |
 | `MONGODB_URI` | Auditoría | Auditoría |
 | `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | Firma de sesiones de better-auth | Autenticación |
-| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | Storage de archivos (Cloudflare R2) | Logo del prestamista |
+| `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Storage de archivos por API S3: Cloudflare R2 en producción, SeaweedFS en local. Nombres sin el del proveedor: el mismo código sirve para los dos | Logo del prestamista |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Correo saliente (Mailpit en local) | Recuperación de acceso y reportes |
 | `SENTRY_DSN` | Errores en producción | Primer despliegue |
+
+En el entorno local con Docker (sección 12) la API ya recibe `DATABASE_URL`, `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios de Compose; se declaran en `src/config/env.ts` cuando el primer módulo las use.
 
 ## 10. Ramas y CI
 
 Ver el `README.md` de este repo para el flujo de ramas (`dev`/`main`) y el pipeline de CI. Este documento cubre solo arquitectura de código.
+
+Además del job `check`, el CI tiene un job `docker` que corre en paralelo: valida los archivos de Compose, construye la imagen de producción con el secreto de BuildKit, comprueba que arranca y queda sana, y corre la suite en contenedores (sección 12). Así un `Dockerfile` roto se detecta en el PR y no en el primer despliegue.
 
 ## 11. Seguridad HTTP
 
@@ -289,3 +296,99 @@ Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 - **Filtro global de excepciones** que responda `ApiError` (§5).
 - **Serializar las respuestas con schema** (`StandardSchemaSerializerInterceptor` y `@SerializeOptions({ schema })` de Nest 12), para que una ruta nunca devuelva campos que el contrato no declara.
 - **`Cache-Control: no-store`** en las respuestas con datos personales.
+
+## 12. Entorno local con Docker
+
+Un solo `Dockerfile` (con un target por entorno) y dos archivos de Compose. Todo lo de esta sección es para desarrollo y pruebas: en producción la API corre en Fly.io y la base de datos, el almacenamiento y el correo son servicios administrados (D-44 a D-47).
+
+| Entorno | Definido en | Qué levanta | Comando |
+|---|---|---|---|
+| Desarrollo | `compose.yaml` + target `dev` | Postgres, Redis, Mongo, S3, Mailpit y la API con recarga en caliente | `pnpm docker:dev` |
+| Desarrollo con observabilidad | `compose.yaml`, perfil `observability` | Lo anterior más Prometheus, cAdvisor, Loki, Alloy y Grafana | `pnpm docker:dev:obs` |
+| Solo infraestructura | `compose.yaml` | Lo mismo sin la API, para correrla en tu máquina con `pnpm start:dev` | `pnpm docker:infra` |
+| Pruebas | `compose.test.yaml` + target `test` | Infraestructura efímera y un contenedor que corre la suite completa | `pnpm docker:test` |
+| Producción | target `prod` | Solo la imagen de la API | La construye el CI; Fly.io la usará en el primer despliegue |
+
+`pnpm docker:down` detiene todo y conserva los datos; `pnpm docker:reset` además borra los volúmenes. Los comandos que construyen la imagen (`docker:dev`, `docker:dev:obs` y `docker:test`) toman el token de GitHub Packages de tu sesión de `gh`, o de `NODE_AUTH_TOKEN` si ya lo tienes definido; los demás no lo necesitan.
+
+**`compose.yaml` es el entorno de desarrollo**, así que los comandos de Compose sin opciones (`docker compose ps`, `docker compose logs api`, `docker compose exec api sh`) funcionan sobre lo que estás usando. `compose.test.yaml` no se ejecuta solo: se aplica encima y cambia únicamente lo que unas pruebas necesitan distinto (datos en memoria, otros puertos y el contenedor de pruebas), así las imágenes y las versiones se definen una sola vez. Las versiones exactas están en `compose.yaml`.
+
+### Servicios
+
+| Servicio | Imagen | Puerto en tu máquina | Para qué | En producción |
+|---|---|---|---|---|
+| `postgres` | `postgres` (Debian) | 5440 | Base de datos transaccional | Neon |
+| `redis` | `redis` | 6390 | Caché y colas (BullMQ), con `noeviction` como BullMQ exige | Upstash |
+| `mongo` | `mongo` | 27040 | Auditoría | MongoDB Atlas |
+| `s3` | `chrislusf/seaweedfs` | 8333 | Almacenamiento de archivos con API S3 | Cloudflare R2 |
+| `mailpit` | `axllent/mailpit` | 1025 (SMTP), 8025 (interfaz) | Atrapa los correos que envía la API | Servicio de correo (por definir) |
+| `api` | `Dockerfile`, target `dev` | 3040 (HTTP), 9229 (depurador) | La API con recarga en caliente | Fly.io |
+| `prometheus` | `prom/prometheus` | 9090 | Guarda y consulta las métricas | — |
+| `cadvisor` | `ghcr.io/google/cadvisor` | 8081 | Mide CPU, memoria, red y disco de cada contenedor | — |
+| `loki` | `grafana/loki` | 3100 | Guarda y consulta los logs | — |
+| `alloy` | `grafana/alloy` | 12345 | Recolecta logs y métricas | — |
+| `grafana` | `grafana/grafana` | 3030 | Dashboards | — |
+
+### Puertos y credenciales
+
+- **Solo en `127.0.0.1`:** ningún puerto queda expuesto a la red local.
+- **Puertos distintos de los estándar** (5440 en lugar de 5432, 6390 en lugar de 6379, 27040 en lugar de 27017; la API en 3040 y no en 3000): en una máquina con más de un proyecto los estándar suelen estar ocupados y `docker compose up` falla con «port is already allocated». Cada puerto se cambia con una variable en tu shell o en `.env`: `POSTGRES_PORT`, `REDIS_PORT`, `MONGO_PORT`, `S3_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `API_PORT`, `API_DEBUG_PORT`, `PROMETHEUS_PORT`, `CADVISOR_PORT`, `LOKI_PORT`, `ALLOY_PORT` y `GRAFANA_PORT`.
+- **Credenciales de desarrollo**, sin valor fuera de tu máquina: Postgres y Mongo `fiaro` / `fiaro` (base `fiaro`); S3 `fiaro` / `fiaro-secret` (bucket `fiaro-dev`); Grafana `admin` / `admin`. Redis y Mailpit no piden credenciales. Se cambian con `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `MONGO_USER`, `MONGO_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` y `GRAFANA_ADMIN_PASSWORD` (sin caracteres especiales: van dentro de URLs de conexión).
+- **Postgres y Mongo exigen credenciales aunque sea desarrollo**, como Neon y Atlas: un código que solo funciona sin ellas se descubre en producción.
+
+### Desarrollo (`compose.yaml`, target `dev`)
+
+- **Recarga en caliente:** la API corre con `nest start --watch` y el `src/` de tu máquina está montado dentro (solo lectura): al guardar, se recompila y reinicia en unos 2 segundos. Un cambio en `package.json`, el lockfile o los archivos de configuración exige `pnpm docker:dev` otra vez (reconstruye la imagen).
+- **Depurador:** el puerto 9229 está publicado; en VS Code, «Attach» a `localhost:9229` con `remoteRoot` `/app`.
+- **Conexiones:** la API recibe `DATABASE_URL`, `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios por su nombre en la red de Compose (`postgres`, `redis`...), y arranca cuando están sanos. Todavía no las lee ningún módulo: están para que el primero que las necesite solo tenga que declararlas en `src/config/env.ts` (sección 9). Desde tu máquina (Prisma Studio, `pnpm start:dev`) se usan los puertos publicados.
+- **`.env`:** si existe, se pasa al contenedor; lo que define `compose.yaml` (`NODE_ENV`, `PORT`...) tiene prioridad.
+- **Logs sin colores** (`NO_COLOR=1`), para que lleguen limpios a Loki; los que emite el compilador de TypeScript los limpia Alloy.
+- **Usuario sin privilegios** (`node`) y `init: true`, para que las señales lleguen al proceso.
+- **Por qué la imagen `dev` instala `procps`:** el CLI de Nest reinicia la API matando el proceso anterior con `tree-kill`, que usa `ps`, y la imagen `-slim` no lo trae. El proceso viejo seguía vivo, el nuevo fallaba con `EADDRINUSE` y la API seguía sirviendo el código anterior sin ningún error visible. Se descubrió al verificar la recarga.
+
+### Pruebas (`compose.test.yaml`, target `test`)
+
+- **Datos en memoria (`tmpfs`):** cada corrida arranca vacía y no queda nada que limpiar; además es más rápido que el disco.
+- **Aislado del entorno de desarrollo:** puertos propios (5441, 6391, 27041, 8334, 1026 y 8026) y un proyecto distinto (`fiaro-test`), así que puede correr mientras tu stack de desarrollo está arriba y `pnpm docker:test` no puede tocarlo (el script fija el proyecto con `-p`).
+- **Qué corre:** el contenedor `test` espera a que la infraestructura esté sana y ejecuta `pnpm test:cov && pnpm test:e2e`. Hoy ninguna prueba usa las bases de datos (las unitarias y las e2e no las necesitan): el entorno queda listo, y verificado, para las pruebas de integración con Prisma, BullMQ o S3.
+- **Para probar desde tu máquina contra esa infraestructura:** `docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml up -d --wait` y usa los puertos de prueba.
+- El CI corre lo mismo en el job `docker`.
+
+### Observabilidad (perfil `observability`)
+
+```
+contenedores ── logs ──────────────────────────▶ Alloy ─▶ Loki ─────────────────┐
+cAdvisor, Postgres, Redis, Mongo, Loki, Grafana ─ métricas ─▶ Alloy ─ remote write ─▶ Prometheus ─┤
+                                                                                     Grafana ◀────┘
+```
+
+- **Alloy es el único recolector.** Prometheus solo guarda y consulta (recibe por *remote write* y se mide a sí mismo). Es la misma forma que tendrá producción: apuntar Alloy a Grafana Cloud u otro destino cambia una URL, no cómo se recolecta. Los exportadores de Postgres, Redis y Mongo van dentro de Alloy: tres contenedores menos.
+- **Solo recoge el proyecto `fiaro`** (filtro por la etiqueta de Compose), no todo lo que corra en Docker. Los logs de la API llegan solos: es un contenedor del proyecto.
+- **Raspa cada 15 segundos** y los dashboards usan `$__rate_interval`. Con el intervalo por defecto de Alloy (60 s) una tasa de un minuto casi nunca tiene dos muestras y los paneles de tasas salen vacíos.
+- **Retención de 7 días** en Prometheus y Loki, para que el disco no crezca sin límite.
+- **cAdvisor con Docker 29:** desde que Docker usa el almacén de imágenes de containerd, cAdvisor necesita el socket de containerd de Docker (`--containerd=/var/run/docker/containerd/containerd.sock`); sin él no registra el runtime y solo ve el cgroup raíz. Tampoco hay que fijar `--containerd-namespace=moby`: la fábrica de containerd reclamaría antes los contenedores y perderían el nombre y las etiquetas de Compose (los dashboards mostrarían IDs de 64 caracteres). Verificado en OrbStack; en otros runtimes puede cambiar la ruta del socket.
+- **Permisos amplios, solo para desarrollo:** Alloy monta el socket de Docker (solo lectura) y cAdvisor corre `privileged`. Es lo mínimo para ver otros contenedores y equivale a dar control sobre Docker.
+- **Dashboards** (aprovisionados desde `docker/grafana/dashboards`, de solo lectura en la interfaz): *Contenedores* (CPU, memoria, red y disco por servicio), *Bases de datos* (Postgres, Redis y Mongo) y *Logs* (volumen, errores y búsqueda por servicio). Para cambiarlos se edita el JSON.
+
+### Almacenamiento S3
+
+- **SeaweedFS, no MinIO.** El repositorio de MinIO se archivó el 25 de abril de 2026: desde octubre de 2025 no publicaba imágenes oficiales y desde diciembre estaba en «maintenance mode». RustFS solo publica versiones preliminares. SeaweedFS tiene licencia Apache-2.0, sigue mantenido y publica una versión por semana.
+- **Verificado con el SDK de AWS v3** (el que usará la API): subida y lectura, URLs firmadas de lectura y de escritura (caducadas o con la firma alterada dan 403), subida multipart de 12 MB, listado, CORS del bucket y borrado.
+- **Paridad con R2:** región `auto` y direccionamiento por ruta (`forcePathStyle`). Con el SDK de AWS v3 conviene `requestChecksumCalculation: 'WHEN_REQUIRED'` y `responseChecksumValidation: 'WHEN_REQUIRED'` (lo que Cloudflare recomienda para R2); SeaweedFS acepta tanto eso como el comportamiento por defecto del SDK.
+- **Solo S3:** el modo `mini` activa además WebDAV, un catálogo Iceberg, Lance y una interfaz de administración; se apagan. El bucket `fiaro-dev` se crea al arrancar.
+
+### Imágenes y secretos
+
+- **Un `Dockerfile`, un target por entorno:** `dev` (recarga en caliente), `test` (hereda de `dev` y corre la suite) y `prod` (el último, así que `docker build .` produce la de producción).
+- **Token de GitHub Packages como secreto de BuildKit:** `@fiaro-app/contracts` es privado. El token entra con `--secret id=NODE_AUTH_TOKEN`, existe solo durante el `RUN` que instala y no queda en ninguna capa ni en `docker history`; la imagen `prod` ni siquiera comparte capas con la etapa que lo usó. Si falta, el build se detiene con un mensaje claro en lugar de un 401 críptico.
+- **`prod`:** Node 24 `-slim`, solo las dependencias de producción y `dist`, usuario `node` y código que no puede escribir. Se probó con `--read-only`, `--cap-drop ALL` y `no-new-privileges`. Sin `TRUST_PROXY` no arranca (sección 9). Su `HEALTHCHECK` abre una conexión TCP al puerto de la API.
+- **Debian, no Alpine**, en las imágenes de Node y de Postgres. Postgres: Alpine usa musl, que no soporta locales, y el orden de las consultas (`en_US.utf8`) no coincidiría con el de Neon. Node: glibc evita sorpresas con módulos nativos (Prisma, sharp). Además, Postgres 18 guarda los datos en `/var/lib/postgresql` (ya no en `.../data`) y el volumen se monta ahí.
+- **Versiones:** Prometheus está en su línea LTS (3.13, con soporte hasta julio de 2027); el resto, en la última versión estable con al menos una semana publicada.
+
+### Lo que todavía no está
+
+- **Métricas de la API** (`/metrics`) y **logs JSON con Pino**: los logs de stdout ya llegan a Loki; el raspado de `/metrics` se agrega a `docker/alloy/config.alloy` cuando exista.
+- **`/health`:** el healthcheck de la API es por TCP; con el módulo `system` pasa a HTTP (también lo necesita Fly.io).
+- **Cierre ordenado** (`enableShutdownHooks`): hoy no hay conexiones que cerrar; con Prisma y BullMQ sí.
+- **`fly.toml`** y el despliegue.
+- **Trazas** (OpenTelemetry y Tempo): con un solo servicio no hacen falta; Alloy puede recibir OTLP cuando lleguen.

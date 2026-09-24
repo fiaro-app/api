@@ -77,3 +77,38 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate compose files
+        run: |
+          docker compose config --quiet
+          docker compose --profile observability config --quiet
+          docker compose -f compose.yaml -f compose.test.yaml config --quiet
+
+      # El token de GitHub Packages entra como secreto de BuildKit: no queda en ninguna capa de la imagen.
+      - name: Build production image
+        run: docker build --target prod --secret id=NODE_AUTH_TOKEN,env=NODE_AUTH_TOKEN --tag fiaro-api:ci .
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Smoke test production image
+        run: |
+          docker run -d --name api -e TRUST_PROXY=1 fiaro-api:ci
+          for _ in $(seq 1 30); do
+            [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs api
+          exit 1
+
+      - name: Run tests in containers
+        run: docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml run --rm --build test
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,7 +8,7 @@ Documento de dominio y producto (entidades, multi-tenancy, suscripciones, roadma
 
 ## Stack
 
-NestJS 12 · TypeScript 6.0 estricto · `@fiaro-app/contracts` · Prisma · PostgreSQL · Redis + BullMQ · MongoDB (auditoría) · Vitest + SWC · ESLint + Prettier · pnpm · Fly.io
+NestJS 12 · TypeScript 6.0 estricto · `@fiaro-app/contracts` · Prisma · PostgreSQL · Redis + BullMQ · MongoDB (auditoría) · Vitest + SWC · ESLint + Prettier · pnpm · Docker Compose · Fly.io
 
 Detalle completo, estructura de carpetas y convenciones de código en [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -17,15 +17,56 @@ Detalle completo, estructura de carpetas y convenciones de código en [ARCHITECT
 - Node 24 (versión en `.nvmrc`)
 - pnpm 11 (`corepack enable` si no lo tienes activado)
 - Acceso de lectura a `@fiaro-app/contracts`, un paquete privado ([cómo](#acceso-a-fiaro-appcontracts))
+- Docker (OrbStack o Docker Desktop) para el [entorno local](#entorno-local-con-docker)
 
 ## Empezar
+
+Con Docker, todo el entorno de desarrollo en un comando (bases de datos, almacenamiento, correo y la API con recarga en caliente):
+
+```bash
+pnpm docker:dev
+```
+
+Sin Docker, o para depurar la API en tu máquina (`pnpm docker:infra` levanta solo la infraestructura):
 
 ```bash
 pnpm install      # también instala los hooks de git (script prepare)
 pnpm start:dev
 ```
 
-Con el servidor arriba, la documentación de la API está en <http://localhost:3000/docs> (solo fuera de producción).
+La documentación de la API está en `/docs` (solo fuera de producción): <http://localhost:3040/docs> con Docker, <http://localhost:3000/docs> con `pnpm start:dev`.
+
+## Entorno local con Docker
+
+Cada servicio queda en tu máquina (solo en `127.0.0.1`) con puertos distintos de los estándar, para que no choquen con otros proyectos:
+
+| Servicio | URL o puerto | Credenciales |
+|---|---|---|
+| API | <http://localhost:3040> (depurador en `9229`) | — |
+| PostgreSQL | `localhost:5440` | `fiaro` / `fiaro`, base `fiaro` |
+| Redis | `localhost:6390` | — |
+| MongoDB | `localhost:27040` | `fiaro` / `fiaro` |
+| S3 (SeaweedFS) | <http://localhost:8333>, bucket `fiaro-dev` | `fiaro` / `fiaro-secret` |
+| Mailpit (correos) | SMTP `localhost:1025`, interfaz <http://localhost:8025> | — |
+
+Con `pnpm docker:dev:obs` se suma la observabilidad:
+
+| Servicio | URL | Credenciales |
+|---|---|---|
+| Grafana | <http://localhost:3030> | `admin` / `admin` |
+| Prometheus | <http://localhost:9090> | — |
+| Loki, Alloy, cAdvisor | `localhost:3100`, `localhost:12345`, `localhost:8081` | — |
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm docker:dev` | Infraestructura y API con recarga en caliente |
+| `pnpm docker:dev:obs` | Lo anterior más Prometheus, cAdvisor, Loki, Alloy y Grafana |
+| `pnpm docker:infra` | Solo la infraestructura (la API corre en tu máquina) |
+| `pnpm docker:test` | La suite completa dentro de Docker, con infraestructura efímera |
+| `pnpm docker:down` | Detiene todo y conserva los datos |
+| `pnpm docker:reset` | Detiene todo y borra los datos |
+
+Construir la imagen necesita el token de `@fiaro-app/contracts`: los scripts lo toman de tu sesión de `gh` (o de `NODE_AUTH_TOKEN`, si ya lo tienes). Los puertos, las credenciales, cómo funcionan las pruebas en contenedores y la observabilidad están en [ARCHITECTURE.md §12](./ARCHITECTURE.md#12-entorno-local-con-docker).
 
 ## Acceso a `@fiaro-app/contracts`
 
@@ -46,7 +87,7 @@ NODE_AUTH_TOKEN=$(gh auth token) pnpm install
 
 También sirve un token clásico con solo `read:packages` en `NODE_AUTH_TOKEN`. Definir esa variable vacía en tu shell (`export NODE_AUTH_TOKEN=`) evita el aviso `Failed to replace env in config` de pnpm en el resto de los comandos.
 
-El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso de lectura al repo `api` (Package settings → Manage Actions access).
+El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso de lectura al repo `api` (Package settings → Manage Actions access). Las imágenes de Docker reciben el token como secreto de BuildKit: no queda en ninguna capa.
 
 ## Scripts
 
@@ -64,7 +105,7 @@ El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso 
 | `pnpm build` | Build de producción (`dist/`) |
 | `pnpm docs` | Genera documentación (Compodoc) en `docs/` |
 
-El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → test con cobertura → test:e2e → build → docs → análisis de Sonar en cada PR y en cada push a `dev`.
+El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → test con cobertura → test:e2e → build → docs → análisis de Sonar en cada PR y en cada push a `dev`. En paralelo, un job `docker` valida los archivos de Compose, construye la imagen de producción, comprueba que arranca y corre la suite en contenedores.
 
 ## Hooks de git
 

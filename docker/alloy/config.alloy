@@ -1,0 +1,112 @@
+// Alloy es el único recolector: los logs de los contenedores van a Loki y todas las métricas a Prometheus.
+
+discovery.docker "fiaro" {
+	host = "unix:///var/run/docker.sock"
+
+	filter {
+		name   = "label"
+		values = ["com.docker.compose.project=fiaro"]
+	}
+}
+
+discovery.relabel "logs" {
+	targets = discovery.docker.fiaro.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+}
+
+loki.source.docker "fiaro" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.fiaro.targets
+	relabel_rules = discovery.relabel.logs.rules
+	forward_to    = [loki.process.clean.receiver]
+}
+
+loki.process "clean" {
+	forward_to = [loki.write.local.receiver]
+
+	stage.replace {
+		expression = `(\x1b\[[0-9;]*m)`
+		replace    = ""
+	}
+}
+
+loki.write "local" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
+
+prometheus.remote_write "local" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
+	}
+}
+
+prometheus.scrape "cadvisor" {
+	scrape_interval = "15s"
+	job_name        = "cadvisor"
+	targets         = [{"__address__" = "cadvisor:8080"}]
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.scrape "loki" {
+	scrape_interval = "15s"
+	job_name        = "loki"
+	targets         = [{"__address__" = "loki:3100"}]
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.scrape "grafana" {
+	scrape_interval = "15s"
+	job_name        = "grafana"
+	targets         = [{"__address__" = "grafana:3000"}]
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.exporter.self "alloy" { }
+
+prometheus.scrape "alloy" {
+	scrape_interval = "15s"
+	targets         = prometheus.exporter.self.alloy.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.exporter.postgres "postgres" {
+	data_source_names = [sys.env("POSTGRES_DSN")]
+}
+
+prometheus.scrape "postgres" {
+	scrape_interval = "15s"
+	targets         = prometheus.exporter.postgres.postgres.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.exporter.redis "redis" {
+	redis_addr = "redis:6379"
+}
+
+prometheus.scrape "redis" {
+	scrape_interval = "15s"
+	targets         = prometheus.exporter.redis.redis.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.exporter.mongodb "mongo" {
+	mongodb_uri = sys.env("MONGO_URI")
+}
+
+prometheus.scrape "mongo" {
+	scrape_interval = "15s"
+	targets         = prometheus.exporter.mongodb.mongo.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+}
