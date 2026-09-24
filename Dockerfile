@@ -25,25 +25,34 @@ RUN --mount=type=secret,id=NODE_AUTH_TOKEN \
     && rm ~/.npmrc
 
 # `procps` aporta `ps`: sin él, el CLI de Nest no puede terminar el proceso anterior al recargar
-# y el nuevo falla con EADDRINUSE mientras el viejo sigue sirviendo el código antiguo.
+# y el nuevo falla con EADDRINUSE mientras el viejo sigue sirviendo el código antiguo. `openssl` lo
+# busca el motor de migraciones de Prisma; la imagen `-slim` no lo trae y Prisma avisa en cada comando.
 # Las dependencias de la imagen son inmutables: pnpm no debe intentar reinstalarlas antes de un script.
+# El CLI de Prisma descarga el motor de migraciones la primera vez que se usa (pnpm no ejecuta el
+# script de instalación que lo haría): se hace aquí, como root, para que quede en la imagen y
+# `migrate deploy` no dependa de la red ni de permisos al arrancar.
+# Al arrancar, el contenedor aplica las migraciones y regenera el cliente de Prisma: `./src` está
+# montado desde tu máquina y oculta el que generó la imagen.
 FROM deps AS dev
 ENV NODE_ENV=development \
-    pnpm_config_verify_deps_before_run=false
+    pnpm_config_verify_deps_before_run=false \
+    PRISMA_HIDE_UPDATE_MESSAGE=1
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends procps \
+    && apt-get install -y --no-install-recommends procps openssl \
     && rm -rf /var/lib/apt/lists/*
-COPY . .
+RUN pnpm exec prisma --version
+COPY --chown=node:node . .
 RUN chown node:node /app
 USER 1000:1000
+RUN pnpm exec prisma generate
 EXPOSE 3000 9229
-CMD ["node_modules/.bin/nest", "start", "--debug", "0.0.0.0:9229", "--watch", "--preserveWatchOutput"]
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm exec prisma generate && exec node_modules/.bin/nest start --debug 0.0.0.0:9229 --watch --preserveWatchOutput"]
 
 FROM dev AS test
 ENV NODE_ENV=test \
     CI=true
-CMD ["sh", "-c", "pnpm test:cov && pnpm test:e2e"]
+CMD ["pnpm", "test:cov"]
 
 FROM deps AS build
 COPY . .

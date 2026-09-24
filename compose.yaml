@@ -118,11 +118,14 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fiaro-secret}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-secreto-solo-para-desarrollo-de-fiaro-2026}
+      BETTER_AUTH_URL: http://localhost:${API_PORT:-3040}
+      MOBILE_APP_SCHEMES: ${MOBILE_APP_SCHEMES:-mobile}
     ports:
       - '127.0.0.1:${API_PORT:-3040}:3000'
       - '127.0.0.1:${API_DEBUG_PORT:-9229}:9229'
     volumes:
-      - ./src:/app/src:ro
+      - ./src:/app/src
     depends_on:
       postgres:
         condition: service_healthy

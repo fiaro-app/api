@@ -14,3 +14,4 @@ Dockerfile
 compose*.yaml
 *.md
 *.tsbuildinfo
+src/shared/infrastructure/persistence/generated
