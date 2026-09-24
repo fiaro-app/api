@@ -16,6 +16,21 @@ jobs:
     env:
       # Los hooks de git son para desarrollo local; en CI no hacen falta.
       HUSKY: 0
+    # Las pruebas e2e corren contra un PostgreSQL real: la misma versión que el entorno local.
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: fiaro
+          POSTGRES_PASSWORD: fiaro
+          POSTGRES_DB: fiaro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fiaro -d fiaro"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,12 +66,12 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      # Genera coverage/lcov.info, que el análisis de SonarCloud usa para medir la cobertura.
-      - name: Unit tests with coverage
+      # Unitarias y e2e en una sola corrida: coverage/lcov.info junta la cobertura de las dos y es la
+      # que lee SonarCloud. Cada corrida crea su propia base de datos en el servicio y la borra al terminar.
+      - name: Tests with coverage
         run: pnpm run test:cov
-
-      - name: E2E tests
-        run: pnpm run test:e2e
+        env:
+          DATABASE_URL: postgresql://fiaro:fiaro@localhost:5432/fiaro
 
       - name: Build
         run: pnpm run build
@@ -98,9 +113,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Valores de mentira: la API se conecta a la base de datos con la primera consulta, así que
+      # arrancar y quedar sana no la necesita.
       - name: Smoke test production image
         run: |
-          docker run -d --name api -e TRUST_PROXY=1 fiaro-api:ci
+          docker run -d --name api \
+            -e TRUST_PROXY=1 \
+            -e DATABASE_URL=postgresql://fiaro:fiaro@localhost:5432/fiaro \
+            -e BETTER_AUTH_SECRET=secreto-solo-para-la-prueba-de-humo-0123456789 \
+            -e BETTER_AUTH_URL=https://api.example.com \
+            fiaro-api:ci
           for _ in $(seq 1 30); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0
             sleep 2

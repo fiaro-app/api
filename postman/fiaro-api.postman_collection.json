@@ -1,0 +1,1318 @@
+{
+  "info": {
+    "_postman_id": "7b1f7f0a-6e0f-4a3c-9d0e-5f1f2b7c9a10",
+    "name": "Fiaro API",
+    "description": "# Fiaro API\n\nSolicitudes de la API de Fiaro, con pruebas automáticas y los errores posibles de cada ruta.\n\n## Cómo usarla\n\n1. Levanta la API y crea las personas de desarrollo: `pnpm docker:dev` y `pnpm docker:seed`.\n2. Importa esta colección y el entorno **Fiaro — local**, y elígelo arriba a la derecha.\n3. Ejecuta la carpeta **Autenticación** en orden (o con *Run collection*).\n\n## Cosas que conviene saber\n\n- **La sesión es una cookie** (`fiaro.session_token`, `HttpOnly`, 30 días). Postman la guarda en su *cookie jar* y la envía sola.\n- **Toda petición lleva `Origin: {{baseUrl}}`.** Las peticiones con cookie deben decir de dónde vienen: sin origen, la API responde 403. El navegador lo envía solo; Postman no.\n- **Rate limit:** iniciar sesión y cambiar la contraseña admiten 5 intentos por minuto y por IP. La carpeta *Rate limit* lo supera a propósito: ejecútala al final.\n- **Errores:** llevan un `code` estable (`INVALID_PHONE_NUMBER_OR_PASSWORD`, `VALIDATION_FAILED`, `RATE_LIMITED`...). Las apps reaccionan al código, no al texto.\n- **Contraseña temporal:** un cobrador con `mustChangePassword` solo puede ver su sesión, cambiar la contraseña y cerrar sesión; el resto responde 403 `PASSWORD_CHANGE_REQUIRED`.\n\nLa documentación completa de la API está en `/docs` (Swagger UI) y en `/docs/openapi.json`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Autenticación",
+      "description": "Iniciar sesión con celular y contraseña, ver la sesión, cambiar la contraseña y cerrar sesión. Ejecútala en orden.",
+      "item": [
+        {
+          "name": "1. Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);",
+                  "const body = pm.response.json();",
+                  "pm.test('la persona es la del celular', () => pm.expect(body.user.phoneNumber).to.eql(pm.variables.get('phone')));",
+                  "pm.test('la cuenta no tiene contraseña temporal', () => pm.expect(body.user.mustChangePassword).to.be.false);",
+                  "pm.test('no se guarda en caché', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('no-store'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            },
+            "description": "Abre una sesión de 30 días con el celular (E.164) y la contraseña. La cookie `fiaro.session_token` llega en `Set-Cookie` y Postman la guarda sola. Máximo 5 intentos por minuto y por IP."
+          },
+          "response": [
+            {
+              "name": "200 · Sesión abierta",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "sign-in", "phone-number"]
+                },
+                "description": "Abre una sesión de 30 días con el celular (E.164) y la contraseña. La cookie `fiaro.session_token` llega en `Set-Cookie` y Postman la guarda sola. Máximo 5 intentos por minuto y por IP."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"token\": \"s0rWpyeq2nB1sOBfV2tQCZ2qw6eG4zAT\",\n  \"user\": {\n    \"name\": \"Ana Pérez\",\n    \"email\": \"573001234567@phone.fiaro.invalid\",\n    \"emailVerified\": false,\n    \"image\": null,\n    \"createdAt\": \"2026-09-24T04:42:09.101Z\",\n    \"updatedAt\": \"2026-09-24T04:42:09.186Z\",\n    \"phoneNumber\": \"+573001234567\",\n    \"phoneNumberVerified\": false,\n    \"contactEmail\": null,\n    \"nationalId\": \"1020304050\",\n    \"mustChangePassword\": false,\n    \"id\": \"01a0d1b8-914c-74f9-8408-826fd5a0320e\"\n  }\n}"
+            },
+            {
+              "name": "401 · Celular o contraseña incorrectos",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "sign-in", "phone-number"]
+                },
+                "description": "Abre una sesión de 30 días con el celular (E.164) y la contraseña. La cookie `fiaro.session_token` llega en `Set-Cookie` y Postman la guarda sola. Máximo 5 intentos por minuto y por IP."
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Invalid phone number or password\",\n  \"code\": \"INVALID_PHONE_NUMBER_OR_PASSWORD\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Ver la sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('hay sesión y es de la persona', () => pm.expect(body.user.phoneNumber).to.eql(pm.variables.get('phone')));",
+                  "pm.test('la sesión vence en unos 30 días', () => { const days = (Date.parse(body.session.expiresAt) - Date.now()) / 86400000; pm.expect(days).to.be.within(29, 31); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/get-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "get-session"]
+            },
+            "description": "Devuelve la sesión y la persona de la cookie, o `null` si no hay sesión vigente. Si la sesión lleva más de un día sin renovarse, la renueva 30 días y responde con la cookie nueva."
+          },
+          "response": [
+            {
+              "name": "200 · Sesión vigente",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/get-session",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "get-session"]
+                },
+                "description": "Devuelve la sesión y la persona de la cookie, o `null` si no hay sesión vigente. Si la sesión lleva más de un día sin renovarse, la renueva 30 días y responde con la cookie nueva."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"session\": {\n    \"id\": \"01a0d1b8-91db-7628-a73d-fabd196e8de7\",\n    \"userId\": \"01a0d1b8-914c-74f9-8408-826fd5a0320e\",\n    \"token\": \"s0rWpyeq2nB1sOBfV2tQCZ2qw6eG4zAT\",\n    \"expiresAt\": \"2026-10-24T04:42:09.243Z\",\n    \"ipAddress\": \"127.0.0.1\",\n    \"userAgent\": \"PostmanRuntime\",\n    \"createdAt\": \"2026-09-24T04:42:09.243Z\",\n    \"updatedAt\": \"2026-09-24T04:42:09.243Z\"\n  },\n  \"user\": {\n    \"name\": \"Ana Pérez\",\n    \"email\": \"573001234567@phone.fiaro.invalid\",\n    \"emailVerified\": false,\n    \"image\": null,\n    \"createdAt\": \"2026-09-24T04:42:09.101Z\",\n    \"updatedAt\": \"2026-09-24T04:42:09.186Z\",\n    \"phoneNumber\": \"+573001234567\",\n    \"phoneNumberVerified\": false,\n    \"contactEmail\": null,\n    \"nationalId\": \"1020304050\",\n    \"mustChangePassword\": false,\n    \"id\": \"01a0d1b8-914c-74f9-8408-826fd5a0320e\"\n  }\n}"
+            },
+            {
+              "name": "200 · Sin sesión",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/get-session",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "get-session"]
+                },
+                "description": "Devuelve la sesión y la persona de la cookie, o `null` si no hay sesión vigente. Si la sesión lleva más de un día sin renovarse, la renueva 30 días y responde con la cookie nueva."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "null"
+            }
+          ]
+        },
+        {
+          "name": "3. Cambiar la contraseña",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);",
+                  "const body = pm.response.json();",
+                  "pm.test('la respuesta ya no marca contraseña temporal', () => pm.expect(body.user.mustChangePassword).to.be.false);",
+                  "pm.test('trae el token de la sesión nueva', () => pm.expect(body.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Cambia la contraseña con la actual como prueba. Siempre revoca las demás sesiones y responde con una sesión nueva (la cookie se reemplaza sola). Si la contraseña era temporal, quita `mustChangePassword`."
+          },
+          "response": [
+            {
+              "name": "200 · Contraseña cambiada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/change-password",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "change-password"]
+                },
+                "description": "Cambia la contraseña con la actual como prueba. Siempre revoca las demás sesiones y responde con una sesión nueva (la cookie se reemplaza sola). Si la contraseña era temporal, quita `mustChangePassword`."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"token\": \"nuevo-token-de-sesion\",\n  \"user\": {\n    \"name\": \"Ana Pérez\",\n    \"email\": \"573001234567@phone.fiaro.invalid\",\n    \"emailVerified\": false,\n    \"image\": null,\n    \"createdAt\": \"2026-09-24T04:42:09.101Z\",\n    \"updatedAt\": \"2026-09-24T04:42:09.186Z\",\n    \"phoneNumber\": \"+573001234567\",\n    \"phoneNumberVerified\": false,\n    \"contactEmail\": null,\n    \"nationalId\": \"1020304050\",\n    \"mustChangePassword\": false,\n    \"id\": \"01a0d1b8-914c-74f9-8408-826fd5a0320e\"\n  }\n}"
+            },
+            {
+              "name": "400 · Contraseña actual incorrecta",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/change-password",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "change-password"]
+                },
+                "description": "Cambia la contraseña con la actual como prueba. Siempre revoca las demás sesiones y responde con una sesión nueva (la cookie se reemplaza sola). Si la contraseña era temporal, quita `mustChangePassword`."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Invalid password\",\n  \"code\": \"INVALID_PASSWORD\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "3b. Volver a la contraseña original",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{newPassword}}\",\n  \"newPassword\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Deja la cuenta como estaba, para poder repetir la colección."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Cerrar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('la respuesta confirma el cierre', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('la cookie ya no sirve', () => pm.sendRequest({ url: pm.variables.get('baseUrl') + '/auth/get-session', method: 'GET' }, (err, res) => pm.expect(res.json()).to.eql(null)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-out",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-out"]
+            },
+            "description": "Revoca la sesión de la cookie en el servidor y borra la cookie. Es idempotente: sin sesión también responde 200."
+          },
+          "response": [
+            {
+              "name": "200 · Sesión cerrada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/sign-out",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "sign-out"]
+                },
+                "description": "Revoca la sesión de la cookie en el servidor y borra la cookie. Es idempotente: sin sesión también responde 200."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cobrador con contraseña temporal",
+      "description": "El primer ingreso de un cobrador recién creado. Usa la persona `+573109998877` del seed y solo funciona una vez por seed.",
+      "item": [
+        {
+          "name": "1. Iniciar sesión con la contraseña temporal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);",
+                  "pm.test('la cuenta pide cambiar la contraseña', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{tempPhone}}\",\n  \"password\": \"{{tempPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            },
+            "description": "Un cobrador recién creado entra con la contraseña que le dio su administrador. La sesión abre, pero `user.mustChangePassword` es `true`."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Ver la sesión (sigue disponible)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('sigue pendiente el cambio', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/get-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "get-session"]
+            },
+            "description": "Con una contraseña temporal solo sirven tres rutas: ver la sesión, cambiar la contraseña y cerrar sesión. Todas las demás responden 403 `PASSWORD_CHANGE_REQUIRED`."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Cambiar la contraseña temporal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);",
+                  "pm.test('la marca de contraseña temporal desaparece', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{tempPassword}}\",\n  \"newPassword\": \"{{newTempPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Reemplaza la temporal. Quita la marca, revoca las demás sesiones y entrega una sesión nueva. Solo funciona una vez por seed: después la cuenta ya tiene contraseña propia (`pnpm docker:reset` y `pnpm docker:seed` la dejan como nueva)."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Cerrar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-out",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-out"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Errores posibles",
+      "description": "Cada respuesta de error que documenta Swagger, con su código. Ejecútala después de *Autenticación*; ninguna abre una sesión.",
+      "item": [
+        {
+          "name": "Celular con formato inválido → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el código de error es VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));",
+                  "pm.test('indica el campo', () => pm.expect(pm.response.json().issues[0].path).to.eql(['phoneNumber']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"3001234567\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            },
+            "description": "El celular debe estar en formato internacional E.164 (`+573001234567`); la app convierte los 10 dígitos con `toColombianE164` de contracts."
+          },
+          "response": [
+            {
+              "name": "400 · Validación",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phoneNumber\": \"3001234567\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "sign-in", "phone-number"]
+                },
+                "description": "El celular debe estar en formato internacional E.164 (`+573001234567`); la app convierte los 10 dígitos con `toColombianE164` de contracts."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"VALIDATION_FAILED\",\n  \"message\": \"Los datos enviados no son válidos.\",\n  \"issues\": [\n    {\n      \"path\": [\n        \"phoneNumber\"\n      ],\n      \"message\": \"Ingresa un celular colombiano válido de 10 dígitos.\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Sin contraseña → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el código de error es VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));",
+                  "pm.test('indica el campo', () => pm.expect(pm.response.json().issues[0].path).to.eql(['password']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Campo que la ruta no declara → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el código de error es VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"{{password}}\",\n  \"admin\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            },
+            "description": "Los cuerpos son estrictos: un campo desconocido se rechaza en lugar de ignorarse."
+          },
+          "response": []
+        },
+        {
+          "name": "Contraseña incorrecta → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('el código de error es INVALID_PHONE_NUMBER_OR_PASSWORD', () => pm.expect(pm.response.json().code).to.eql('INVALID_PHONE_NUMBER_OR_PASSWORD'));",
+                  "pm.test('no abre sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"no-es-la-contraseña\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Celular sin cuenta → 401 (igual que una contraseña incorrecta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('el código de error es INVALID_PHONE_NUMBER_OR_PASSWORD', () => pm.expect(pm.response.json().code).to.eql('INVALID_PHONE_NUMBER_OR_PASSWORD'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+573509998877\",\n  \"password\": \"cualquier-contraseña\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            },
+            "description": "La respuesta y el tiempo son los mismos que con una contraseña incorrecta: no se puede averiguar qué celulares tienen cuenta."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver la sesión sin cookie → 200 null",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/get-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "get-session"]
+            },
+            "description": "Sin cookie de sesión responde `null`, no un error. (Cierra sesión antes para que el jar no tenga la cookie.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar la contraseña sin sesión → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));",
+                  "pm.test('el código de error es UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"x\",\n  \"newPassword\": \"contraseña-nueva-2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Contraseña nueva demasiado corta → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('el código de error es VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));",
+                  "pm.test('indica el campo', () => pm.expect(pm.response.json().issues[0].path).to.eql(['newPassword']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"1234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Origen que no es de confianza → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('el código de error es INVALID_ORIGIN', () => pm.expect(pm.response.json().code).to.eql('INVALID_ORIGIN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "https://sitio-ajeno.example"
+              },
+              {
+                "key": "Cookie",
+                "value": "fiaro.session_token=x.y"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-out",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-out"]
+            },
+            "description": "Una petición con cookie desde un origen que no está en `CORS_ORIGINS` (ni es el de la API ni un esquema de `MOBILE_APP_SCHEMES`) se rechaza. Las apps móviles envían `expo-origin: fiaro://`."
+          },
+          "response": []
+        },
+        {
+          "name": "Ruta que la API no publica → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"a@b.co\",\n  \"password\": \"12345678\",\n  \"name\": \"X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-up/email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-up", "email"]
+            },
+            "description": "Better-auth trae más rutas (registro, correo, cuentas sociales...), pero la API solo publica las cuatro de autenticación. Las personas se crean con el caso de uso, no con un registro público."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Rate limit",
+      "description": "**Bloquea tu IP para iniciar sesión durante un minuto.** Ejecútala al final.",
+      "item": [
+        {
+          "name": "Superar el límite de intentos → 429",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Postman espera a que terminen los pm.sendRequest antes de enviar la solicitud.",
+                  "const attempt = (remaining) => {",
+                  "  if (remaining === 0) { return; }",
+                  "  pm.sendRequest({",
+                  "    url: pm.variables.get('baseUrl') + '/auth/sign-in/phone-number', method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ phoneNumber: pm.variables.get('phone'), password: 'no-es-la-contraseña' }) },",
+                  "  }, () => attempt(remaining - 1));",
+                  "};",
+                  "attempt(5);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 429', () => pm.response.to.have.status(429));",
+                  "pm.test('el código de error es RATE_LIMITED', () => pm.expect(pm.response.json().code).to.eql('RATE_LIMITED'));",
+                  "pm.test('dice cuántos segundos esperar', () => pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}",
+                "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"no-es-la-contraseña\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sign-in", "phone-number"]
+            },
+            "description": "**Bloquea tu IP para iniciar sesión durante un minuto.** Envía 5 intentos fallidos antes de esta solicitud, así que la sexta recibe 429 con `Retry-After`. Ejecútala al final o espera un minuto."
+          },
+          "response": [
+            {
+              "name": "429 · Demasiados intentos",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}",
+                    "description": "Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza."
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phoneNumber\": \"{{phone}}\",\n  \"password\": \"no-es-la-contraseña\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/sign-in/phone-number",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "sign-in", "phone-number"]
+                },
+                "description": "**Bloquea tu IP para iniciar sesión durante un minuto.** Envía 5 intentos fallidos antes de esta solicitud, así que la sexta recibe 429 con `Retry-After`. Ejecútala al final o espera un minuto."
+              },
+              "status": "Too Many Requests",
+              "code": 429,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"RATE_LIMITED\",\n  \"message\": \"Demasiadas solicitudes. Intenta de nuevo en unos segundos.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documentación",
+      "description": "La documentación de la API (solo fuera de producción).",
+      "item": [
+        {
+          "name": "Documento OpenAPI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('es OpenAPI 3.2 con las cuatro rutas de autenticación', () => { const doc = pm.response.json(); pm.expect(doc.openapi).to.eql('3.2.0'); pm.expect(Object.keys(doc.paths).filter((p) => p.startsWith('/auth'))).to.have.lengthOf(4); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/docs/openapi.json",
+              "host": ["{{baseUrl}}"],
+              "path": ["docs", "openapi.json"]
+            },
+            "description": "Describe las rutas, sus cuerpos y todas sus respuestas (OpenAPI 3.2). Solo existe fuera de producción (`SWAGGER_ENABLED`). Se puede importar en Postman con Import → Link."
+          },
+          "response": []
+        },
+        {
+          "name": "Interfaz de Swagger",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["docs"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3040",
+      "description": "Origen de la API. Con `pnpm docker:dev` es http://localhost:3040."
+    },
+    {
+      "key": "phone",
+      "value": "+573001234567"
+    },
+    {
+      "key": "password",
+      "value": "fiaro-dev-2026"
+    },
+    {
+      "key": "newPassword",
+      "value": "fiaro-dev-2026-nueva"
+    },
+    {
+      "key": "tempPhone",
+      "value": "+573109998877"
+    },
+    {
+      "key": "tempPassword",
+      "value": "temporal-2026"
+    },
+    {
+      "key": "newTempPassword",
+      "value": "contraseña-propia-2026"
+    }
+  ]
+}

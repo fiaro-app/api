@@ -53,9 +53,6 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fiaro-secret}
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
-    volumes:
-      - ./src:/app/src:ro
-      - ./test:/app/test:ro
     depends_on:
       postgres:
         condition: service_healthy

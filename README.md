@@ -8,7 +8,7 @@ Documento de dominio y producto (entidades, multi-tenancy, suscripciones, roadma
 
 ## Stack
 
-NestJS 12 · TypeScript 6.0 estricto · `@fiaro-app/contracts` · Prisma · PostgreSQL · Redis + BullMQ · MongoDB (auditoría) · Vitest + SWC · ESLint + Prettier · pnpm · Docker Compose · Fly.io
+NestJS 12 · TypeScript 6.0 estricto · `@fiaro-app/contracts` · Prisma · PostgreSQL · better-auth · Redis + BullMQ · MongoDB (auditoría) · Vitest + SWC · ESLint + Prettier · pnpm · Docker Compose · Fly.io
 
 Detalle completo, estructura de carpetas y convenciones de código en [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -21,20 +21,36 @@ Detalle completo, estructura de carpetas y convenciones de código en [ARCHITECT
 
 ## Empezar
 
-Con Docker, todo el entorno de desarrollo en un comando (bases de datos, almacenamiento, correo y la API con recarga en caliente):
+Con Docker, todo el entorno de desarrollo en un comando (bases de datos, almacenamiento, correo y la API con recarga en caliente, ya con las migraciones aplicadas), y luego las personas de desarrollo para poder iniciar sesión:
 
 ```bash
 pnpm docker:dev
+pnpm docker:seed
 ```
 
 Sin Docker, o para depurar la API en tu máquina (`pnpm docker:infra` levanta solo la infraestructura):
 
 ```bash
-pnpm install      # también instala los hooks de git (script prepare)
+cp .env.example .env   # ya trae valores de desarrollo
+pnpm docker:infra
+pnpm install           # también instala los hooks de git y genera el cliente de Prisma
+pnpm db:deploy         # aplica las migraciones
+pnpm build && pnpm db:seed
 pnpm start:dev
 ```
 
 La documentación de la API está en `/docs` (solo fuera de producción): <http://localhost:3040/docs> con Docker, <http://localhost:3000/docs> con `pnpm start:dev`.
+
+## Probar la API
+
+Las personas de desarrollo (`pnpm docker:seed`; las contraseñas son públicas y solo sirven en desarrollo):
+
+| Persona | Celular | Contraseña |
+|---|---|---|
+| Ana Pérez | `+573001234567` | `fiaro-dev-2026` |
+| Luis Gómez (cobrador con contraseña temporal) | `+573109998877` | `temporal-2026` |
+
+La carpeta [`postman/`](./postman) trae la colección de Postman (cada solicitud con sus pruebas automáticas y los errores posibles) y el entorno local: impórtalos en Postman, o córrelos desde la terminal con `pnpm dlx newman run postman/fiaro-api.postman_collection.json -e postman/fiaro-local.postman_environment.json`. La sesión viaja en una cookie que Postman guarda sola. La carpeta *Rate limit* agota tu límite de intentos durante un minuto a propósito, y la del cobrador con contraseña temporal solo funciona una vez por seed (`pnpm docker:reset`, `pnpm docker:dev` y `pnpm docker:seed` la dejan como nueva). También sirve la interfaz de `/docs`. Cómo funciona la autenticación: [ARCHITECTURE.md §6](./ARCHITECTURE.md#6-autenticación-y-autorización).
 
 ## Entorno local con Docker
 
@@ -62,6 +78,7 @@ Con `pnpm docker:dev:obs` se suma la observabilidad:
 | `pnpm docker:dev` | Infraestructura y API con recarga en caliente |
 | `pnpm docker:dev:obs` | Lo anterior más Prometheus, cAdvisor, Loki, Alloy y Grafana |
 | `pnpm docker:infra` | Solo la infraestructura (la API corre en tu máquina) |
+| `pnpm docker:seed` | Crea las personas de desarrollo (con la API en marcha) |
 | `pnpm docker:test` | La suite completa dentro de Docker, con infraestructura efímera |
 | `pnpm docker:down` | Detiene todo y conserva los datos |
 | `pnpm docker:reset` | Detiene todo y borra los datos |
@@ -99,13 +116,21 @@ El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso 
 | `pnpm format` | Formatea con Prettier |
 | `pnpm format:check` | Verifica el formato sin cambiar archivos |
 | `pnpm typecheck` | `tsc --noEmit`, incremental |
-| `pnpm test` | Tests unitarios (Vitest) |
-| `pnpm test:cov` | Tests unitarios con cobertura (mínimo 80 %) |
-| `pnpm test:e2e` | Tests end-to-end |
+| `pnpm test` | Tests unitarios (Vitest), sin infraestructura |
+| `pnpm test:e2e` | Tests end-to-end contra PostgreSQL (`pnpm docker:infra`); cada corrida crea y borra su propia base de datos |
+| `pnpm test:cov` | Unitarios y e2e juntos, con cobertura (mínimo 95 %, en total y por archivo) |
 | `pnpm build` | Build de producción (`dist/`) |
+| `pnpm db:migrate` | Crea una migración de Prisma a partir de los cambios del esquema |
+| `pnpm db:deploy` | Aplica las migraciones pendientes |
+| `pnpm db:generate` | Genera el cliente de Prisma (también al instalar y en `pnpm build`) |
+| `pnpm db:seed` | Crea las personas de desarrollo (necesita `pnpm build` y `.env`) |
 | `pnpm docs` | Genera documentación (Compodoc) en `docs/` |
 
-El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → test con cobertura → test:e2e → build → docs → análisis de Sonar en cada PR y en cada push a `dev`. En paralelo, un job `docker` valida los archivos de Compose, construye la imagen de producción, comprueba que arranca y corre la suite en contenedores.
+El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → tests con cobertura (unitarios y e2e, con un PostgreSQL de servicio) → build → docs → análisis de Sonar en cada PR y en cada push a `dev`. En paralelo, un job `docker` valida los archivos de Compose, construye la imagen de producción, comprueba que arranca y corre la suite en contenedores.
+
+## Convenciones de código
+
+Los imports usan el alias `@/` (`src/`) y `@test/` (`test/`), nunca rutas relativas; todo símbolo exportado lleva TSDoc; los archivos y las funciones son cortos, y ESLint lo exige. Los porqués están en [ARCHITECTURE.md §2](./ARCHITECTURE.md#2-estructura-de-carpetas).
 
 ## Hooks de git
 
@@ -119,7 +144,7 @@ Detalle y razones en [ARCHITECTURE.md §8](./ARCHITECTURE.md#8-herramientas-hook
 
 ## Variables de entorno
 
-Se validan al arrancar: si alguna es inválida el proceso no arranca y el error dice cuál. En desarrollo todas son opcionales; copia `.env.example` a `.env` si quieres cambiar alguna (por ejemplo `CORS_ORIGINS`, para probar el panel web). En producción `TRUST_PROXY` es obligatoria. Cada una se explica en [ARCHITECTURE.md](./ARCHITECTURE.md#9-variables-de-entorno) y la seguridad HTTP que las usa, en la [sección 11](./ARCHITECTURE.md#11-seguridad-http). Nunca se commitea un `.env` real.
+Se validan al arrancar: si alguna es inválida el proceso no arranca y el error dice cuál. `DATABASE_URL`, `BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` son obligatorias: con `pnpm docker:dev` las define Compose, y sin Docker las trae `.env.example` (cópialo a `.env`). El resto son opcionales en desarrollo (por ejemplo `CORS_ORIGINS`, para probar el panel web). En producción `TRUST_PROXY` también es obligatoria. Cada una se explica en [ARCHITECTURE.md](./ARCHITECTURE.md#9-variables-de-entorno) y la seguridad HTTP que las usa, en la [sección 11](./ARCHITECTURE.md#11-seguridad-http). Nunca se commitea un `.env` real.
 
 ## Ramas y flujo de trabajo
 

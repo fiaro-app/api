@@ -5,7 +5,7 @@ import { z } from 'zod';
 import {
   SchemaValidationPipe,
   toValidationException,
-} from './schema-validation.pipe.js';
+} from '@/shared/infrastructure/http/schema-validation.pipe.js';
 
 const CreateLoanSchema = z.strictObject({
   clientId: z.string().min(1, 'obligatorio'),

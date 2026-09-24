@@ -2,7 +2,7 @@
 
 > Documento de referencia para quien escriba código en este repo (incluido tú mismo en 3 meses). Cubre **cómo** se construye el backend: estructura de carpetas, convenciones, reglas de dependencia y herramientas. Para el **qué** y el **por qué** de producto (dominio, entidades, multi-tenancy, roadmap), ver [PRODUCT.md](./PRODUCT.md).
 >
-> Estado: la estructura, las herramientas y las reglas de este documento están instaladas y verificadas. La lógica de negocio se construye funcionalidad por funcionalidad; cada pieza nueva sigue lo que se describe aquí.
+> Estado: la estructura, las herramientas y las reglas de este documento están instaladas y verificadas. La persistencia con Prisma (§4) y la autenticación (§6) ya están construidas; el resto de la lógica de negocio se construye funcionalidad por funcionalidad y cada pieza nueva sigue lo que se describe aquí.
 
 ## 1. Stack
 
@@ -13,16 +13,17 @@
 | Contratos | `@fiaro-app/contracts` | Schemas de Zod, tipos y endpoints compartidos con las apps. Paquete privado en GitHub Packages: el acceso está en el README |
 | Validación y docs de la API | Schemas de Zod (Standard Schema) + `@nestjs/swagger` | El pipe de validación y la documentación OpenAPI salen de los mismos schemas — ver secciones 5 y 11 |
 | Seguridad HTTP | Helmet, CORS, `cookie-parser`, `@nestjs/throttler` | Se configura antes del primer endpoint — ver sección 11 |
-| ORM | Prisma (se instala con el esquema) | Nunca se expone el tipo generado por Prisma fuera de `infrastructure` — ver sección 4 |
-| Base de datos | PostgreSQL (Neon) | |
+| Autenticación | better-auth 1.7 con un adaptador propio | Celular y contraseña, sesiones de 30 días en PostgreSQL y plugin de Expo para las apps — ver sección 6 |
+| ORM | Prisma 7 con `@prisma/adapter-pg` (sin motor en Rust) | Nunca se expone el tipo generado por Prisma fuera de `infrastructure` — ver sección 4 |
+| Base de datos | PostgreSQL 18 (Neon en producción) | Migraciones versionadas con Prisma; el entorno local corre la misma versión — ver sección 12 |
 | Cache / colas | Redis (Upstash) + BullMQ | |
 | Auditoría | MongoDB Atlas | Solo eventos, nunca datos transaccionales del crédito |
 | Lint | ESLint 10 + typescript-eslint (reglas con tipos) + eslint-plugin-boundaries | `pnpm lint` — ver secciones 3 y 8 |
 | Formato | Prettier | `pnpm format`, `pnpm format:check` |
-| Test | Vitest 5 con SWC (unit + e2e), cobertura v8 | `pnpm test`, `pnpm test:cov`, `pnpm test:e2e` — ver sección 7 |
+| Test | Vitest 5 con SWC: unitarias y e2e contra PostgreSQL real; cobertura v8 | `pnpm test`, `pnpm test:e2e` y `pnpm test:cov` (todo junto, mínimo 95 %) — ver sección 7 |
 | Hooks de git | Husky + lint-staged + commitlint | Ver sección 8 |
 | Docs | Compodoc | `pnpm docs` → `docs/` (no se commitea, se publica como artefacto de CI) |
-| Análisis estático | SonarQube Cloud (CI-based) | Quality gate: 80 % de cobertura en código nuevo |
+| Análisis estático | SonarQube Cloud (CI-based) | Lee la cobertura de `pnpm test:cov`; deben pasar la quality gate de Sonar y el mínimo de 95 % de Vitest |
 | Entorno local | Docker Compose (OrbStack o Docker Desktop) | Postgres, Redis, Mongo, S3, Mailpit y la API con recarga en caliente; observabilidad opcional — ver sección 12 |
 | Despliegue | Fly.io (Docker) | El `Dockerfile` ya existe (target `prod`); `fly.toml` se agrega con el primer despliegue |
 
@@ -33,7 +34,7 @@ Un módulo por funcionalidad del dominio, cada uno con su propia arquitectura he
 ```
 src/
   main.ts                        # Arranca la aplicación
-  app.module.ts                  # Raíz de composición: registra los módulos y el rate limit
+  app.module.ts                  # Raíz de composición: registra los módulos, el rate limit y el guard de autenticación
   app.setup.ts                   # Configuración HTTP global: seguridad, versionado, validación y docs (§11)
   modules/
     <módulo>/                    # system, auth, tenants, subscriptions, lenders, memberships,
@@ -58,16 +59,17 @@ src/
         persistence/             #   prisma-loan.repository.ts, loan.mapper.ts
   shared/                        # Código transversal, con las mismas tres capas
     domain/
-      value-objects/             #   money, phone, national-id, business-date
+      value-objects/             #   mobile-phone (ya existe); money, national-id, business-date
       errors/                    #   DomainError base
       audit/                     #   Eventos de auditoría
     application/
-      ports/                     #   clock.port.ts, id-generator.port.ts, email-sender.port.ts
+      ports/                     #   clock, id-generator, session-resolver (ya existen); email-sender
       security/                  #   Reglas de autorización: qué rol puede hacer qué sobre qué recurso
       audit/                     #   Puerto y servicio para registrar auditoría
     infrastructure/
-      persistence/               #   Esquema y cliente de Prisma (PrismaService)
-      http/                      #   Pipes, middlewares y opciones HTTP (SchemaValidationPipe, cabeceras de seguridad, CORS, versionado)
+      persistence/               #   schema/ y migrations/ de Prisma, generated/ (no se commitea) y PrismaService
+      runtime/                   #   Reloj del sistema y generador de UUIDv7
+      http/                      #   Pipes, guard de autenticación, middlewares y opciones HTTP (SchemaValidationPipe, AuthGuard, cabeceras de seguridad, CORS, versionado)
       filters/                   #   Filtro global de excepciones → ApiError de contracts
       crypto/                    #   Hashing y cifrado
       notifications/             #   Email (Resend), WhatsApp (Twilio)
@@ -81,18 +83,25 @@ src/
   config/                        # Lectura y validación de variables de entorno (env.ts, env.module.ts, env.token.ts)
   i18n/                          # Archivos de traducción
 test/
-  *.e2e-spec.ts                  # Pruebas e2e, una suite por flujo de negocio
+  auth/, security/               # Pruebas e2e: una suite por flujo de negocio (auth) o por protección (security)
+  support/                       # Arranque de la app de pruebas, base de datos por corrida y utilidades
+postman/                         # Colección y entorno de Postman con las solicitudes de la API
+scripts/                         # seed-dev-users.js: las personas de desarrollo
 ```
 
 **Carpetas que se crean con su primer archivo.** Cada módulo nace con sus tres capas. Las subcarpetas del árbol (`entities`, `use-cases`, `controllers`...) aparecen cuando el módulo las necesita: no todos los módulos usan todas, y crearlas de antemano serían unas 170 carpetas vacías. Las carpetas vacías llevan un `.gitkeep` para que git las conserve; se borra al agregar el primer archivo.
 
-**Nombres de archivo:** kebab-case con un sufijo que dice qué es: `.entity.ts`, `.value-object.ts`, `.enum.ts`, `.error.ts`, `.policy.ts`, `.repository.ts` (interfaz en `domain`), `.token.ts`, `.use-case.ts`, `.service.ts`, `.dto.ts`, `.port.ts`, `.event.ts`, `.controller.ts`, `.module.ts`, `.mapper.ts`, `.filter.ts`, `.guard.ts`, `.pipe.ts`, `.middleware.ts`, `.options.ts`, `.setup.ts`. Los adaptadores llevan el nombre de la tecnología: `prisma-loan.repository.ts`, `resend-email-sender.ts`.
+**Nombres de archivo:** kebab-case con un sufijo que dice qué es: `.entity.ts`, `.value-object.ts`, `.enum.ts`, `.error.ts`, `.policy.ts`, `.repository.ts` (interfaz en `domain`), `.token.ts`, `.use-case.ts`, `.service.ts`, `.dto.ts`, `.port.ts`, `.event.ts`, `.controller.ts`, `.module.ts`, `.mapper.ts`, `.filter.ts`, `.guard.ts`, `.pipe.ts`, `.middleware.ts`, `.decorator.ts`, `.options.ts`, `.setup.ts`, `.schema.ts` (schema de Zod de la capa HTTP), `.docs.ts` (decoradores de Swagger), `.validator.ts`, `.constants.ts`, `.factory.ts` y `.providers.ts`. Los adaptadores llevan el nombre de la tecnología: `prisma-loan.repository.ts`, `resend-email-sender.ts`.
+
+**Imports con alias, nunca relativos (D-52):** `@/` apunta a `src/` y `@test/` a `test/` (`paths` en `tsconfig.json`, una sola definición que leen TypeScript, Vitest, ESLint y el build de Nest): `import { DomainError } from '@/shared/domain/errors/domain-error.js'`, no `'../../../shared/…'`. ESLint prohíbe los imports que empiezan con `./` o `../` (`no-restricted-imports`). Por qué: mover un archivo no rompe sus imports ni los de quienes lo importan; la ruta dice de un vistazo a qué capa se llega (justo lo que revisa la regla de la sección 3); y una cadena de `../../../` no se lee. La extensión `.js` es obligatoria en ESM, y el compilador de Nest reescribe los alias en `dist/`.
+
+**Archivos pequeños, con una sola razón para cambiar (D-52):** ESLint limita cada archivo a 200 líneas de código y cada función a 50, con complejidad ciclomática 10 y anidación 3 (`max-lines`, `max-lines-per-function`, `complexity`, `max-depth`; no cuentan líneas en blanco ni comentarios; las pruebas admiten 300 líneas por archivo). Lo que no tiene que vivir junto se separa en un archivo con nombre propio: constantes, schemas, reglas puras, tipos y la documentación de Swagger. Ejemplo: `modules/auth/infrastructure/better-auth/` reparte la instancia de better-auth en `auth.factory.ts` (la ensambla), `auth-options.ts`, `auth-plugins.ts` y `auth-hooks.ts` (la configuran) y `auth-hook-rules.ts` (las reglas de Fiaro, funciones puras que se prueban sin better-auth). Un límite en el lint funciona mejor que una recomendación: nadie tiene que acordarse de él.
 
 **`dtos` y `contracts`:** los requests y respuestas HTTP vienen de `@fiaro-app/contracts`. Los `dtos` de `application` son la entrada y salida de cada caso de uso, independientes de HTTP: el controller traduce del contrato al DTO del caso de uso.
 
 **`tokens`:** en TypeScript las interfaces desaparecen al compilar, así que NestJS no puede inyectar un `LoanRepository` por su tipo. Cada puerto o repositorio tiene un token (`Symbol`) con el que se registra y se inyecta la implementación.
 
-**Comentarios:** solo TSDoc (`/** */`) y solo sobre lo que importa: comportamiento no obvio, contratos y flujos donde el orden importa (con `@remarks`). Nada de comentarios `//` que narren el código ni que expliquen el porqué de una decisión: eso va en este documento y en PRODUCT.md. En las pruebas, el nombre del `it()` es la explicación.
+**Comentarios (D-55):** TSDoc (`/** */`) en todo símbolo exportado (funciones, clases, constantes, interfaces y sus miembros): Compodoc los publica en `docs/` y el editor los muestra al pasar el cursor. `eslint-plugin-tsdoc` valida la sintaxis (`@param nombre - texto`, `@returns`, `@throws {@link Error}`), y `@remarks` explica el orden o el motivo cuando importan. Cada comentario dice qué hace y qué devuelve, sin repetir el nombre. Nada de comentarios `//` que narren el código ni que expliquen el porqué de una decisión: eso va en este documento y en PRODUCT.md. En las pruebas, el nombre del `it()` es la explicación.
 
 ## 3. Regla de dependencia (obligatoria, forzada por lint)
 
@@ -134,6 +143,14 @@ Prisma genera su propio cliente tipado, pero ese tipo **no es la entidad de domi
 
 Ejemplo completo en el documento de producto, sección 4.3.
 
+**Cómo está hoy:**
+
+- **Esquema por áreas** en `src/shared/infrastructure/persistence/schema/`: `base.prisma` (generador y conexión) e `identity.prisma` (`users`, `sessions`, `accounts` y `verifications`). Prisma lee la carpeta entera, así que cada área nueva es un archivo nuevo y no un esquema único que crece sin límite. `prisma.config.ts`, en la raíz, dice dónde están el esquema y las migraciones.
+- **Migraciones SQL versionadas** en `persistence/migrations/`: `pnpm db:migrate` crea una a partir del esquema (desarrollo) y `pnpm db:deploy` aplica las pendientes (el contenedor de desarrollo lo hace al arrancar, y las pruebas e2e en su base de datos). Una migración ya aplicada nunca se edita: se agrega otra.
+- **Cliente generado** en `persistence/generated/`, que no se commitea: `pnpm db:generate`, que corre también al instalar (`prepare`) y en `pnpm build`. Usa `@prisma/adapter-pg` y `engineType = "client"`: las consultas las ejecuta el driver `pg` de Node, sin el motor en Rust; la imagen es más pequeña y no hay binarios por plataforma. `PrismaService` extiende `PrismaClient`, conecta con la primera consulta y se desconecta al cerrar la aplicación.
+- **Nombres:** tablas y columnas en `snake_case` con `@map`; el código las ve en camelCase. Los identificadores son `uuid` que genera la aplicación (UUIDv7, D-32), incluso los de las filas de better-auth, y las fechas `timestamptz(3)`.
+- **Reglas también en la base de datos:** `users.phone` es único y un `CHECK` exige el formato de celular colombiano en E.164 (D-27). Prisma no expresa los `CHECK` en el esquema, así que están escritos a mano en la migración. Si un error de la aplicación dejara pasar un celular inválido, la base lo rechaza.
+
 ## 5. Convenciones HTTP
 
 Los schemas de cada request y respuesta, y la definición de cada endpoint (método, ruta, body, respuesta), viven en el paquete `@fiaro-app/contracts` (D-30). Esta sección fija cómo la API los aplica.
@@ -152,7 +169,31 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 
 ## 6. Autenticación y autorización
 
-- **Autenticación con better-auth** (adaptador Prisma, login teléfono + contraseña, sesiones revocables), registrada en `modules/auth/auth.module.ts` — es un adaptador, el dominio no conoce better-auth. Sujeto a spike; plan B: JWT + refresh con Passport. Ver PRODUCT.md §8 y D-08.
+**Autenticación: better-auth con un adaptador propio (D-48).** Vive en `modules/auth`. El dominio y los casos de uso no conocen better-auth: solo los puertos `PasswordHasher` y `SessionResolver`, que implementan sus adaptadores. Un adaptador propio deja cuatro rutas publicadas y bajo nuestro control (validación con Zod, versionado, Swagger, rate limit y guard global de la API) en lugar de montar todas las de better-auth.
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| Rutas | `auth.controller.ts` | Reenvía cuatro rutas de better-auth, tal como son: `POST /auth/sign-in/phone-number` (`{ phoneNumber, password }`), `GET /auth/get-session`, `POST /auth/sign-out` y `POST /auth/change-password` (`{ currentPassword, newPassword }`). El body se valida antes con el schema de cada ruta. Cualquier otra ruta de better-auth (registro, correo, cuentas sociales, código por SMS) responde 404 |
+| Traducción | `auth-request.ts`, `auth-response.ts` | Convierten la petición de Express en la `Request` que espera `auth.handler` y escriben su respuesta (estado, cuerpo y cada cookie) en la de Express |
+| Instancia | `auth.factory.ts`, `auth-options.ts`, `auth-plugins.ts` | Celular y contraseña (plugin `phoneNumber`), plugin de Expo, sesiones en PostgreSQL con Prisma, ids UUIDv7 y rate limit |
+| Reglas de Fiaro | `auth-hooks.ts`, `auth-hook-rules.ts` | Igualan el tiempo de respuesta de un celular sin cuenta; al cambiar la contraseña revocan las demás sesiones y quitan `mustChangePassword` |
+| Guard global | `shared/infrastructure/http/auth.guard.ts` | Toda ruta exige sesión salvo las marcadas con `@Public()`; `@CurrentUser()` entrega la persona a los controllers |
+| Alta de personas | `CreateUserUseCase` | No hay registro público: las personas se crean con este caso de uso (el seed de desarrollo y, más adelante, el registro del Owner y el alta de cobradores) |
+
+Lo que conviene saber, y por qué:
+
+- **Login por celular, email técnico (D-49).** better-auth exige un email único por usuario. `loginEmail` es una dirección técnica derivada del celular (`technical-email.ts`), no una credencial: `emailAndPassword` está apagado, así que ninguna ruta acepta email y contraseña. El correo real, opcional, vive aparte en `contactEmail` (D-07).
+- **Sesión de 30 días que se renueva con el uso (D-50).** Cookie `fiaro.session_token` (`HttpOnly`, `SameSite=Lax`, `Secure` con HTTPS). Cada día de uso la renueva otros 30 días; sin uso, vence. Las sesiones están en la base de datos y no hay caché de sesión en la cookie: revocar una (borrar su fila) surte efecto en la siguiente petición, no cuando venza una caché. El guard no la renueva (`disableRefresh`): la renovación ocurre en `GET /auth/get-session`, que sí responde con `Set-Cookie`. Si el guard alargara la sesión en la base de datos sin que la app reciba la cookie nueva, la app la daría por vencida a los 30 días aunque el servidor la siguiera aceptando.
+- **Apps móviles.** Usan el cliente oficial de better-auth con su plugin de Expo, que guarda la cookie cifrada en el dispositivo (SecureStore) y envía `expo-origin`; la API lo acepta si su esquema está en `MOBILE_APP_SCHEMES`. Por eso las rutas se publican «tal cual» y no hay un contrato propio para iniciar sesión.
+- **Origen y CSRF siempre activos.** Una petición con cookie debe traer un `Origin` de confianza (el de la API, uno de `CORS_ORIGINS` o un esquema móvil) o responde 403 `INVALID_ORIGIN`. better-auth apaga esa comprobación con `NODE_ENV=test`; aquí se fuerza encendida para que las pruebas ejerzan lo mismo que producción.
+- **Contraseña temporal (D-34).** Con `mustChangePassword` la sesión existe pero solo sirve para ver la sesión, cambiar la contraseña y cerrar sesión; el resto responde 403 `PASSWORD_CHANGE_REQUIRED`. Cambiarla revoca siempre las demás sesiones (quien conociera la temporal, por ejemplo por WhatsApp, pierde el acceso) y quita la marca.
+- **No se puede averiguar qué celulares tienen cuenta.** Un celular sin cuenta y una contraseña incorrecta responden lo mismo (401 `INVALID_PHONE_NUMBER_OR_PASSWORD`) y tardan lo mismo: con un celular desconocido better-auth respondería al instante, así que un hook calcula un hash de la misma dificultad para nivelar el tiempo.
+- **Rate limit:** 5 intentos por minuto y por IP al iniciar sesión y al cambiar la contraseña (el de better-auth, en memoria); el general de la API sigue aplicando. Detalle y límites en la sección 11.
+- **Celular sin verificar (D-51).** Las rutas de código por SMS están apagadas (`DISABLED_PATHS`, y `sendOTP` falla si alguien las enciende): en el MVP quien escribe el celular responde por él. Riesgo que se asume por ahora: alguien podría dar de alta el celular de otra persona. Al agregar el registro público hay que verificarlo (código por WhatsApp o SMS) antes de crear la cuenta.
+- **Errores y caché.** Los errores llevan un `code` estable y, al pasarse del límite, `Retry-After`; toda respuesta de autenticación lleva `Cache-Control: no-store`, porque trae el token de sesión.
+
+**Autorización:**
+
 - **Roles por membership**: `User` ↔ `Lender` con un conjunto de roles (`OWNER`, `LENDER`, `COLLECTOR`); los guards evalúan el conjunto, no un rol único (D-02).
 - **Reglas de autorización** en `shared/application/security`: funciones puras (qué rol puede hacer qué sobre qué recurso), usadas por los guards y por los casos de uso.
 - `LenderScopeGuard` (en `shared/infrastructure/http`): toma `lenderId` de la membership activa de la sesión, nunca del body/query. En modo cobrador valida además que el préstamo tenga una `CollectionAssignment` vigente para esa membership.
@@ -161,12 +202,22 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 
 ## 7. Testing
 
-- **Unitarios:** `*.spec.ts` junto al archivo que prueban (`loan.entity.spec.ts` junto a `loan.entity.ts`). Importan `describe`, `it` y `expect` desde `vitest`: no hay variables globales de prueba en el código de producción.
-- **Dominio primero:** la lógica de `domain` y `application` se prueba sin `TestingModule` de Nest ni base de datos, con implementaciones en memoria de los puertos. Son las pruebas que más abundan y deben correr en milisegundos: es lo que mantiene la suite rápida cuando el proyecto crece.
-- **E2E:** en `test/*.e2e-spec.ts`, uno por flujo de negocio relevante (no uno por endpoint), con `Test.createTestingModule` de Nest y `supertest`. Configuración separada (`vitest.config.e2e.ts`): no se mezclan con las unitarias en `pnpm test`. `test/security.e2e-spec.ts` es la excepción a "uno por flujo de negocio": prueba la aplicación ensamblada (`AppModule` + `configureApp`) con rutas de prueba, porque cada protección de la sección 11 puede estar bien por separado y aun así no estar conectada. Se verificó que cada una de esas pruebas falla al quitar su protección.
+Dos proyectos de Vitest en un solo `vitest.config.ts`, con la misma compilación (SWC) y los mismos alias (`@/`, `@test/`):
+
+| Proyecto | Archivos | Necesita | Comando |
+|---|---|---|---|
+| `unit` | `src/**/*.spec.ts`, junto al archivo que prueban | Nada: corren en milisegundos | `pnpm test` |
+| `e2e` | `test/**/*.e2e-spec.ts` | PostgreSQL (`pnpm docker:infra`) | `pnpm test:e2e` |
+| Los dos, con cobertura | | PostgreSQL | `pnpm test:cov` |
+
+- **Unitarios:** `loan.entity.spec.ts` junto a `loan.entity.ts`. Importan `describe`, `it` y `expect` desde `vitest`: no hay variables globales de prueba en el código de producción.
+- **Dominio primero:** la lógica de `domain` y `application` se prueba sin `TestingModule` de Nest ni base de datos, con implementaciones en memoria de los puertos. Son las pruebas que más abundan y deben correr en milisegundos: es lo que mantiene la suite rápida cuando el proyecto crece. Los hooks de better-auth también se prueban aquí: son middlewares que se invocan con un contexto a medida.
+- **E2E contra PostgreSQL real, sin mocks de la base de datos (D-53):** `Test.createTestingModule` de Nest, `supertest` y la aplicación ensamblada (`AppModule` + `configureApp`, como `main.ts`). Un mock de Prisma prueba el mock; lo que puede romperse son las migraciones, las restricciones y las transacciones, y solo una base de datos real las ejerce. `test/support/global-setup.ts` crea **una base de datos por corrida** en el servidor de `DATABASE_URL` (por defecto, el de `pnpm docker:infra`), le aplica las migraciones y la borra al terminar: las pruebas nunca tocan tus datos de desarrollo aunque compartan servidor. Cada prueba parte de tablas vacías y de una aplicación nueva.
+- **Qué hay:** una suite por flujo de negocio (`test/auth/`: iniciar sesión, sesión, contraseña, guard, origen, rate limit, alta de personas, rutas apagadas, contrato con los schemas y documentación OpenAPI) y una por protección de la sección 11 (`test/security/`). Estas últimas prueban la aplicación ensamblada con rutas de prueba, porque cada protección puede estar bien por separado y aun así no estar conectada. Se verificó que cada una falla al quitar su protección.
+- **Suites en serie:** todas comparten la base de datos de la corrida (`fileParallelism: false`), y el rate limit de better-auth vive en la memoria del proceso. Por eso cada prueba se identifica con su propia IP en `X-Forwarded-For` (con `TRUST_PROXY=1`): así no gasta el límite de las demás.
 - **SWC:** las pruebas se compilan con SWC (`unplugin-swc`), la configuración que recomienda NestJS para Vitest. Emite la metadata de decoradores que necesita la inyección de dependencias, y la cobertura de Vitest reconoce ese código generado y no lo cuenta como ramas sin probar.
-- **Cobertura:** `pnpm test:cov` exige al menos 80 % de líneas, funciones, ramas y sentencias, el mismo mínimo que la quality gate de SonarCloud. `main.ts`, `app.setup.ts` y los `*.module.ts` quedan fuera: solo arman la aplicación y los cubren las pruebas e2e; los `*.token.ts` también, por ser una constante sin lógica. La misma lista está en `sonar-project.properties` y deben coincidir.
-- **En contenedores:** `pnpm docker:test` corre la suite completa (unitarias con cobertura y e2e) dentro de Docker, con la infraestructura efímera de `compose.test.yaml` — ver sección 12.
+- **Cobertura, mínimo 95 % (D-54):** `pnpm test:cov` corre las dos suites juntas y mide la cobertura de ambas, así que lo que solo ejercen las e2e (módulos, providers, la factory de better-auth, `PrismaService`) también cuenta. Exige 95 % de líneas, funciones, ramas y sentencias **en total y en cada archivo** (`perFile`): un promedio alto no puede esconder un archivo sin probar. Quedan fuera solo las pruebas, `main.ts` (únicamente hace `listen`; el smoke test del CI arranca la imagen de producción) y el cliente que genera Prisma. La lista está también en `sonar-project.properties` y deben coincidir; el `lcov` que lee SonarCloud sale de esta misma corrida. El porcentaje mide qué código se ejecutó, no si se probó bien: una prueba sin `expect` no vale (regla S2699 de Sonar) y las protecciones se verifican quitándolas para ver que la prueba falle.
+- **En contenedores:** `pnpm docker:test` corre `pnpm test:cov` dentro de Docker, con la infraestructura efímera de `compose.test.yaml` — ver sección 12.
 
 ## 8. Herramientas, hooks y caché
 
@@ -174,9 +225,11 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 
 | Hook | Qué hace |
 |---|---|
-| `pre-commit` | lint-staged: ESLint con `--fix`, Prettier y `vitest related` **solo sobre los archivos en staging**. El tiempo del commit depende del cambio, no del tamaño del proyecto |
+| `pre-commit` | lint-staged: ESLint con `--fix`, Prettier y `vitest related` (proyecto `unit`) **solo sobre los archivos en staging**. El tiempo del commit depende del cambio, no del tamaño del proyecto |
 | `commit-msg` | commitlint: el mensaje debe seguir Conventional Commits (`feat:`, `fix:`, `docs:`...) |
-| `pre-push` | Typecheck incremental y solo las pruebas afectadas por los cambios de la rama frente a `dev` (`vitest --changed`). El CI corre todo |
+| `pre-push` | Typecheck incremental y solo las pruebas unitarias afectadas por los cambios de la rama frente a `dev` (`vitest --project unit --changed`). El CI corre todo |
+
+Los hooks no corren las e2e: necesitan PostgreSQL y un commit no debe depender de que Docker esté levantado. Las corre el CI, y tú con `pnpm test:e2e`.
 
 **Caché** (en `node_modules/.cache`, también guardada entre ejecuciones del CI):
 
@@ -195,7 +248,7 @@ Los schemas de cada request y respuesta, y la definición de cada endpoint (mét
 
 Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts` al arrancar (si alguna es inválida el proceso no arranca y el error dice cuál), y se documenta en `.env.example` (nunca `.env` real, ver `.gitignore`) y aquí. En desarrollo se leen de un `.env` local, que Node carga sin dependencias (`process.loadEnvFile`, en `main.ts`); en producción las inyecta la plataforma y no hay archivo.
 
-**Conectadas** (seguridad HTTP, ver sección 11):
+**Conectadas** (seguridad HTTP, sección 11; base de datos y autenticación, secciones 4 y 6):
 
 | Variable | Por defecto | Para qué |
 |---|---|---|
@@ -206,26 +259,28 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `THROTTLE_TTL_MS` | `60000` | Ventana del rate limit, en milisegundos |
 | `THROTTLE_LIMIT` | `100` | Peticiones permitidas por IP y por ruta dentro de la ventana |
 | `SWAGGER_ENABLED` | activa salvo en producción | Publica la documentación en `/docs` |
+| `DATABASE_URL` | **obligatoria** | URL de PostgreSQL (`postgresql://usuario:clave@host:puerto/base`). En el entorno local con Docker la define Compose |
+| `BETTER_AUTH_SECRET` | **obligatoria** | Firma las cookies de sesión; mínimo 32 caracteres (`openssl rand -base64 32`). En producción va en los secretos de la plataforma, nunca en el repo |
+| `BETTER_AUTH_URL` | **obligatoria** | Origen público de la API (esquema, host y puerto, sin ruta). Con él better-auth arma sus URLs y reconoce su propio origen: nunca se toma de la cabecera `Host`, que el cliente controla |
+| `MOBILE_APP_SCHEMES` | vacío | Esquemas de enlace profundo de las apps nativas (el `scheme` de su `app.json`), separados por coma. Con `fiaro` la API acepta `expo-origin: fiaro://`. Sin ellos, la app móvil recibe 403 en las peticiones con sesión |
 
 **Pendientes** (cada una se agrega con su pieza):
 
 | Variable | Para qué | Se agrega con |
 |---|---|---|
-| `DATABASE_URL` | Conexión Postgres (Neon) vía Prisma | Esquema de base de datos |
 | `REDIS_URL` | Cache + broker de BullMQ (Upstash) | Colas y caché |
 | `MONGODB_URI` | Auditoría | Auditoría |
-| `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | Firma de sesiones de better-auth | Autenticación |
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Storage de archivos por API S3: Cloudflare R2 en producción, SeaweedFS en local. Nombres sin el del proveedor: el mismo código sirve para los dos | Logo del prestamista |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Correo saliente (Mailpit en local) | Recuperación de acceso y reportes |
 | `SENTRY_DSN` | Errores en producción | Primer despliegue |
 
-En el entorno local con Docker (sección 12) la API ya recibe `DATABASE_URL`, `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios de Compose; se declaran en `src/config/env.ts` cuando el primer módulo las use.
+En el entorno local con Docker (sección 12) Compose define `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` y `MOBILE_APP_SCHEMES` con valores de desarrollo, y la API recibe además `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios de Compose; estas últimas se declaran en `src/config/env.ts` cuando el primer módulo las use.
 
 ## 10. Ramas y CI
 
 Ver el `README.md` de este repo para el flujo de ramas (`dev`/`main`) y el pipeline de CI. Este documento cubre solo arquitectura de código.
 
-Además del job `check`, el CI tiene un job `docker` que corre en paralelo: valida los archivos de Compose, construye la imagen de producción con el secreto de BuildKit, comprueba que arranca y queda sana, y corre la suite en contenedores (sección 12). Así un `Dockerfile` roto se detecta en el PR y no en el primer despliegue.
+El job `check` levanta un PostgreSQL como servicio y corre `pnpm test:cov`: unitarias y e2e en una sola corrida, que falla si la cobertura baja de 95 % y deja el `lcov` que lee SonarCloud. Además, el CI tiene un job `docker` que corre en paralelo: valida los archivos de Compose, construye la imagen de producción con el secreto de BuildKit, comprueba que arranca y queda sana, y corre la suite en contenedores (sección 12). Así un `Dockerfile` roto se detecta en el PR y no en el primer despliegue.
 
 ## 11. Seguridad HTTP
 
@@ -235,8 +290,8 @@ Todo esto se configura antes del primer endpoint, para que cada ruta nueva lo he
 |---|---|---|
 | Helmet | Cabeceras de seguridad y política de contenido (CSP) | Reduce lo que un navegador puede hacer con una respuesta de la API |
 | CORS | Solo los orígenes de `CORS_ORIGINS` pueden llamar desde un navegador | Evita que una página ajena use la sesión del usuario para leer sus datos |
-| `cookie-parser` | Llena `req.cookies` | Lectura de cookies propias; la sesión la manejará la autenticación |
-| Rate limit | 100 peticiones por minuto por IP y ruta; 429 al pasarse | Frena la fuerza bruta y el abuso |
+| `cookie-parser` | Llena `req.cookies` | Lectura de cookies propias; la sesión la maneja better-auth (sección 6) |
+| Rate limit | 100 peticiones por minuto por IP y ruta (5 al iniciar sesión y al cambiar la contraseña); 429 al pasarse | Frena la fuerza bruta y el abuso |
 | Versionado | Cabecera `API-Version` (sin ella, la versión 1) | Permite cambiar la API sin romper las apps instaladas ni las rutas de `contracts` |
 | Validación | Schema de Zod en cada body y parámetro | Nada llega a un caso de uso sin validar |
 | Swagger | Documentación en `/docs`, apagada en producción | Documentación viva, sin publicar el mapa de la API donde no hace falta |
@@ -267,8 +322,8 @@ Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 
 - **El contador es por IP y por ruta**, no global: agotar `GET /loans` no bloquea `GET /clients`. Sirve para frenar abuso, no para absorber un ataque de denegación de servicio (eso lo hace el borde: Fly.io o un CDN).
 - **`TRUST_PROXY` decide de dónde sale la IP.** Detrás de Fly.io, sin ella la IP sería siempre la del proxy y el límite contaría a todos los usuarios como uno; y si se confía de más, cualquiera falsifica `X-Forwarded-For` y evita el límite. Por eso es obligatoria en producción: `1` detrás de Fly.io, `0` si la API recibe tráfico directo. Dos pruebas e2e verifican ambos casos.
-- **Rutas sensibles:** el inicio de sesión llevará un límite más estricto con `@Throttle({ default: { limit: 5, ttl: 60_000 } })`, y `/health` llevará `@SkipThrottle()`. Las apps móviles sincronizan de golpe lo registrado sin señal (D-05): deben respetar `Retry-After` en lugar de reintentar de inmediato.
-- **Almacén en memoria:** vale mientras haya una sola instancia. Con dos o más, cada una cuenta por su lado y el límite real se multiplica. Al escalar hay que compartirlo (Redis/Upstash) con un `ThrottlerStorage`: `@nest-lab/throttler-storage-redis` 1.2.0 declara soporte solo hasta NestJS 11 (verificado el 2026-09-23), así que hay que revisar su compatibilidad con Nest 12 o implementar la interfaz sobre el cliente de Redis del proyecto.
+- **Rutas sensibles:** iniciar sesión y cambiar la contraseña admiten 5 intentos por minuto y por IP. Ese límite lo aplica el rate limit de better-auth, no el de Nest, con la misma IP que resuelve Express según `TRUST_PROXY`: el controller se la pasa en una cabecera interna y descarta la que envíe el cliente, así que no se puede falsificar. Los cobradores que salen por una misma IP (una oficina, un operador móvil) comparten ese límite; si estorba, la clave pasa a ser celular + IP. `/health` llevará `@SkipThrottle()`. Las apps móviles sincronizan de golpe lo registrado sin señal (D-05): deben respetar `Retry-After` en lugar de reintentar de inmediato.
+- **Almacén en memoria** (el de Nest y el de better-auth): vale mientras haya una sola instancia. Con dos o más, cada una cuenta por su lado y el límite real se multiplica. Al escalar hay que compartirlo (Redis/Upstash) con un `ThrottlerStorage`: `@nest-lab/throttler-storage-redis` 1.2.0 declara soporte solo hasta NestJS 11 (verificado el 2026-09-23), así que hay que revisar su compatibilidad con Nest 12 o implementar la interfaz sobre el cliente de Redis del proyecto.
 
 ### Versionado
 
@@ -289,13 +344,15 @@ Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 
 - Publica `/docs` (interfaz) y `/docs/openapi.json` (documento), generados a partir de las rutas y del schema de cada `@Body({ schema })`: no hay nada que mantener a mano.
 - **Apagada en producción por defecto** (`SWAGGER_ENABLED`). Describe cada ruta, campo y regla de una API financiera: es información que un atacante aprovecha y que nadie necesita en producción.
+- **Todas las respuestas posibles (D-55).** La documentación de la autenticación son decoradores compuestos (`modules/auth/infrastructure/controllers/docs/`): cada ruta declara su cuerpo, la cookie (`addCookieAuth`) y cada respuesta, éxito y errores con su `code`, con el schema de Zod correspondiente (`standardSchema`). Las pruebas de contrato validan las respuestas reales con esos mismos schemas, y otra prueba comprueba que el documento describe exactamente las cuatro rutas publicadas: la documentación no puede quedar distinta de lo que la API responde.
+- **Postman.** `postman/` trae la colección con las solicitudes (pruebas automáticas y todos los errores posibles) y su entorno local; se importan en Postman o se ejecutan con `newman`.
 - **OpenAPI 3.2.** La 3.0 que Nest usa por defecto no define la operación `query`, y Swagger UI oculta las rutas `QUERY` (D-26), que serán casi todas las lecturas.
 
 ### Lo que todavía no está
 
 - **Filtro global de excepciones** que responda `ApiError` (§5).
 - **Serializar las respuestas con schema** (`StandardSchemaSerializerInterceptor` y `@SerializeOptions({ schema })` de Nest 12), para que una ruta nunca devuelva campos que el contrato no declara.
-- **`Cache-Control: no-store`** en las respuestas con datos personales.
+- **`Cache-Control: no-store`** en las demás respuestas con datos personales (las de autenticación ya lo llevan).
 
 ## 12. Entorno local con Docker
 
@@ -338,9 +395,11 @@ Un solo `Dockerfile` (con un target por entorno) y dos archivos de Compose. Todo
 
 ### Desarrollo (`compose.yaml`, target `dev`)
 
-- **Recarga en caliente:** la API corre con `nest start --watch` y el `src/` de tu máquina está montado dentro (solo lectura): al guardar, se recompila y reinicia en unos 2 segundos. Un cambio en `package.json`, el lockfile o los archivos de configuración exige `pnpm docker:dev` otra vez (reconstruye la imagen).
+- **Recarga en caliente:** la API corre con `nest start --watch` y el `src/` de tu máquina está montado dentro (de lectura y escritura, porque `prisma generate` escribe ahí el cliente): al guardar, se recompila y reinicia en unos 2 segundos. Un cambio en `package.json`, el lockfile o los archivos de configuración exige `pnpm docker:dev` otra vez (reconstruye la imagen).
+- **Base de datos al arrancar:** el contenedor aplica las migraciones (`prisma migrate deploy`) y regenera el cliente de Prisma antes de iniciar la API: el montaje de `./src` oculta el cliente que generó la imagen. Un cambio en el esquema pide una migración nueva (`pnpm db:migrate`, en tu máquina) y reiniciar la API.
+- **Personas de desarrollo:** `pnpm docker:seed` crea, con el mismo caso de uso que usará el registro, a Ana Pérez (`+573001234567`, contraseña `fiaro-dev-2026`) y a un cobrador con contraseña temporal (`+573109998877`, `temporal-2026`). Es idempotente y se niega a correr en producción. `pnpm docker:reset` borra los datos.
 - **Depurador:** el puerto 9229 está publicado; en VS Code, «Attach» a `localhost:9229` con `remoteRoot` `/app`.
-- **Conexiones:** la API recibe `DATABASE_URL`, `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios por su nombre en la red de Compose (`postgres`, `redis`...), y arranca cuando están sanos. Todavía no las lee ningún módulo: están para que el primero que las necesite solo tenga que declararlas en `src/config/env.ts` (sección 9). Desde tu máquina (Prisma Studio, `pnpm start:dev`) se usan los puertos publicados.
+- **Conexiones:** la API recibe `DATABASE_URL`, `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios por su nombre en la red de Compose (`postgres`, `redis`...), y arranca cuando están sanos. Hoy solo usa `DATABASE_URL` (y las de better-auth); las demás están para que el primer módulo que las necesite solo tenga que declararlas en `src/config/env.ts` (sección 9). Desde tu máquina (Prisma Studio, `pnpm start:dev`) se usan los puertos publicados.
 - **`.env`:** si existe, se pasa al contenedor; lo que define `compose.yaml` (`NODE_ENV`, `PORT`...) tiene prioridad.
 - **Logs sin colores** (`NO_COLOR=1`), para que lleguen limpios a Loki; los que emite el compilador de TypeScript los limpia Alloy.
 - **Usuario sin privilegios** (`node`) y `init: true`, para que las señales lleguen al proceso.
@@ -350,7 +409,7 @@ Un solo `Dockerfile` (con un target por entorno) y dos archivos de Compose. Todo
 
 - **Datos en memoria (`tmpfs`):** cada corrida arranca vacía y no queda nada que limpiar; además es más rápido que el disco.
 - **Aislado del entorno de desarrollo:** puertos propios (5441, 6391, 27041, 8334, 1026 y 8026) y un proyecto distinto (`fiaro-test`), así que puede correr mientras tu stack de desarrollo está arriba y `pnpm docker:test` no puede tocarlo (el script fija el proyecto con `-p`).
-- **Qué corre:** el contenedor `test` espera a que la infraestructura esté sana y ejecuta `pnpm test:cov && pnpm test:e2e`. Hoy ninguna prueba usa las bases de datos (las unitarias y las e2e no las necesitan): el entorno queda listo, y verificado, para las pruebas de integración con Prisma, BullMQ o S3.
+- **Qué corre:** el contenedor `test` espera a que la infraestructura esté sana y ejecuta `pnpm test:cov`: unitarias y e2e juntas, con cobertura. Las e2e usan el PostgreSQL efímero (cada corrida crea su propia base de datos y la borra); Redis, Mongo y S3 quedan listos para las pruebas de integración de BullMQ, la auditoría y el almacenamiento cuando existan.
 - **Para probar desde tu máquina contra esa infraestructura:** `docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml up -d --wait` y usa los puertos de prueba.
 - El CI corre lo mismo en el job `docker`.
 
@@ -381,7 +440,7 @@ cAdvisor, Postgres, Redis, Mongo, Loki, Grafana ─ métricas ─▶ Alloy ─ r
 
 - **Un `Dockerfile`, un target por entorno:** `dev` (recarga en caliente), `test` (hereda de `dev` y corre la suite) y `prod` (el último, así que `docker build .` produce la de producción).
 - **Token de GitHub Packages como secreto de BuildKit:** `@fiaro-app/contracts` es privado. El token entra con `--secret id=NODE_AUTH_TOKEN`, existe solo durante el `RUN` que instala y no queda en ninguna capa ni en `docker history`; la imagen `prod` ni siquiera comparte capas con la etapa que lo usó. Si falta, el build se detiene con un mensaje claro en lugar de un 401 críptico.
-- **`prod`:** Node 24 `-slim`, solo las dependencias de producción y `dist`, usuario `node` y código que no puede escribir. Se probó con `--read-only`, `--cap-drop ALL` y `no-new-privileges`. Sin `TRUST_PROXY` no arranca (sección 9). Su `HEALTHCHECK` abre una conexión TCP al puerto de la API.
+- **`prod`:** Node 24 `-slim`, solo las dependencias de producción y `dist` (el cliente de Prisma se genera en el build), usuario `node` y código que no puede escribir (hoy con el peso extra descrito en «Lo que todavía no está»). Se probó con `--read-only`, `--cap-drop ALL` y `no-new-privileges`. Sin `TRUST_PROXY` no arranca (sección 9). Su `HEALTHCHECK` abre una conexión TCP al puerto de la API.
 - **Debian, no Alpine**, en las imágenes de Node y de Postgres. Postgres: Alpine usa musl, que no soporta locales, y el orden de las consultas (`en_US.utf8`) no coincidiría con el de Neon. Node: glibc evita sorpresas con módulos nativos (Prisma, sharp). Además, Postgres 18 guarda los datos en `/var/lib/postgresql` (ya no en `.../data`) y el volumen se monta ahí.
 - **Versiones:** Prometheus está en su línea LTS (3.13, con soporte hasta julio de 2027); el resto, en la última versión estable con al menos una semana publicada.
 
@@ -390,5 +449,7 @@ cAdvisor, Postgres, Redis, Mongo, Loki, Grafana ─ métricas ─▶ Alloy ─ r
 - **Métricas de la API** (`/metrics`) y **logs JSON con Pino**: los logs de stdout ya llegan a Loki; el raspado de `/metrics` se agrega a `docker/alloy/config.alloy` cuando exista.
 - **`/health`:** el healthcheck de la API es por TCP; con el módulo `system` pasa a HTTP (también lo necesita Fly.io).
 - **Cierre ordenado** (`enableShutdownHooks`): hoy no hay conexiones que cerrar; con Prisma y BullMQ sí.
+- **Migraciones en producción:** la API no migra al arrancar: con varias instancias, todas competirían por aplicar las mismas migraciones, y la aplicación no debería tener permisos para alterar el esquema. Con el primer despliegue se agrega el paso que corre `prisma migrate deploy` antes de que arranque la versión nueva (por ejemplo, desde el CI contra la base de datos, o con el `release_command` de Fly.io). La imagen `prod` no expone el CLI de Prisma: es una dependencia de desarrollo.
+- **Adelgazar la imagen `prod`:** pesa unos 940 MB sin comprimir porque `pnpm install --prod` instala también el CLI de Prisma, Prisma Studio y TypeScript (unos 250 MB): `@prisma/client` los declara como dependencias peer y pnpm las resuelve con nuestras dependencias de desarrollo. Se arregla quitando esas peers con un `.pnpmfile.cjs` (`readPackage`), lo que cambia el lockfile; conviene decidirlo junto con la estrategia de migraciones.
 - **`fly.toml`** y el despliegue.
 - **Trazas** (OpenTelemetry y Tempo): con un solo servicio no hacen falta; Alloy puede recibir OTLP cuando lleguen.
