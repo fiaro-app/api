@@ -1,7 +1,10 @@
 import { HttpMethodSchema } from '@fiaro-app/contracts';
 import { describe, expect, it } from 'vitest';
-import { API_VERSION_HEADER } from './api-versioning.js';
-import { CORS_METHODS, buildCorsOptions } from './cors.options.js';
+import { API_VERSION_HEADER } from '@/shared/infrastructure/http/api-versioning.js';
+import {
+  CORS_METHODS,
+  buildCorsOptions,
+} from '@/shared/infrastructure/http/cors.options.js';
 
 describe('buildCorsOptions', () => {
   const origins = ['https://app.fiaro.co', 'http://localhost:3001'];

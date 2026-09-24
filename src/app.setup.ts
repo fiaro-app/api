@@ -1,19 +1,19 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
-import type { Env } from './config/env.js';
-import { ENV } from './config/env.token.js';
+import type { Env } from '@/config/env.js';
+import { ENV } from '@/config/env.token.js';
 import {
   API_DEFAULT_VERSION,
   API_VERSIONING,
   varyByApiVersion,
-} from './shared/infrastructure/http/api-versioning.js';
-import { buildCorsOptions } from './shared/infrastructure/http/cors.options.js';
-import { SchemaValidationPipe } from './shared/infrastructure/http/schema-validation.pipe.js';
-import { createSecurityHeaders } from './shared/infrastructure/http/security-headers.middleware.js';
+} from '@/shared/infrastructure/http/api-versioning.js';
+import { buildCorsOptions } from '@/shared/infrastructure/http/cors.options.js';
+import { SchemaValidationPipe } from '@/shared/infrastructure/http/schema-validation.pipe.js';
+import { createSecurityHeaders } from '@/shared/infrastructure/http/security-headers.middleware.js';
 import {
   DOCS_PATH,
   setupSwagger,
-} from './shared/infrastructure/swagger/swagger.setup.js';
+} from '@/shared/infrastructure/swagger/swagger.setup.js';
 
 /**
  * Configuración HTTP global de la aplicación; la usan `main.ts` y las pruebas e2e.
@@ -29,6 +29,8 @@ import {
  * 7. Swagger, solo si está activo.
  *
  * El rate limit es un guard global de `AppModule`, no un middleware.
+ *
+ * @param app - Aplicación de Nest sobre Express que se configura.
  */
 export function configureApp(app: NestExpressApplication): void {
   const env = app.get<Env>(ENV);

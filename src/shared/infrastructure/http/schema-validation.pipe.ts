@@ -16,6 +16,8 @@ function toPathSegment(
 /**
  * Traduce los errores de un schema al `400 VALIDATION_FAILED` del contrato de errores.
  * Solo copia `path` y `message`: el resto de los datos de cada error no sale en la respuesta.
+ *
+ * @param issues - Errores que devolvió el schema.
  */
 export function toValidationException(
   issues: readonly StandardSchemaV1.Issue[],
@@ -43,6 +45,13 @@ export class SchemaValidationPipe extends StandardSchemaValidationPipe {
     super({ exceptionFactory: toValidationException });
   }
 
+  /**
+   * @param value - Dato de la petición que se valida.
+   * @param metadata - Dónde está el dato (body, query...) y el schema que declara la ruta.
+   * @returns El dato validado, con los valores por defecto aplicados.
+   * @throws {@link BadRequestException} Si el dato no cumple el schema (`VALIDATION_FAILED`).
+   * @throws Un error de programación (500) si un `@Body()` o `@Query()` no declara schema.
+   */
   override async transform<T>(
     value: T,
     metadata: ArgumentMetadata,

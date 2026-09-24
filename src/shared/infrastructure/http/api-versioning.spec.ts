@@ -7,7 +7,7 @@ import {
   API_VERSIONING,
   extractApiVersion,
   varyByApiVersion,
-} from './api-versioning.js';
+} from '@/shared/infrastructure/http/api-versioning.js';
 
 /** Una petición con las cabeceras dadas; Node las entrega con el nombre en minúsculas. */
 const requestWith = (headers: IncomingMessage['headers']) => ({ headers });

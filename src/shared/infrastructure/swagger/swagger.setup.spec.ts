@@ -3,7 +3,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { DOCS_PATH, setupSwagger } from './swagger.setup.js';
+import {
+  DOCS_PATH,
+  setupSwagger,
+} from '@/shared/infrastructure/swagger/swagger.setup.js';
 
 const EchoSchema = z.strictObject({ name: z.string().min(1) });
 
@@ -65,7 +68,9 @@ describe('setupSwagger', () => {
   it.each(['/docs-json', '/docs-yaml', `/${DOCS_PATH}/openapi.yaml`])(
     'no publica el documento en otras rutas (%s)',
     async (path) => {
-      await get(path).expect(404);
+      const response = await get(path);
+
+      expect(response.status).toBe(404);
     },
   );
 });

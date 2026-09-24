@@ -1,5 +1,5 @@
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface.js';
-import { API_VERSION_HEADER } from './api-versioning.js';
+import { API_VERSION_HEADER } from '@/shared/infrastructure/http/api-versioning.js';
 
 /**
  * Métodos permitidos desde un navegador. `QUERY` va incluido: no es un método simple y el

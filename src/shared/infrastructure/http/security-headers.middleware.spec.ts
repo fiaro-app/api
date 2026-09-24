@@ -2,7 +2,7 @@ import { Controller, Get, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createSecurityHeaders } from './security-headers.middleware.js';
+import { createSecurityHeaders } from '@/shared/infrastructure/http/security-headers.middleware.js';
 
 @Controller()
 class ProbeController {
