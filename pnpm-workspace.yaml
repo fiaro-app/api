@@ -1,0 +1,11 @@
+# Nuestros propios paquetes se instalan apenas se publican: el período de espera de
+# pnpm (protección contra paquetes comprometidos) aplica solo a paquetes de terceros.
+minimumReleaseAgeExclude:
+  - '@fiaro-app/*'
+
+# Scripts de instalación de terceros: pnpm 11 no los ejecuta salvo autorización explícita.
+# `@swc/core` y `unrs-resolver` solo verifican su binario nativo; `@scarf/scarf` envía telemetría.
+allowBuilds:
+  '@scarf/scarf': false
+  '@swc/core': false
+  unrs-resolver: false

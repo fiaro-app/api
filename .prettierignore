@@ -1,0 +1,8 @@
+# Generado o de terceros
+dist/
+coverage/
+docs/
+pnpm-lock.yaml
+
+# Documentación: se edita a mano; Prettier reordenaría tablas y saltos de línea
+*.md
