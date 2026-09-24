@@ -9,8 +9,9 @@ RUN corepack enable
 WORKDIR /app
 
 # pnpm queda descargado en una ruta común: cualquier usuario del contenedor lo usa sin red.
+# `.pnpmfile.cjs` viaja con el lockfile: pnpm compara su hash y sin él `--frozen-lockfile` falla.
 FROM base AS manifests
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc .pnpmfile.cjs ./
 RUN corepack install
 
 # `@fiaro-app/contracts` es privado: el token entra como secreto de BuildKit y solo existe
