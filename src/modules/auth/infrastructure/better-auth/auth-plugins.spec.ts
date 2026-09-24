@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { describe, expect, it } from 'vitest';
 import {
   authPlugins,
@@ -8,14 +7,13 @@ import {
 describe('authPlugins', () => {
   const [phone, expo] = authPlugins();
   const { options } = phone;
-  assert.ok(options, 'El plugin de celular expone sus opciones.');
 
   it('trae el inicio de sesión con celular y el plugin de Expo', () => {
     expect([phone.id, expo.id]).toEqual(['phone-number', 'expo']);
   });
 
   describe('el validador del celular', () => {
-    const isValid = (value: string) => options.phoneNumberValidator?.(value);
+    const isValid = (value: string) => options?.phoneNumberValidator?.(value);
 
     it('acepta un celular colombiano en formato E.164', () => {
       expect(isValid('+573001234567')).toBe(true);
@@ -34,7 +32,7 @@ describe('authPlugins', () => {
 
   it('no envía códigos por SMS: si alguna ruta lo pidiera, falla en lugar de callar', () => {
     expect(() =>
-      options.sendOTP({ phoneNumber: '+573001234567', code: '123456' }),
+      options?.sendOTP({ phoneNumber: '+573001234567', code: '123456' }),
     ).toThrow('La verificación del celular por código no está habilitada.');
   });
 });
