@@ -12,7 +12,7 @@ export default {
     'eslint --fix --max-warnings 0',
     prettier,
     // Solo las pruebas que importan (directa o indirectamente) los archivos cambiados.
-    'vitest related --run --passWithNoTests',
+    'vitest related --run --project unit --passWithNoTests',
   ],
   '*.js': ['eslint --fix --max-warnings 0', prettier],
   '*.{json,yml,yaml}': prettier,

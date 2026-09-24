@@ -17,7 +17,13 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": { "@/*": ["./src/*"], "@test/*": ["./test/*"] }
   },
-  "exclude": ["node_modules", "dist", "docs"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "docs",
+    "src/shared/infrastructure/persistence/generated"
+  ]
 }

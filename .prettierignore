@@ -1,8 +1,9 @@
 # Generado o de terceros
-dist/
-coverage/
-docs/
+/dist/
+/coverage/
+/docs/
 pnpm-lock.yaml
+src/shared/infrastructure/persistence/generated/
 
 # Documentación: se edita a mano; Prettier reordenaría tablas y saltos de línea
 *.md

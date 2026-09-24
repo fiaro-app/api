@@ -2,6 +2,7 @@
 import eslint from '@eslint/js';
 import boundaries from 'eslint-plugin-boundaries';
 import prettier from 'eslint-config-prettier/flat';
+import tsdoc from 'eslint-plugin-tsdoc';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -34,7 +35,12 @@ const packages = (source) =>
     : { to: { module: { origin: ['external', 'core'] } } };
 
 export default defineConfig(
-  globalIgnores(['dist/', 'coverage/', 'docs/']),
+  globalIgnores([
+    'dist/',
+    'coverage/',
+    'docs/',
+    'src/shared/infrastructure/persistence/generated/',
+  ]),
 
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
@@ -203,6 +209,64 @@ export default defineConfig(
             },
           ],
         },
+      ],
+    },
+  },
+
+  // Los comentarios de documentación siguen la sintaxis TSDoc (`@param nombre - texto`, `{@link X}`):
+  // es la que entienden el editor y Compodoc.
+  {
+    files: ['src/**/*.ts', 'test/**/*.ts'],
+    plugins: { tsdoc },
+    rules: { 'tsdoc/syntax': 'error' },
+  },
+
+  // Sin rutas relativas: todo import interno usa el alias de `paths` en tsconfig.json
+  // (`@/` para src, `@test/` para test), así mover un archivo no rompe los imports de los demás.
+  {
+    files: ['src/**/*.ts', 'test/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['./*', '../*'],
+              message:
+                'Usa el alias: `@/` para lo de src y `@test/` para lo de test.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Código pequeño y legible (ARCHITECTURE.md §2): archivos y funciones cortos, con poca
+  // ramificación. Los límites cuentan solo código, sin líneas en blanco ni comentarios.
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      'max-lines': [
+        'error',
+        { max: 200, skipBlankLines: true, skipComments: true },
+      ],
+      'max-lines-per-function': [
+        'error',
+        { max: 50, skipBlankLines: true, skipComments: true },
+      ],
+      complexity: ['error', 10],
+      'max-depth': ['error', 3],
+    },
+  },
+
+  // Las pruebas son listas de casos, más largas que el código, pero también acotadas.
+  {
+    files: ['**/*.spec.ts', 'test/**/*.ts'],
+    rules: {
+      'max-lines': [
+        'error',
+        { max: 300, skipBlankLines: true, skipComments: true },
       ],
     },
   },
