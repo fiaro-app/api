@@ -1,6 +1,10 @@
-import type { Collection, IndexDescription } from 'mongodb';
+import type { Collection } from 'mongodb';
 import type { AuditDocument } from '@/shared/infrastructure/audit/audit-document.js';
 import { AUDIT_RETENTION_SECONDS } from '@/shared/infrastructure/audit/audit-queue.js';
+import {
+  type NamedIndex,
+  syncIndexes,
+} from '@/shared/infrastructure/records/sync-indexes.js';
 
 /** Dónde se guardan los eventos ya construidos. */
 export interface AuditStore {
@@ -13,7 +17,7 @@ export interface AuditStore {
  * persona (por `userId` y por la huella del celular, que también sirve para inicios de sesión
  * fallidos, que no tienen `userId`). Son `sparse`: un evento sin esos campos no ocupa lugar.
  */
-export const AUDIT_INDEXES: IndexDescription[] = [
+export const AUDIT_INDEXES: NamedIndex[] = [
   {
     key: { occurredAt: 1 },
     name: 'occurredAt_ttl',
@@ -47,7 +51,7 @@ export class MongoAuditStore implements AuditStore {
   constructor(
     private readonly collection: Pick<
       Collection<AuditDocument>,
-      'createIndexes' | 'updateOne'
+      'createIndexes' | 'dropIndex' | 'updateOne'
     >,
   ) {}
 
@@ -62,12 +66,12 @@ export class MongoAuditStore implements AuditStore {
   }
 
   private ensureIndexes(): Promise<unknown> {
-    this.indexes ??= this.collection
-      .createIndexes(AUDIT_INDEXES)
-      .catch((error: unknown) => {
+    this.indexes ??= syncIndexes(this.collection, AUDIT_INDEXES).catch(
+      (error: unknown) => {
         this.indexes = undefined;
         throw error;
-      });
+      },
+    );
     return this.indexes;
   }
 }

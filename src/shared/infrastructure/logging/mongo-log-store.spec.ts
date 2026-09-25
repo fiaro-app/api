@@ -122,6 +122,32 @@ describe('MongoLogStore', () => {
     await expect(store.save(documents)).rejects.toBe('texto suelto');
   });
 
+  it('si los índices ya existen con otras opciones (otra retención) los vuelve a crear y guarda igual', async () => {
+    const createIndexes = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error('conflicto'), { code: 85 }),
+      )
+      .mockResolvedValue([]);
+    const dropIndex = vi.fn<(name: string) => Promise<unknown>>(() =>
+      Promise.resolve({}),
+    );
+    const insertMany = vi.fn(() => Promise.resolve({}));
+    const store = new MongoLogStore({
+      createIndexes,
+      dropIndex,
+      insertMany,
+    } as never);
+
+    await store.save(documents);
+
+    expect(dropIndex.mock.calls.map(([name]) => name)).toEqual(
+      LOG_INDEXES.map((index) => index.name),
+    );
+    expect(createIndexes).toHaveBeenCalledTimes(2);
+    expect(insertMany).toHaveBeenCalledOnce();
+  });
+
   it('el índice TTL borra a los 60 días y los otros dos son dispersos', () => {
     expect(LOG_INDEXES).toEqual([
       {

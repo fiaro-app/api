@@ -7,6 +7,7 @@ import { LOG_BATCHER } from '@/shared/infrastructure/logging/log-batcher.token.j
 import { RECORDS_QUEUE_NAME } from '@/shared/infrastructure/messaging/records-queue.js';
 import {
   cookieOf,
+  createAppWithUser,
   PASSWORD,
   PHONE,
   signIn,
@@ -256,5 +257,38 @@ describe('líneas de log por lotes: de la API a MongoDB por la cola', () => {
     const stored = await linesOf(requestId);
 
     expect(stored.some((line) => line.msg === 'request completed')).toBe(true);
+  });
+  it('si la colección ya tenía el índice TTL con otra retención lo actualiza y guarda los lotes', async () => {
+    const other = await startDurableAuditInfra();
+    await other.logs.createIndex(
+      { time: 1 },
+      { name: 'time_ttl', expireAfterSeconds: 7_776_000 },
+    );
+    const app = await createAppWithUser({
+      env: { ...other.env, LOG_LEVEL: 'info' },
+      logDestination: captureLogs().destination,
+    });
+    try {
+      const response = await rejectedSignIn(app);
+      await batcherOf(app).flush();
+      const requestId = requestIdOf(response);
+
+      await vi.waitFor(
+        async () => {
+          expect(
+            await other.logs.countDocuments({ requestId }),
+          ).toBeGreaterThan(0);
+        },
+        { timeout: 15_000, interval: 100 },
+      );
+
+      const ttl = (await other.logs.indexes()).find(
+        (index) => index.name === 'time_ttl',
+      );
+      expect(ttl?.expireAfterSeconds).toBe(5_184_000);
+    } finally {
+      await app.close();
+      await other.close();
+    }
   });
 });

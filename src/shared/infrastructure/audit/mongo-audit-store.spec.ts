@@ -47,6 +47,32 @@ describe('MongoAuditStore', () => {
     expect(createIndexes).toHaveBeenCalledExactlyOnceWith(AUDIT_INDEXES);
   });
 
+  it('si los índices ya existen con otras opciones los vuelve a crear y guarda igual', async () => {
+    const createIndexes = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error('conflicto'), { code: 85 }),
+      )
+      .mockResolvedValue([]);
+    const dropIndex = vi.fn<(name: string) => Promise<unknown>>(() =>
+      Promise.resolve({}),
+    );
+    const updateOne = vi.fn(() => Promise.resolve({}));
+    const store = new MongoAuditStore({
+      createIndexes,
+      dropIndex,
+      updateOne,
+    } as never);
+
+    await store.save(document);
+
+    expect(dropIndex.mock.calls.map(([name]) => name)).toEqual(
+      AUDIT_INDEXES.map((index) => index.name),
+    );
+    expect(createIndexes).toHaveBeenCalledTimes(2);
+    expect(updateOne).toHaveBeenCalledOnce();
+  });
+
   it('dos guardados a la vez comparten la misma creación de índices', async () => {
     const { store, createIndexes } = setup();
 
