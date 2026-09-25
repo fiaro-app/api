@@ -9,6 +9,7 @@ import { AuditModule } from '@/shared/infrastructure/audit/audit.module.js';
 import { ApiErrorsModule } from '@/shared/infrastructure/filters/api-errors.module.js';
 import { AuthGuard } from '@/shared/infrastructure/http/auth.guard.js';
 import { I18nModule } from '@/shared/infrastructure/i18n/i18n.module.js';
+import { RecordsModule } from '@/shared/infrastructure/records/records.module.js';
 import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js';
 
 /**
@@ -26,6 +27,7 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
   imports: [
     EnvModule,
     I18nModule,
+    RecordsModule,
     AuditModule,
     ApiErrorsModule,
     RuntimeModule,

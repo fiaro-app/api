@@ -13,6 +13,8 @@ import { SchemaValidationPipe } from '@/shared/infrastructure/http/schema-valida
 import { createSecurityHeaders } from '@/shared/infrastructure/http/security-headers.middleware.js';
 import { createLanguageMiddleware } from '@/shared/infrastructure/i18n/language.middleware.js';
 import { configureZodMessages } from '@/shared/infrastructure/i18n/zod-messages.js';
+import type { LogBatcher } from '@/shared/infrastructure/logging/log-batcher.js';
+import { LOG_BATCHER } from '@/shared/infrastructure/logging/log-batcher.token.js';
 import { setupLogging } from '@/shared/infrastructure/logging/logging.setup.js';
 import {
   DOCS_PATH,
@@ -33,8 +35,9 @@ export interface AppSetupOptions {
  * @remarks
  * El orden importa, cada middleware ve la petición en el orden en que se registra:
  * 1. `trust proxy`: define de dónde sale `req.ip`, que cuenta el rate limit y sale en el log.
- * 2. Logs: el logger de Nest pasa a Pino y cada petición queda registrada. Va antes que todo lo
- *    demás para que también queden las que otro middleware responde por su cuenta (preflight).
+ * 2. Logs: el logger de Nest pasa a Pino y cada petición queda registrada; con el registro durable
+ *    activo, cada línea también se copia al lote que va a MongoDB. Va antes que todo lo demás para
+ *    que también queden las que otro middleware responde por su cuenta (preflight).
  * 3. Idioma: elige el de la petición (`Accept-Language`) para que cualquier error posterior, de
  *    otro middleware o de una ruta, salga traducido. Los mensajes por defecto de Zod pasan a ser
  *    claves del catálogo.
@@ -59,7 +62,10 @@ export function configureApp(
   const env = app.get<Env>(ENV);
 
   app.set('trust proxy', env.trustProxy);
-  setupLogging(app, env, { destination: options.logDestination });
+  setupLogging(app, env, {
+    destination: options.logDestination,
+    batcher: app.get<LogBatcher | null>(LOG_BATCHER, { strict: false }),
+  });
   app.use(createLanguageMiddleware(options.languages));
   configureZodMessages();
   app.use(createSecurityHeaders(DOCS_PATH));

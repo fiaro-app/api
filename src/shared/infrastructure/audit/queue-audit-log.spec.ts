@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AuditEvent } from '@/shared/domain/audit/audit-event.js';
+import { AUDIT_JOB_OPTIONS } from '@/shared/infrastructure/audit/audit-queue.js';
 import { QueueAuditLog } from '@/shared/infrastructure/audit/queue-audit-log.js';
 
 const event: AuditEvent = {
@@ -13,7 +14,7 @@ function setup(add = vi.fn(() => Promise.resolve({}))) {
   let next = 0;
   const logger = { error: vi.fn() };
   const audit = new QueueAuditLog(
-    { add } as never,
+    { add },
     { next: () => `evt-${String(++next)}` },
     logger,
   );
@@ -25,7 +26,7 @@ describe('QueueAuditLog', () => {
     vi.useRealTimers();
   });
 
-  it('encola el evento con su acción como nombre, la fecha como texto y su id como jobId', () => {
+  it('encola el evento con su acción como nombre, la fecha como texto, sus reintentos y su id como jobId', () => {
     const { audit, add } = setup();
 
     audit.record(event);
@@ -33,7 +34,7 @@ describe('QueueAuditLog', () => {
     expect(add).toHaveBeenCalledExactlyOnceWith(
       'auth.sign_in.succeeded',
       { ...event, occurredAt: '2026-09-25T10:00:00.000Z' },
-      { jobId: 'evt-1' },
+      { ...AUDIT_JOB_OPTIONS, jobId: 'evt-1' },
     );
   });
 

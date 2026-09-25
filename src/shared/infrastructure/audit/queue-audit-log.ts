@@ -1,14 +1,17 @@
 import { Logger } from '@nestjs/common';
-import type { Queue } from 'bullmq';
 import type { AuditLog } from '@/shared/application/audit/audit-log.port.js';
 import type { IdGenerator } from '@/shared/application/ports/id-generator.port.js';
 import type { AuditEvent } from '@/shared/domain/audit/audit-event.js';
 import { toAuditJobData } from '@/shared/infrastructure/audit/audit-document.js';
-import type { AuditJobData } from '@/shared/infrastructure/audit/audit-queue.js';
+import {
+  AUDIT_JOB_OPTIONS,
+  type AuditJobData,
+} from '@/shared/infrastructure/audit/audit-queue.js';
+import {
+  ENQUEUE_TIMEOUT_MS,
+  type JobProducer,
+} from '@/shared/infrastructure/messaging/records-queue.js';
 import { withTimeout } from '@/shared/infrastructure/messaging/with-timeout.js';
-
-/** Cuánto se espera a que Redis acepte un evento antes de darlo por no encolado. */
-const ENQUEUE_TIMEOUT_MS = 3_000;
 
 /** Cuántos eventos pueden estar esperando a Redis a la vez; los demás se descartan. */
 const MAX_PENDING = 500;
@@ -28,12 +31,12 @@ export class QueueAuditLog implements AuditLog {
   private pending = 0;
 
   /**
-   * @param queue - La cola de auditoría.
+   * @param queue - La cola de registros.
    * @param ids - Generador de identificadores de eventos.
    * @param logger - Dónde se escriben las fallas.
    */
   constructor(
-    private readonly queue: Pick<Queue<AuditJobData>, 'add'>,
+    private readonly queue: JobProducer<AuditJobData>,
     private readonly ids: IdGenerator,
     private readonly logger: Pick<Logger, 'error'> = new Logger('AuditQueue'),
   ) {}
@@ -56,6 +59,7 @@ export class QueueAuditLog implements AuditLog {
     try {
       await withTimeout(
         this.queue.add(event.action, toAuditJobData(event), {
+          ...AUDIT_JOB_OPTIONS,
           jobId: this.ids.next(),
         }),
         ENQUEUE_TIMEOUT_MS,
