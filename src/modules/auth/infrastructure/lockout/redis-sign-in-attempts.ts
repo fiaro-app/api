@@ -37,7 +37,7 @@ const ALLOWED: SignInAttemptVerdict = { allowed: true, retryAfterSeconds: 0 };
 function parseReply(reply: unknown): { count: number; ttl: number } {
   const [count, ttl] = Array.isArray(reply) ? (reply as unknown[]) : [];
   if (typeof count !== 'number' || typeof ttl !== 'number') {
-    throw new Error('Respuesta inesperada de Redis al contar un intento.');
+    throw new TypeError('Respuesta inesperada de Redis al contar un intento.');
   }
   return { count, ttl };
 }
