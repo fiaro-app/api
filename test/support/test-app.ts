@@ -1,6 +1,7 @@
 import type { Type } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
+import type { DestinationStream } from 'pino';
 import request from 'supertest';
 import { AppModule } from '@/app.module.js';
 import { configureApp } from '@/app.setup.js';
@@ -18,6 +19,8 @@ export interface TestAppOptions {
   readonly overrides?: Partial<Env>;
   /** Controllers de prueba que se suman a los de la aplicación. */
   readonly controllers?: Type[];
+  /** Dónde se escriben los logs (`captureLogs`); por defecto la salida estándar. */
+  readonly logDestination?: DestinationStream;
 }
 
 export interface TestApp {
@@ -51,7 +54,7 @@ export async function startTestApp(
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     logger: false,
   });
-  configureApp(app);
+  configureApp(app, { logDestination: options.logDestination });
   await app.init();
 
   const prisma = app.get(PrismaService, { strict: false });

@@ -19,7 +19,9 @@ function loadDotEnv(): void {
 loadDotEnv();
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
   configureApp(app);
   await app.listen(app.get<Env>(ENV).port);
 }
