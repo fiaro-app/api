@@ -1,0 +1,3 @@
+$kind: collection
+description: El primer ingreso de un cobrador recién creado. Usa la persona `+573109998877` del seed y solo funciona una vez por seed.
+order: 2000

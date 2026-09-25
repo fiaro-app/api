@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{phone}}",
+      "password": "no-es-la-contraseña"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 401', () => pm.response.to.have.status(401));
+      pm.test('el código de error es INVALID_PHONE_NUMBER_OR_PASSWORD', () => pm.expect(pm.response.json().code).to.eql('INVALID_PHONE_NUMBER_OR_PASSWORD'));
+      pm.test('no abre sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.false);
+    language: text/javascript
+order: 4000

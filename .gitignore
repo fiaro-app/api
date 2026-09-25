@@ -21,6 +21,9 @@ pnpm-debug.log*
 # coverage
 /coverage/
 
+# reportes de `postman collection run -r json,html`
+/postman-cli-reports/
+
 # OS / IDE
 .DS_Store
 .idea/

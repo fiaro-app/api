@@ -1,0 +1,15 @@
+$kind: http-request
+description: "Con una contraseña temporal solo sirven tres rutas: ver la sesión, cambiar la contraseña y cerrar sesión. Todas las demás responden 403 `PASSWORD_CHANGE_REQUIRED`."
+url: "{{baseUrl}}/auth/get-session"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('sigue pendiente el cambio', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.true);
+    language: text/javascript
+order: 2000

@@ -1,0 +1,14 @@
+$kind: http-request
+description: "Una petición con cookie desde un origen que no está en `CORS_ORIGINS` (ni es el de la API ni un esquema de `MOBILE_APP_SCHEMES`) se rechaza. Las apps móviles envían `expo-origin: fiaro://`."
+url: "{{baseUrl}}/auth/sign-out"
+method: POST
+headers:
+  Origin: https://sitio-ajeno.example
+  Cookie: fiaro.session_token=x.y
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 403', () => pm.response.to.have.status(403));
+      pm.test('el código de error es INVALID_ORIGIN', () => pm.expect(pm.response.json().code).to.eql('INVALID_ORIGIN'));
+    language: text/javascript
+order: 9000
