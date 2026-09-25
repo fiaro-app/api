@@ -2,6 +2,7 @@ import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AuditAction } from '@/shared/domain/audit/audit-event.js';
+import { RECORDS_QUEUE_NAME } from '@/shared/infrastructure/messaging/records-queue.js';
 import {
   nextIp,
   PASSWORD,
@@ -120,7 +121,7 @@ describe('auditoría durable: de la API a MongoDB por la cola', () => {
     const connection = new Redis(infra.env.REDIS_URL ?? '', {
       maxRetriesPerRequest: null,
     });
-    const queue = new Queue('audit', {
+    const queue = new Queue(RECORDS_QUEUE_NAME, {
       connection,
       prefix: infra.env.QUEUE_PREFIX,
     });
@@ -178,7 +179,7 @@ describe('auditoría durable: de la API a MongoDB por la cola', () => {
     const connection = new Redis(infra.env.REDIS_URL ?? '', {
       maxRetriesPerRequest: null,
     });
-    const queue = new Queue('audit', { connection, prefix });
+    const queue = new Queue(RECORDS_QUEUE_NAME, { connection, prefix });
 
     const response = await signIn(app);
 

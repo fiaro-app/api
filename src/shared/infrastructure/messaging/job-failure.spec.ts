@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeFailedJob } from '@/shared/infrastructure/audit/audit-job-failure.js';
+import { describeFailedJob } from '@/shared/infrastructure/messaging/job-failure.js';
 
 const job = (attemptsMade: number, attempts?: number) => ({
   name: 'auth.sign_in.succeeded',
@@ -14,11 +14,11 @@ describe('describeFailedJob', () => {
     expect(describeFailedJob(job(2, 6), error)).toEqual({
       level: 'warn',
       message:
-        'No se pudo guardar el evento auth.sign_in.succeeded (intento 2 de 6): MongoDB no responde.',
+        'No se pudo guardar el trabajo auth.sign_in.succeeded (intento 2 de 6): MongoDB no responde.',
     });
   });
 
-  it('el último intento es un error: el evento solo queda en el log', () => {
+  it('el último intento es un error: el registro solo queda en el log', () => {
     const { level, message } = describeFailedJob(job(6, 6), error);
 
     expect(level).toBe('error');
@@ -35,11 +35,11 @@ describe('describeFailedJob', () => {
     expect(describeFailedJob(undefined, error)).toEqual({
       level: 'error',
       message:
-        'Un evento de auditoría falló y su trabajo ya no existe: MongoDB no responde.',
+        'Un trabajo de la cola de registros falló y ya no existe: MongoDB no responde.',
     });
   });
 
-  it('el mensaje no lleva los datos del evento', () => {
+  it('el mensaje no lleva los datos del trabajo', () => {
     const { message } = describeFailedJob(
       { ...job(1, 6), data: { phone: { last4: '4567' } } } as never,
       error,
