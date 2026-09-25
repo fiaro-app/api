@@ -82,6 +82,31 @@ export class AuthAuditor {
   }
 
   /**
+   * Se rechazó un intento de iniciar sesión sin comprobar la contraseña: ese celular agotó los
+   * intentos de su ventana.
+   *
+   * @param phone - El celular con el que se intentó.
+   * @param retryAfterSeconds - Cuántos segundos faltan para que vuelva a tener intentos.
+   * @param origin - Desde dónde se intentó.
+   */
+  signInLocked(
+    phone: string,
+    retryAfterSeconds: number,
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      {
+        action: 'auth.sign_in.locked',
+        outcome: 'FAILURE',
+        reason: 'SIGN_IN_LOCKED',
+        details: { retryAfterSeconds },
+      },
+      { phone },
+      origin,
+    );
+  }
+
+  /**
    * Una persona cerró su sesión.
    *
    * @param userId - Quién.

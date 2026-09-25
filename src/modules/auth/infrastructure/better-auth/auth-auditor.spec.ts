@@ -60,6 +60,23 @@ describe('AuthAuditor', () => {
     expect(events[0]?.ip).toBeUndefined();
   });
 
+  it('un inicio de sesión bloqueado guarda el celular enmascarado, el motivo y cuánto falta para reintentar', () => {
+    const { auditor, events, masker } = setup();
+
+    auditor.signInLocked(PHONE, 612, origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.sign_in.locked',
+      outcome: 'FAILURE',
+      reason: 'SIGN_IN_LOCKED',
+      phone: masker.mask(PHONE),
+      details: { retryAfterSeconds: 612 },
+      ip: origin.ip,
+    });
+    expect(events[0]?.userId).toBeUndefined();
+    expect(JSON.stringify(events)).not.toContain('3001234567');
+  });
+
   it('cerrar sesión guarda quién', () => {
     const { auditor, events } = setup();
 

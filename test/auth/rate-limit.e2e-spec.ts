@@ -35,10 +35,19 @@ describe('rate limit', () => {
 
   it('otra IP no comparte el contador', async () => {
     const app = await startWithUser();
+    await app.createUser({
+      phone: '+573109998877',
+      fullName: 'Luis Gómez',
+      password: 'otra-clave-larga-1',
+    });
     const blockedIp = nextIp();
     await attempts(app, 6, blockedIp);
 
-    const other = await signIn(app, { ip: nextIp() });
+    const other = await signIn(app, {
+      phone: '+573109998877',
+      password: 'otra-clave-larga-1',
+      ip: nextIp(),
+    });
 
     expect(other.status).toBe(200);
   });

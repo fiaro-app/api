@@ -25,3 +25,8 @@ export const ValidationErrorSchema = ApiErrorSchema.extend({
 export const RateLimitedSchema = ApiErrorSchema.extend({
   code: z.literal('RATE_LIMITED'),
 }).meta({ id: 'RateLimited' });
+
+/** `429 SIGN_IN_LOCKED`: ese celular agotó sus intentos; `Retry-After` dice cuántos segundos faltan. */
+export const SignInLockedSchema = ApiErrorSchema.extend({
+  code: z.literal('SIGN_IN_LOCKED'),
+}).meta({ id: 'SignInLocked' });

@@ -1,9 +1,11 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiHeader, ApiResponse } from '@nestjs/swagger';
+import { z } from 'zod';
 import { SESSION_COOKIE_NAME } from '@/shared/infrastructure/http/session-cookie.js';
 import {
   AuthErrorSchema,
   RateLimitedSchema,
+  SignInLockedSchema,
   ValidationErrorSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/auth-errors.schema.js';
 
@@ -61,6 +63,24 @@ export const ApiRateLimitedResponse = () =>
     description:
       'Demasiados intentos desde esta IP. Espera los segundos de `Retry-After` antes de reintentar.',
     standardSchema: RateLimitedSchema,
+    headers: {
+      'Retry-After': {
+        description: 'Segundos que hay que esperar antes de reintentar.',
+        schema: { type: 'integer', example: 42 },
+      },
+    },
+  });
+
+/**
+ * Documenta el 429 de iniciar sesión: el de la IP (`RATE_LIMITED`) o el del celular que agotó sus
+ * intentos (`SIGN_IN_LOCKED`), los dos con su cabecera `Retry-After`.
+ */
+export const ApiSignInRateLimitedResponse = () =>
+  ApiResponse({
+    status: 429,
+    description:
+      'Demasiados intentos: desde esta IP (`RATE_LIMITED`) o con este celular (`SIGN_IN_LOCKED`: 5 contraseñas incorrectas seguidas bloquean los inicios de sesión nuevos de ese celular durante 15 minutos, aunque vengan de otra IP y aunque la contraseña sea la correcta). Espera los segundos de `Retry-After` antes de reintentar.',
+    standardSchema: z.union([RateLimitedSchema, SignInLockedSchema]),
     headers: {
       'Retry-After': {
         description: 'Segundos que hay que esperar antes de reintentar.',

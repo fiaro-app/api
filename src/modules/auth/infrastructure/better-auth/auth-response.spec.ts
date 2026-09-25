@@ -229,6 +229,29 @@ describe('writeAuthResponse', () => {
       });
     });
 
+    it('el bloqueo de un celular conserva su código SIGN_IN_LOCKED y su Retry-After', async () => {
+      const res = await write(
+        new Response(
+          '{"code":"SIGN_IN_LOCKED","message":"Demasiados intentos fallidos con este celular."}',
+          {
+            status: 429,
+            headers: {
+              'content-type': 'application/json',
+              'x-retry-after': '612',
+            },
+          },
+        ),
+      );
+
+      expect(res.headers.get('retry-after')).toBe('612');
+      expect(JSON.parse(res.body ?? '')).toMatchObject({
+        statusCode: 429,
+        code: 'SIGN_IN_LOCKED',
+        message:
+          'Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.',
+      });
+    });
+
     it('si better-auth no dice cuánto esperar, Retry-After es de un minuto', async () => {
       const res = await write(new Response('{}', { status: 429 }));
 

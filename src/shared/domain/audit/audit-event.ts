@@ -7,6 +7,8 @@ export const AUDIT_ACTIONS = [
   'auth.sign_in.succeeded',
   /** Un intento de iniciar sesión fue rechazado (contraseña incorrecta, celular sin cuenta...). */
   'auth.sign_in.failed',
+  /** Un intento de iniciar sesión fue rechazado sin comprobar la contraseña: ese celular agotó sus intentos. */
+  'auth.sign_in.locked',
   /** Una persona cerró su sesión. */
   'auth.sign_out',
   /** Una persona cambió su contraseña. */

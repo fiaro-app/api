@@ -12,6 +12,7 @@ import {
   userOptions,
 } from '@/modules/auth/infrastructure/better-auth/auth-options.js';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
+import type { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
 import { createAuthDatabaseHooks } from '@/modules/auth/infrastructure/better-auth/auth-database-hooks.js';
 import { createAuthHooks } from '@/modules/auth/infrastructure/better-auth/auth-hooks.js';
 import {
@@ -30,6 +31,8 @@ export interface AuthDependencies {
   readonly ids: IdGenerator;
   /** Quien registra en la auditoría lo que pasa en las rutas de autenticación. */
   readonly auditor: AuthAuditor;
+  /** Bloquea a quien agota los intentos de iniciar sesión con un celular. */
+  readonly guard: SignInGuard;
 }
 
 /**
@@ -37,10 +40,16 @@ export interface AuthDependencies {
  * plugin de Expo para las apps móviles. No hay registro público: las personas se crean con
  * `CreateUserUseCase`. El detalle de cada bloque de opciones está en `auth-options.ts`.
  *
- * @param dependencies - Configuración validada, cliente de Prisma, generador de identificadores y
- * quien audita las rutas de autenticación.
+ * @param dependencies - Configuración validada, cliente de Prisma, generador de identificadores,
+ * quien audita las rutas de autenticación y quien bloquea los intentos de más.
  */
-export function createAuth({ env, prisma, ids, auditor }: AuthDependencies) {
+export function createAuth({
+  env,
+  prisma,
+  ids,
+  auditor,
+  guard,
+}: AuthDependencies) {
   return betterAuth({
     appName: 'Fiaro',
     baseURL: env.auth.baseUrl,
@@ -60,7 +69,7 @@ export function createAuth({ env, prisma, ids, auditor }: AuthDependencies) {
     rateLimit: rateLimitOptions(env.throttle),
     plugins: [...authPlugins()],
     disabledPaths: [...DISABLED_PATHS],
-    hooks: createAuthHooks(auditor),
+    hooks: createAuthHooks(auditor, guard),
     databaseHooks: createAuthDatabaseHooks(auditor),
   });
 }

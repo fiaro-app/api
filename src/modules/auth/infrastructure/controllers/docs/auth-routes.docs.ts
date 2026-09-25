@@ -5,6 +5,7 @@ import {
   ApiOriginHeaders,
   ApiOriginRejectedResponse,
   ApiRateLimitedResponse,
+  ApiSignInRateLimitedResponse,
   ApiValidationFailedResponse,
   sessionCookieHeaders,
 } from '@/modules/auth/infrastructure/controllers/docs/auth-responses.docs.js';
@@ -22,7 +23,7 @@ export const ApiSignIn = () =>
     ApiOperation({
       summary: 'Iniciar sesión',
       description:
-        'Abre una sesión de 30 días con el celular (E.164) y la contraseña. Un celular sin cuenta y una contraseña incorrecta responden lo mismo y tardan lo mismo, para no revelar qué celulares tienen cuenta. Máximo 5 intentos por minuto y por IP.',
+        'Abre una sesión de 30 días con el celular (E.164) y la contraseña. Un celular sin cuenta y una contraseña incorrecta responden lo mismo y tardan lo mismo, para no revelar qué celulares tienen cuenta. Máximo 5 intentos por minuto y por IP; y con 5 contraseñas incorrectas seguidas para un mismo celular se bloquean sus inicios de sesión nuevos durante 15 minutos (`SIGN_IN_LOCKED`), sin tocar las sesiones abiertas.',
     }),
     ApiOriginHeaders(),
     ApiResponse({
@@ -40,7 +41,7 @@ export const ApiSignIn = () =>
       standardSchema: AuthErrorSchema,
     }),
     ApiOriginRejectedResponse(),
-    ApiRateLimitedResponse(),
+    ApiSignInRateLimitedResponse(),
   );
 
 /** Documenta `GET /auth/get-session`. */
