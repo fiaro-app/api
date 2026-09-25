@@ -1,0 +1,23 @@
+$kind: http-request
+description: Better-auth trae más rutas (registro, correo, cuentas sociales...), pero la API solo publica las cuatro de autenticación. Las personas se crean con el caso de uso, no con un registro público.
+url: "{{baseUrl}}/auth/sign-up/email"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "email": "a@b.co",
+      "password": "12345678",
+      "name": "X"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 10000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/sign-out"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: pm.test('responde 200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 4000

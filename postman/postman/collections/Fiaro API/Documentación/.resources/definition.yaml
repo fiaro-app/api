@@ -1,0 +1,3 @@
+$kind: collection
+description: La documentación de la API (solo fuera de producción).
+order: 5000

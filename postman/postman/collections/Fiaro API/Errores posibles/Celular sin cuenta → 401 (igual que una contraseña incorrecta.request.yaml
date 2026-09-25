@@ -1,0 +1,25 @@
+$kind: http-request
+name: Celular sin cuenta → 401 (igual que una contraseña incorrecta)
+description: "La respuesta y el tiempo son los mismos que con una contraseña incorrecta: no se puede averiguar qué celulares tienen cuenta."
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "+573509998877",
+      "password": "cualquier-contraseña"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 401', () => pm.response.to.have.status(401));
+      pm.test('el código de error es INVALID_PHONE_NUMBER_OR_PASSWORD', () => pm.expect(pm.response.json().code).to.eql('INVALID_PHONE_NUMBER_OR_PASSWORD'));
+    language: text/javascript
+order: 5000

@@ -1,0 +1,18 @@
+$kind: http-request
+description: Devuelve la sesión y la persona de la cookie, o `null` si no hay sesión vigente. Si la sesión lleva más de un día sin renovarse, la renueva 30 días y responde con la cookie nueva.
+url: "{{baseUrl}}/auth/get-session"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('hay sesión y es de la persona', () => pm.expect(body.user.phoneNumber).to.eql(pm.variables.get('phone')));
+      pm.test('la sesión vence en unos 30 días', () => { const days = (Date.parse(body.session.expiresAt) - Date.now()) / 86400000; pm.expect(days).to.be.within(29, 31); });
+    language: text/javascript
+examples: ./.resources/2. Ver la sesión.resources/examples
+order: 2000

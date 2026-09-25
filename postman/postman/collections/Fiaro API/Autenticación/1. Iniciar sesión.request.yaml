@@ -1,0 +1,29 @@
+$kind: http-request
+description: Abre una sesión de 30 días con el celular (E.164) y la contraseña. La cookie `fiaro.session_token` llega en `Set-Cookie` y Postman la guarda sola. Máximo 5 intentos por minuto y por IP.
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{phone}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+      const body = pm.response.json();
+      pm.test('la persona es la del celular', () => pm.expect(body.user.phoneNumber).to.eql(pm.variables.get('phone')));
+      pm.test('la cuenta no tiene contraseña temporal', () => pm.expect(body.user.mustChangePassword).to.be.false);
+      pm.test('no se guarda en caché', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('no-store'));
+    language: text/javascript
+examples: ./.resources/1. Iniciar sesión.resources/examples
+order: 1000

@@ -1,0 +1,17 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/auth/get-session"
+  method: GET
+  headers:
+    - key: Origin
+      value: "{{baseUrl}}"
+      description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: "null"
+order: 2000

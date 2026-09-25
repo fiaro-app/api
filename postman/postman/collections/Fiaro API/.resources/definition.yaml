@@ -1,0 +1,44 @@
+$kind: collection
+name: Fiaro API
+description: |-
+  # Fiaro API
+
+  Solicitudes de la API de Fiaro, con pruebas automáticas y los errores posibles de cada ruta.
+
+  ## Cómo usarla
+
+  1. Levanta la API y crea las personas de desarrollo: `pnpm docker:dev` y `pnpm docker:seed`.
+  2. Elige el entorno **Fiaro local** arriba a la derecha.
+  3. Ejecuta la carpeta **Autenticación** en orden (o con *Run collection*).
+
+  ## Cosas que conviene saber
+
+  - **La sesión es una cookie** (`fiaro.session_token`, `HttpOnly`, 30 días). Postman la guarda en su *cookie jar* y la envía sola.
+  - **Toda petición lleva `Origin: {{baseUrl}}`.** Las peticiones con cookie deben decir de dónde vienen: sin origen, la API responde 403. El navegador lo envía solo; Postman no.
+  - **Rate limit:** iniciar sesión y cambiar la contraseña admiten 5 intentos por minuto y por IP. La carpeta *Rate limit* lo supera a propósito: ejecútala al final.
+  - **Errores:** llevan un `code` estable (`INVALID_PHONE_NUMBER_OR_PASSWORD`, `VALIDATION_FAILED`, `RATE_LIMITED`...). Las apps reaccionan al código, no al texto.
+  - **Contraseña temporal:** un cobrador con `mustChangePassword` solo puede ver su sesión, cambiar la contraseña y cerrar sesión; el resto responde 403 `PASSWORD_CHANGE_REQUIRED`.
+
+  La documentación completa de la API está en `/docs` (Swagger UI) y en `/docs/openapi.json`.
+variables:
+  - key: baseUrl
+    value: 'http://localhost:3040'
+    description: 'Origen de la API. Con `pnpm docker:dev` es http://localhost:3040.'
+  - key: phone
+    value: '+573001234567'
+    description: 'Ana Pérez, del seed de desarrollo (`pnpm docker:seed`).'
+  - key: password
+    value: 'fiaro-dev-2026'
+    description: 'Contraseña de Ana Pérez en el seed de desarrollo.'
+  - key: newPassword
+    value: 'fiaro-dev-2026-nueva'
+    description: 'La que se pone al probar el cambio de contraseña; la colección vuelve a la original.'
+  - key: tempPhone
+    value: '+573109998877'
+    description: 'Luis Gómez, cobrador con contraseña temporal en el seed de desarrollo.'
+  - key: tempPassword
+    value: 'temporal-2026'
+    description: 'Contraseña temporal de Luis Gómez en el seed de desarrollo.'
+  - key: newTempPassword
+    value: 'contraseña-propia-2026'
+    description: 'La contraseña propia que elige Luis Gómez en su primer ingreso.'

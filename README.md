@@ -50,7 +50,16 @@ Las personas de desarrollo (`pnpm docker:seed`; las contraseñas son públicas y
 | Ana Pérez | `+573001234567` | `fiaro-dev-2026` |
 | Luis Gómez (cobrador con contraseña temporal) | `+573109998877` | `temporal-2026` |
 
-La carpeta [`postman/`](./postman) trae la colección de Postman (cada solicitud con sus pruebas automáticas y los errores posibles) y el entorno local: impórtalos en Postman, o córrelos desde la terminal con `pnpm dlx newman run postman/fiaro-api.postman_collection.json -e postman/fiaro-local.postman_environment.json`. La sesión viaja en una cookie que Postman guarda sola. La carpeta *Rate limit* agota tu límite de intentos durante un minuto a propósito, y la del cobrador con contraseña temporal solo funciona una vez por seed (`pnpm docker:reset`, `pnpm docker:dev` y `pnpm docker:seed` la dejan como nueva). También sirve la interfaz de `/docs`. Cómo funciona la autenticación: [ARCHITECTURE.md §6](./ARCHITECTURE.md#6-autenticación-y-autorización).
+La carpeta [`postman/`](./postman) es la que se conecta a Postman (Git nativo): su [`.postman/resources.yaml`](./postman/.postman/resources.yaml) la enlaza con el workspace FIARO, y dentro Postman guarda otra `postman/` con la colección **Fiaro API** (una solicitud por archivo YAML, con sus pruebas automáticas y los errores posibles) y el entorno **Fiaro local**. Hay dos formas de usarla:
+
+- **En la app de Postman:** conecta a tu workspace FIARO la carpeta `postman/` de este repositorio (la de `.postman/`; no la que ella crea dentro). La colección y el entorno aparecen solos en la vista local. Elige el entorno **Fiaro local** y ejecuta la carpeta *Autenticación*.
+- **Desde la terminal**, con el CLI oficial de Postman (no necesita iniciar sesión; newman no lee este formato):
+
+  ```bash
+  pnpm dlx postman-cli collection run "postman/postman/collections/Fiaro API" -e "postman/postman/environments/Fiaro local.environment.yaml" --no-report-events
+  ```
+
+El entorno apunta a la API de Docker (`http://localhost:3040`); con `pnpm start:dev` cambia `baseUrl` a `http://localhost:3000`. La sesión viaja en una cookie que Postman guarda sola. La carpeta *Rate limit* agota tu límite de intentos durante un minuto a propósito, y la del cobrador con contraseña temporal solo funciona una vez por seed (`pnpm docker:reset`, `pnpm docker:dev` y `pnpm docker:seed` la dejan como nueva). También sirve la interfaz de `/docs`. Cómo funciona la autenticación: [ARCHITECTURE.md §6](./ARCHITECTURE.md#6-autenticación-y-autorización).
 
 ## Entorno local con Docker
 

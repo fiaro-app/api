@@ -1,0 +1,30 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/auth/change-password"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Origin
+      value: "{{baseUrl}}"
+      description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+  body:
+    type: json
+    content: |-
+      {
+        "currentPassword": "{{password}}",
+        "newPassword": "{{newPassword}}"
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "Invalid password",
+        "code": "INVALID_PASSWORD"
+      }
+order: 2000

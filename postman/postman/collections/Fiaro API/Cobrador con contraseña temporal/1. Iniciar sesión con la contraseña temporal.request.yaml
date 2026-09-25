@@ -1,0 +1,25 @@
+$kind: http-request
+description: Un cobrador recién creado entra con la contraseña que le dio su administrador. La sesión abre, pero `user.mustChangePassword` es `true`.
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{tempPhone}}",
+      "password": "{{tempPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+      pm.test('la cuenta pide cambiar la contraseña', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.true);
+    language: text/javascript
+order: 1000
