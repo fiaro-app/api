@@ -21,6 +21,8 @@ import {
   AUTH_BASE_PATH,
   CHANGE_PASSWORD_PATH,
   GET_SESSION_PATH,
+  REVOKE_OTHER_SESSIONS_PATH,
+  REVOKE_SESSIONS_PATH,
   SIGN_IN_PATH,
   SIGN_OUT_PATH,
 } from '@/modules/auth/infrastructure/better-auth/auth.constants.js';
@@ -29,6 +31,8 @@ import { BETTER_AUTH } from '@/modules/auth/infrastructure/better-auth/auth.toke
 import {
   ApiChangePassword,
   ApiGetSession,
+  ApiRevokeOtherSessions,
+  ApiRevokeSessions,
   ApiSignIn,
   ApiSignOut,
 } from '@/modules/auth/infrastructure/controllers/docs/auth-routes.docs.js';
@@ -121,6 +125,38 @@ export class AuthController {
     @Res() res: Response,
   ): Promise<void> {
     await this.forward(req, res, CHANGE_PASSWORD_PATH, body);
+  }
+
+  /**
+   * Cierra en el servidor todas las sesiones de la persona salvo la de la cookie.
+   *
+   * @param req - Petición de Express, con la cookie de sesión.
+   * @param res - Respuesta de Express; la escribe better-auth.
+   */
+  @Post('revoke-other-sessions')
+  @HttpCode(HttpStatus.OK)
+  @ApiRevokeOtherSessions()
+  async revokeOtherSessions(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.forward(req, res, REVOKE_OTHER_SESSIONS_PATH);
+  }
+
+  /**
+   * Cierra en el servidor todas las sesiones de la persona, la de la cookie incluida.
+   *
+   * @param req - Petición de Express, con la cookie de sesión.
+   * @param res - Respuesta de Express; la escribe better-auth.
+   */
+  @Post('revoke-sessions')
+  @HttpCode(HttpStatus.OK)
+  @ApiRevokeSessions()
+  async revokeSessions(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.forward(req, res, REVOKE_SESSIONS_PATH);
   }
 
   private async forward(

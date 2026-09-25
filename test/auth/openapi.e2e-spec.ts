@@ -5,7 +5,7 @@ import { operation, useOpenApi } from '@test/support/openapi.js';
 const openApi = useOpenApi();
 
 describe('la documentación de las rutas de autenticación', () => {
-  it('describe exactamente las cuatro rutas publicadas y ninguna más', async () => {
+  it('describe exactamente las seis rutas publicadas y ninguna más', async () => {
     const doc = await openApi();
 
     const authOperations = Object.entries(doc.paths)
@@ -18,6 +18,8 @@ describe('la documentación de las rutas de autenticación', () => {
     expect(authOperations).toEqual([
       'GET /auth/get-session',
       'POST /auth/change-password',
+      'POST /auth/revoke-other-sessions',
+      'POST /auth/revoke-sessions',
       'POST /auth/sign-in/phone-number',
       'POST /auth/sign-out',
     ]);
@@ -35,6 +37,8 @@ describe('la documentación de las rutas de autenticación', () => {
       ['/auth/get-session', 'get'],
       ['/auth/sign-out', 'post'],
       ['/auth/change-password', 'post'],
+      ['/auth/revoke-other-sessions', 'post'],
+      ['/auth/revoke-sessions', 'post'],
     ] as const) {
       const documented = operation(doc, path, method);
       expect(documented.tags).toEqual([API_TAGS.auth.name]);
@@ -58,6 +62,8 @@ describe('la documentación de las rutas de autenticación', () => {
       ['/auth/get-session', 'get'],
       ['/auth/sign-out', 'post'],
       ['/auth/change-password', 'post'],
+      ['/auth/revoke-other-sessions', 'post'],
+      ['/auth/revoke-sessions', 'post'],
     ] as const) {
       expect(operation(doc, path, method).security).toEqual([
         { sessionCookie: [] },
@@ -70,6 +76,8 @@ describe('la documentación de las rutas de autenticación', () => {
     ['/auth/get-session', 'get', ['200', '429']],
     ['/auth/sign-out', 'post', ['200', '403', '429']],
     ['/auth/change-password', 'post', ['200', '400', '401', '403', '429']],
+    ['/auth/revoke-other-sessions', 'post', ['200', '401', '403', '429']],
+    ['/auth/revoke-sessions', 'post', ['200', '401', '403', '429']],
   ] as const)('%s documenta las respuestas %j', async (path, method, codes) => {
     const doc = await openApi();
 
@@ -141,6 +149,7 @@ describe('la documentación de las rutas de autenticación', () => {
         'ValidationError',
         'RateLimited',
         'SignInLocked',
+        'StatusResponse',
       ]),
     );
   });

@@ -11,6 +11,9 @@ export interface RequestOrigin {
   readonly userAgent?: string;
 }
 
+/** Qué sesiones cerró la persona: `others` (las demás) o `all` (todas, la actual incluida). */
+export type RevocationScope = 'others' | 'all';
+
 /** La persona de un evento de autenticación. */
 export interface AuditedPerson {
   /** Su identificador. */
@@ -115,6 +118,30 @@ export class AuthAuditor {
   signedOut(userId: string, origin: RequestOrigin): void {
     this.record(
       { action: 'auth.sign_out', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
+  /**
+   * Una persona cerró una de sus sesiones desde otra (revocar las demás o todas). Se avisa una vez
+   * por cada sesión cerrada, con la misma petición: contar los eventos de una petición dice cuántas.
+   *
+   * @param userId - De quién era la sesión.
+   * @param scope - Si pidió cerrar las demás o todas.
+   * @param origin - Desde dónde lo pidió.
+   */
+  sessionRevoked(
+    userId: string,
+    scope: RevocationScope,
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      {
+        action: 'auth.session.revoked',
+        outcome: 'SUCCESS',
+        details: { scope },
+      },
       { id: userId },
       origin,
     );

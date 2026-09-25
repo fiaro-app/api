@@ -59,10 +59,12 @@ describe('AuthController', () => {
         })
         .sort();
 
-    it('son solo iniciar sesión, ver la sesión, cerrarla y cambiar la contraseña', () => {
+    it('son solo iniciar sesión, ver la sesión, cerrarla, cambiar la contraseña y cerrar las demás sesiones o todas', () => {
       expect(publishedRoutes()).toEqual([
         'GET get-session',
         'POST change-password',
+        'POST revoke-other-sessions',
+        'POST revoke-sessions',
         'POST sign-in/phone-number',
         'POST sign-out',
       ]);
@@ -109,6 +111,24 @@ describe('AuthController', () => {
 
       const request = forwarded(handler);
       expect(request.url).toBe('https://api.fiaro.co/auth/sign-out');
+      expect(request.body).toBeNull();
+    });
+
+    it.each([
+      [
+        'cerrar las demás sesiones',
+        'revokeOtherSessions',
+        'revoke-other-sessions',
+      ],
+      ['cerrar todas las sesiones', 'revokeSessions', 'revoke-sessions'],
+    ] as const)('%s: POST sin cuerpo', async (_caso, method, path) => {
+      const { controller, handler, res } = setup();
+
+      await controller[method](requestOf('POST'), res.asResponse());
+
+      const request = forwarded(handler);
+      expect(request.method).toBe('POST');
+      expect(request.url).toBe(`https://api.fiaro.co/auth/${path}`);
       expect(request.body).toBeNull();
     });
 

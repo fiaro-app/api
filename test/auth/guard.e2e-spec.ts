@@ -67,7 +67,6 @@ describe('lo que better-auth trae y la API no publica', () => {
     ['POST', '/auth/phone-number/verify'],
     ['POST', '/auth/phone-number/reset-password'],
     ['GET', '/auth/list-sessions'],
-    ['POST', '/auth/revoke-sessions'],
     ['GET', '/auth/list-accounts'],
     ['GET', '/auth/ok'],
     ['GET', '/auth/expo-authorization-proxy'],

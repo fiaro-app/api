@@ -11,6 +11,8 @@ export const AUDIT_ACTIONS = [
   'auth.sign_in.locked',
   /** Una persona cerró su sesión. */
   'auth.sign_out',
+  /** Una persona cerró desde una sesión otra sesión suya (revocar las demás o todas). Un evento por cada una. */
+  'auth.session.revoked',
   /** Una persona cambió su contraseña. */
   'auth.password.changed',
   /** Un intento de cambiar la contraseña fue rechazado (la actual no era correcta). */
