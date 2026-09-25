@@ -15,14 +15,11 @@ export interface PasswordOwner {
 /** Las contraseñas más usadas, sin tildes ni mayúsculas (`common-passwords.json`). */
 const COMMON = new Set<string>(commonPasswords);
 
-/** Cuántos dígitos como máximo puede sumar al final una contraseña común («password1234»). */
-const MAX_TAIL_DIGITS = 4;
-
-/** El final que se le quita a una contraseña común: hasta cuatro dígitos y un símbolo, o solo el símbolo. */
-const TAIL = new RegExp(
-  `\\d{1,${String(MAX_TAIL_DIGITS)}}[!.*#]?$|[!.*#]$`,
-  'u',
-);
+/**
+ * El final que se le quita a una contraseña común: hasta cuatro dígitos y un símbolo, o solo el
+ * símbolo (`password1234`, `bienvenido!`).
+ */
+const TAIL = /\d{1,4}[!.*#]?$|[!.*#]$/u;
 
 /** Un bloque de hasta cuatro caracteres que se repite todo el largo: `aaaaaaaa`, `12121212`. */
 const REPEATED_BLOCK = /^(.{1,4})\1+$/u;
@@ -58,10 +55,10 @@ function isCommon(folded: string): boolean {
 
 /** Si cada carácter es el siguiente (o el anterior) al que lo precede: `12345678`, `abcdefgh`, `87654321`. */
 function isRun(value: string, step: 1 | -1): boolean {
-  let previous = value.charCodeAt(0);
-  for (const char of value.slice(1)) {
-    const code = char.charCodeAt(0);
-    if (code - previous !== step) {
+  let previous: number | undefined;
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    if (previous !== undefined && code !== previous + step) {
       return false;
     }
     previous = code;
