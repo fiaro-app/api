@@ -138,13 +138,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Valores de mentira: la API se conecta a la base de datos con la primera consulta, así que
-      # arrancar y quedar sana no la necesita.
+      # Valores de mentira: la API se conecta a la base de datos con la primera consulta, y a Redis y
+      # MongoDB en segundo plano (si no responden reintenta y lo avisa en el log), así que arrancar y
+      # quedar sana no las necesita. Redis y MongoDB se pasan porque en producción son obligatorias.
       - name: Smoke test production image
         run: |
           docker run -d --name api \
             -e TRUST_PROXY=1 \
             -e DATABASE_URL=postgresql://fiaro:fiaro@localhost:5432/fiaro \
+            -e REDIS_URL=redis://localhost:6379 \
+            -e MONGODB_URI=mongodb://localhost:27017/fiaro \
             -e BETTER_AUTH_SECRET=secreto-solo-para-la-prueba-de-humo-0123456789 \
             -e BETTER_AUTH_URL=https://api.example.com \
             fiaro-api:ci

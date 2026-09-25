@@ -1,5 +1,6 @@
-import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { describeConnectionError } from '@/shared/infrastructure/messaging/describe-error.js';
+import type { Warn } from '@/shared/infrastructure/messaging/repeated-warnings.js';
 
 /** Para qué se abre la conexión: BullMQ pide opciones distintas a quien encola y a quien consume. */
 export type RedisRole = 'producer' | 'worker';
@@ -14,13 +15,19 @@ const CONNECT_TIMEOUT_MS = 5_000;
  * Quien consume (`worker`) usa comandos que bloquean y BullMQ exige `maxRetriesPerRequest: null`.
  * Quien encola (`producer`) falla rápido: sin cola offline y con un solo reintento por comando,
  * así un Redis caído devuelve un error en lugar de acumular comandos en memoria. Los errores de
- * conexión se escriben en el log y no se propagan: `ioredis` reintenta solo, y un evento `error`
+ * conexión se avisan (`warn`) y no se propagan: `ioredis` reintenta solo, y un evento `error`
  * sin escuchar tumbaría el proceso.
  *
  * @param url - URL de Redis (`redis://` o `rediss://`).
  * @param role - Para qué se usa la conexión.
+ * @param warn - Cómo se avisa un error de conexión; conviene que no repita el mismo aviso en
+ * cada reintento (`repeatedWarnings`).
  */
-export function createRedisConnection(url: string, role: RedisRole): Redis {
+export function createRedisConnection(
+  url: string,
+  role: RedisRole,
+  warn: Warn,
+): Redis {
   const connection = new Redis(
     url,
     role === 'worker'
@@ -31,9 +38,8 @@ export function createRedisConnection(url: string, role: RedisRole): Redis {
           connectTimeout: CONNECT_TIMEOUT_MS,
         },
   );
-  const logger = new Logger(`Redis:${role}`);
   connection.on('error', (error: Error) => {
-    logger.warn(`Conexión con Redis: ${error.message}`);
+    warn(`Conexión con Redis (${role}): ${describeConnectionError(error)}`);
   });
   return connection;
 }

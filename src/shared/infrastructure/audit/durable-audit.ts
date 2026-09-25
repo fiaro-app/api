@@ -17,7 +17,9 @@ import {
 } from '@/shared/infrastructure/audit/audit-queue.js';
 import { MongoAuditStore } from '@/shared/infrastructure/audit/mongo-audit-store.js';
 import { QueueAuditLog } from '@/shared/infrastructure/audit/queue-audit-log.js';
+import { describeConnectionError } from '@/shared/infrastructure/messaging/describe-error.js';
 import { createRedisConnection } from '@/shared/infrastructure/messaging/redis-connection.js';
+import { repeatedWarnings } from '@/shared/infrastructure/messaging/repeated-warnings.js';
 import { withTimeout } from '@/shared/infrastructure/messaging/with-timeout.js';
 
 /** Dónde vive la auditoría durable. */
@@ -40,9 +42,9 @@ const CLOSE_TIMEOUT_MS = 10_000;
  *
  * @remarks
  * Arrancar no espera a Redis ni a MongoDB: si no están, la API arranca igual (sus conexiones
- * reintentan solas y cada falla queda en el log), y los eventos salen de todos modos por
- * `PinoAuditLog`. Al apagar la API (`onModuleDestroy`) el consumidor termina el evento que tenga en
- * mano y se cierran las conexiones.
+ * reintentan solas y las fallas quedan en el log, sin repetir el mismo aviso en cada reintento), y
+ * los eventos salen de todos modos por `PinoAuditLog`. Al apagar la API (`onModuleDestroy`) el
+ * consumidor termina el evento que tenga en mano y se cierran las conexiones.
  */
 export class DurableAudit implements OnModuleDestroy {
   private constructor(
@@ -62,8 +64,9 @@ export class DurableAudit implements OnModuleDestroy {
    */
   static start(config: DurableAuditConfig, ids: IdGenerator): DurableAudit {
     const logger = new Logger('AuditQueue');
-    const producer = createRedisConnection(config.redisUrl, 'producer');
-    const consumer = createRedisConnection(config.redisUrl, 'worker');
+    const warn = repeatedWarnings(logger);
+    const producer = createRedisConnection(config.redisUrl, 'producer', warn);
+    const consumer = createRedisConnection(config.redisUrl, 'worker', warn);
     const mongo = new MongoClient(config.mongoUri, {
       appName: 'fiaro-api',
       serverSelectionTimeoutMS: 5_000,
@@ -89,10 +92,10 @@ export class DurableAudit implements OnModuleDestroy {
     );
 
     queue.on('error', (error) => {
-      logger.warn(`Cola de auditoría: ${error.message}`);
+      warn(`Cola de auditoría: ${describeConnectionError(error)}`);
     });
     worker.on('error', (error) => {
-      logger.warn(`Consumidor de la auditoría: ${error.message}`);
+      warn(`Consumidor de la auditoría: ${describeConnectionError(error)}`);
     });
     worker.on('failed', (job, error) => {
       const { level, message } = describeFailedJob(job, error);
