@@ -39,12 +39,14 @@ export async function createAppWithUser(
     mustChangePassword?: boolean;
     env?: NodeJS.ProcessEnv;
     overrides?: TestAppOptions['overrides'];
+    logDestination?: TestAppOptions['logDestination'];
   } = {},
 ): Promise<TestApp> {
   const app = await startTestApp({
     controllers: [ProbeController],
     env: { CORS_ORIGINS: APP_ORIGIN, ...options.env },
     overrides: options.overrides,
+    logDestination: options.logDestination,
   });
   await app.createUser({
     phone: PHONE,

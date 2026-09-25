@@ -70,6 +70,7 @@ src/
       persistence/               #   schema/ y migrations/ de Prisma, generated/ (no se commitea) y PrismaService
       runtime/                   #   Reloj del sistema y generador de UUIDv7
       http/                      #   Pipes, guard de autenticación, middlewares y opciones HTTP (SchemaValidationPipe, AuthGuard, cabeceras de seguridad, CORS, versionado)
+      logging/                   #   Logs JSON con Pino: logger, log de cada petición, id de petición y adaptador del logger de Nest
       filters/                   #   Filtro global de excepciones → ApiError de contracts
       crypto/                    #   Hashing y cifrado
       notifications/             #   Email (Resend), WhatsApp (Twilio)
@@ -184,7 +185,7 @@ Lo que conviene saber, y por qué:
 
 - **Login por celular, email técnico (D-49).** better-auth exige un email único por usuario. `loginEmail` es una dirección técnica derivada del celular (`technical-email.ts`), no una credencial: `emailAndPassword` está apagado, así que ninguna ruta acepta email y contraseña. El correo real, opcional, vive aparte en `contactEmail` (D-07).
 - **Sesión de 30 días que se renueva con el uso (D-50).** Cookie `fiaro.session_token` (`HttpOnly`, `SameSite=Lax`, `Secure` con HTTPS). Cada día de uso la renueva otros 30 días; sin uso, vence. Las sesiones están en la base de datos y no hay caché de sesión en la cookie: revocar una (borrar su fila) surte efecto en la siguiente petición, no cuando venza una caché. El guard no la renueva (`disableRefresh`): la renovación ocurre en `GET /auth/get-session`, que sí responde con `Set-Cookie`. Si el guard alargara la sesión en la base de datos sin que la app reciba la cookie nueva, la app la daría por vencida a los 30 días aunque el servidor la siguiera aceptando.
-- **El token de sesión solo viaja en la cookie (D-57).** Iniciar sesión, ver la sesión y cambiar la contraseña no lo devuelven en el cuerpo: `writeAuthResponse` lo quita de `token` y de `session.token` antes de responder (`auth-response-body.ts`). La cookie es `HttpOnly` y el JavaScript de una página no la lee; en el cuerpo sí lo leería un script inyectado (XSS) que llamara a `GET /auth/get-session`, y la protección de la cookie no serviría de nada. Los clientes no lo necesitan: el navegador manda la cookie solo y el plugin de Expo guarda la que llega en `Set-Cookie`. Por dentro la API sí lo ve (el guard resuelve la sesión con better-auth): solo se recorta lo que sale por HTTP. Tampoco hace falta `cookie-parser`: better-auth lee y escribe las cookies por su cuenta.
+- **El token de sesión solo viaja en la cookie (D-57).** Iniciar sesión, ver la sesión y cambiar la contraseña no lo devuelven en el cuerpo: `writeAuthResponse` lo quita de `token` y de `session.token` antes de responder (`auth-response-body.ts`). La cookie es `HttpOnly` y el JavaScript de una página no la lee; en el cuerpo sí lo leería un script inyectado (XSS) que llamara a `GET /auth/get-session`, y la protección de la cookie no serviría de nada. Los clientes no lo necesitan: el navegador manda la cookie solo y el plugin de Expo guarda la que llega en `Set-Cookie`. Por dentro la API sí lo ve (el guard resuelve la sesión con better-auth): solo se recorta lo que sale por HTTP. La cookie de sesión no pasa por `cookie-parser` (el proyecto lo usa para llenar `req.cookies` con cookies propias, D-40): better-auth la lee y la escribe directamente en las cabeceras.
 - **Apps móviles.** Usan el cliente oficial de better-auth con su plugin de Expo, que guarda la cookie cifrada en el dispositivo (SecureStore) y envía `expo-origin`; la API lo acepta si su esquema está en `MOBILE_APP_SCHEMES`. Por eso las rutas se publican «tal cual» y no hay un contrato propio para iniciar sesión.
 - **Origen y CSRF siempre activos.** Una petición con cookie debe traer un `Origin` de confianza (el de la API, uno de `CORS_ORIGINS` o un esquema móvil) o responde 403 `INVALID_ORIGIN`. better-auth apaga esa comprobación con `NODE_ENV=test`; aquí se fuerza encendida para que las pruebas ejerzan lo mismo que producción.
 - **Contraseña temporal (D-34).** Con `mustChangePassword` la sesión existe pero solo sirve para ver la sesión, cambiar la contraseña y cerrar sesión; el resto responde 403 `PASSWORD_CHANGE_REQUIRED`. Cambiarla revoca siempre las demás sesiones (quien conociera la temporal, por ejemplo por WhatsApp, pierde el acceso) y quita la marca.
@@ -262,6 +263,7 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `THROTTLE_TTL_MS` | `60000` | Ventana del rate limit, en milisegundos |
 | `THROTTLE_LIMIT` | `100` | Peticiones permitidas por IP y por ruta dentro de la ventana |
 | `SWAGGER_ENABLED` | activa salvo en producción | Publica la documentación en `/docs` |
+| `LOG_LEVEL` | `info` (`silent` con `NODE_ENV=test`) | Nivel mínimo de los logs: `fatal`, `error`, `warn`, `info`, `debug`, `trace` o `silent` |
 | `DATABASE_URL` | **obligatoria** | URL de PostgreSQL (`postgresql://usuario:clave@host:puerto/base`). En el entorno local con Docker la define Compose |
 | `BETTER_AUTH_SECRET` | **obligatoria** | Firma las cookies de sesión; mínimo 32 caracteres (`openssl rand -base64 32`). En producción va en los secretos de la plataforma, nunca en el repo |
 | `BETTER_AUTH_URL` | **obligatoria** | Origen público de la API (esquema, host y puerto, sin ruta). Con él better-auth arma sus URLs y reconoce su propio origen: nunca se toma de la cabecera `Host`, que el cliente controla |
@@ -301,7 +303,7 @@ Todo esto se configura antes del primer endpoint, para que cada ruta nueva lo he
 
 ### Orden de `configureApp`
 
-El orden es parte del diseño: `trust proxy` → Helmet → `cookie-parser` → CORS → versionado (con `Vary`) → pipe global → Swagger. Helmet va primero para que las cabeceras salgan también en los errores, los 404 y las respuestas de preflight. El rate limit no es un middleware sino un guard global, que corre después de todos ellos: un preflight de CORS se responde antes de llegar a las rutas y nunca gasta el límite.
+El orden es parte del diseño: `trust proxy` → logs → Helmet → `cookie-parser` → CORS → versionado (con `Vary`) → pipe global → Swagger. Los logs van primero para que también queden registradas las peticiones que otro middleware responde por su cuenta (un preflight de CORS). Helmet va antes que los demás para que las cabeceras salgan también en los errores, los 404 y las respuestas de preflight. El rate limit no es un middleware sino un guard global, que corre después de todos ellos: un preflight de CORS se responde antes de llegar a las rutas y nunca gasta el límite.
 
 `configureApp` existe aparte de `main.ts` porque lo que se configura con `app.use()`, `enableCors()` o `useGlobalPipes()` no forma parte de `AppModule`: una prueba que solo importara el módulo probaría una aplicación sin protecciones.
 
@@ -352,11 +354,21 @@ Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 - **Cómo se usa, y por qué `postman/postman/`.** En la app se conecta a FIARO la carpeta `postman/`, y Postman crea dentro otra `postman/` donde lee y escribe colecciones y entornos: de ahí la ruta doble. Solo lo que está en esa carpeta interna aparece en la vista local; un archivo suelto en `postman/` no se ve. El `.git` está un nivel más arriba y la app no lo encuentra desde esa carpeta, así que su integración con Git no aplica: los cambios se commitean con git como el resto del código. Si más adelante se quiere esa integración, se conecta la raíz del repositorio y `postman/` y `.postman/` suben un nivel. Desde la terminal se corre con el CLI oficial, sin iniciar sesión: `pnpm dlx postman-cli collection run "postman/postman/collections/Fiaro API" -e "postman/postman/environments/Fiaro local.environment.yaml" --no-report-events` (newman no lee el formato v3). `postman collection lint` valida la colección y `postman workspace lint`, corrido desde `postman/`, todo el workspace. Prettier no los formatea (`.prettierignore`): los reescribe Postman.
 - **OpenAPI 3.2.** La 3.0 que Nest usa por defecto no define la operación `query`, y Swagger UI oculta las rutas `QUERY` (D-26), que serán casi todas las lecturas.
 
+### Logs (D-58)
+
+- **JSON en la salida estándar**, con Pino: una línea por registro, con `level` como texto, `time` en ISO 8601, `service` y, dentro de una petición, su `requestId`. `docker compose logs -f api` los muestra tal cual (`| pnpm dlx pino-pretty` los hace legibles) y con `pnpm docker:dev:obs` Alloy los manda a Loki, donde se filtran por campo: `{service="api"} | json | res_statusCode >= 400`.
+- **Una línea por petición terminada** (`request completed`). La escribe `createHttpLogger`, el primer middleware, así que también quedan las que otro middleware responde por su cuenta (un preflight) y las que rechaza el rate limit: `req.method`, `req.path` (sin cadena de consulta), `route` (la plantilla, `/loans/:id`), `res.statusCode`, `responseTime`, `req.id`, la IP, el navegador y, si trae sesión, `userId`. El nivel sale del estado: los 5xx son `error`, los 4xx `warn` y el resto `info`.
+- **`X-Request-Id`.** Se acepta el que envía el cliente si es corto y solo de letras, números, punto, guion y guion bajo; si no, se crea un UUID. Vuelve en la cabecera de la respuesta y en cada línea escrita mientras se atiende la petición (`requestId`, con `AsyncLocalStorage`): quien reporta un error dice cuál fue su petición y se encuentran todos sus logs, también los de Nest y los de una excepción.
+- **Qué nunca se escribe.** Solo se eligen campos concretos de la petición y de la respuesta (`serializeRequest`, `serializeResponse`): nunca cabeceras (llevan la cookie de sesión y `Set-Cookie`), cuerpos ni cadena de consulta. Como segunda barrera, Pino reemplaza por `[redacted]` cualquier `cookie`, `authorization`, `password`, `currentPassword`, `newPassword`, `token` o `secret` que alguien agregue por descuido. Las pruebas e2e comprueban que una contraseña, una cookie y un token no salen.
+- **Logger de Nest.** `PinoNestLogger` reemplaza al de Nest (`app.useLogger`) y `bufferLogs` en `main.ts` guarda lo que Nest escribe al arrancar hasta que exista: el arranque, las rutas registradas y las excepciones salen en el mismo JSON. Un 5xx sin excepción no escribe el `err` que inventaría pino-http («failed with status code 500», con una traza de la librería): la excepción real la escribe Nest en otra línea con el mismo `requestId`.
+- **Nivel.** `LOG_LEVEL` (§9): `info` por defecto y `silent` en las pruebas, para no llenar su salida; las pruebas que leen los logs pasan su propio destino a `configureApp`.
+
 ### Lo que todavía no está
 
 - **Filtro global de excepciones** que responda `ApiError` (§5).
 - **Serializar las respuestas con schema** (`StandardSchemaSerializerInterceptor` y `@SerializeOptions({ schema })` de Nest 12), para que una ruta nunca devuelva campos que el contrato no declara.
 - **`Cache-Control: no-store`** en las demás respuestas con datos personales (las de autenticación ya lo llevan).
+- **Registro total en Mongo (D-58).** La cola de BullMQ y el worker que guardan en Mongo la auditoría de autenticación y las líneas de log (los PRs 2 y 3 del plan). Hoy los logs solo salen por la salida estándar.
 
 ## 12. Entorno local con Docker
 
@@ -454,7 +466,7 @@ cAdvisor, Postgres, Redis, Mongo, Loki, Grafana ─ métricas ─▶ Alloy ─ r
 
 ### Lo que todavía no está
 
-- **Métricas de la API** (`/metrics`) y **logs JSON con Pino**: los logs de stdout ya llegan a Loki; el raspado de `/metrics` se agrega a `docker/alloy/config.alloy` cuando exista.
+- **Métricas de la API** (`/metrics`): el raspado se agrega a `docker/alloy/config.alloy` cuando exista. Los logs JSON de stdout ya llegan a Loki (§11, Logs).
 - **`/health`:** el healthcheck de la API es por TCP; con el módulo `system` pasa a HTTP (también lo necesita Fly.io).
 - **Cierre ordenado** (`enableShutdownHooks`): hoy no hay conexiones que cerrar; con Prisma y BullMQ sí.
 - **Migraciones en producción:** la API no migra al arrancar: con varias instancias, todas competirían por aplicar las mismas migraciones, y la aplicación no debería tener permisos para alterar el esquema. Con el primer despliegue se agrega el paso que corre `prisma migrate deploy` antes de que arranque la versión nueva (por ejemplo, desde el CI contra la base de datos, o con el `release_command` de Fly.io). La imagen `prod` no trae el CLI de Prisma (es una dependencia de desarrollo): el `release_command` corre con la imagen de la versión nueva, así que usarlo exigiría otra imagen con el CLI; desde el CI, que sí lo tiene, no.

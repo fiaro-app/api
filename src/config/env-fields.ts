@@ -1,5 +1,24 @@
 import { z } from 'zod';
 
+/** Niveles de log de Pino, del más grave al más detallado; `silent` apaga todo. */
+export const LOG_LEVELS = [
+  'fatal',
+  'error',
+  'warn',
+  'info',
+  'debug',
+  'trace',
+  'silent',
+] as const;
+
+/** Nivel mínimo que se escribe en el log. */
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+/** Nivel de log válido para `LOG_LEVEL`. */
+export const LogLevelSchema = z.enum(LOG_LEVELS, {
+  error: 'debe ser fatal, error, warn, info, debug, trace o silent',
+});
+
 /**
  * Entero sin signo escrito solo con dígitos: rechaza `''`, `'1e3'` y `'0x10'`, que
  * `z.coerce.number()` aceptaría.

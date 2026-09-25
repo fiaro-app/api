@@ -14,6 +14,7 @@ describe('loadEnv', () => {
       trustProxy: 0,
       throttle: { ttlMs: 60_000, limit: 100 },
       swaggerEnabled: true,
+      logLevel: 'info',
       databaseUrl: REQUIRED_ENV.DATABASE_URL,
       auth: {
         secret: REQUIRED_ENV.BETTER_AUTH_SECRET,
@@ -32,6 +33,7 @@ describe('loadEnv', () => {
       THROTTLE_TTL_MS: '30000',
       THROTTLE_LIMIT: '25',
       SWAGGER_ENABLED: 'true',
+      LOG_LEVEL: 'warn',
       MOBILE_APP_SCHEMES: 'fiaro',
     });
 
@@ -42,6 +44,7 @@ describe('loadEnv', () => {
       trustProxy: 1,
       throttle: { ttlMs: 30_000, limit: 25 },
       swaggerEnabled: true,
+      logLevel: 'warn',
       databaseUrl: REQUIRED_ENV.DATABASE_URL,
       auth: {
         secret: REQUIRED_ENV.BETTER_AUTH_SECRET,

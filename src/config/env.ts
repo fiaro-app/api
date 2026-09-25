@@ -4,6 +4,7 @@ import {
   commaSeparated,
   DatabaseUrlSchema,
   integer,
+  LogLevelSchema,
   MobileSchemeSchema,
   OriginSchema,
 } from '@/config/env-fields.js';
@@ -20,6 +21,7 @@ const EnvSchema = z
     THROTTLE_TTL_MS: integer(1000, 3_600_000).default(60_000),
     THROTTLE_LIMIT: integer(1, 100_000).default(100),
     SWAGGER_ENABLED: z.stringbool().optional(),
+    LOG_LEVEL: LogLevelSchema.optional(),
     DATABASE_URL: DatabaseUrlSchema,
     BETTER_AUTH_SECRET: AuthSecretSchema,
     BETTER_AUTH_URL: OriginSchema,
@@ -40,6 +42,7 @@ const EnvSchema = z
     trustProxy: env.TRUST_PROXY ?? 0,
     throttle: { ttlMs: env.THROTTLE_TTL_MS, limit: env.THROTTLE_LIMIT },
     swaggerEnabled: env.SWAGGER_ENABLED ?? env.NODE_ENV !== 'production',
+    logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
     databaseUrl: env.DATABASE_URL,
     auth: {
       secret: env.BETTER_AUTH_SECRET,

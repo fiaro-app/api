@@ -92,6 +92,8 @@ Con `pnpm docker:dev:obs` se suma la observabilidad:
 | `pnpm docker:down` | Detiene todo y conserva los datos |
 | `pnpm docker:reset` | Detiene todo y borra los datos |
 
+Los logs de la API salen en JSON, una línea por petición: `docker compose logs -f api` (con `| pnpm dlx pino-pretty` se leen mejor). `LOG_LEVEL` cambia el nivel; qué se escribe y qué nunca: [ARCHITECTURE.md §11](./ARCHITECTURE.md#11-seguridad-http).
+
 Construir la imagen necesita el token de `@fiaro-app/contracts`: los scripts lo toman de tu sesión de `gh` (o de `NODE_AUTH_TOKEN`, si ya lo tienes). Los puertos, las credenciales, cómo funcionan las pruebas en contenedores y la observabilidad están en [ARCHITECTURE.md §12](./ARCHITECTURE.md#12-entorno-local-con-docker).
 
 ## Acceso a `@fiaro-app/contracts`
