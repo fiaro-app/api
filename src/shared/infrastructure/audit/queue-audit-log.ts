@@ -7,11 +7,11 @@ import {
   AUDIT_JOB_OPTIONS,
   type AuditJobData,
 } from '@/shared/infrastructure/audit/audit-queue.js';
-import type { JobProducer } from '@/shared/infrastructure/messaging/records-queue.js';
+import {
+  ENQUEUE_TIMEOUT_MS,
+  type JobProducer,
+} from '@/shared/infrastructure/messaging/records-queue.js';
 import { withTimeout } from '@/shared/infrastructure/messaging/with-timeout.js';
-
-/** Cuánto se espera a que Redis acepte un evento antes de darlo por no encolado. */
-const ENQUEUE_TIMEOUT_MS = 3_000;
 
 /** Cuántos eventos pueden estar esperando a Redis a la vez; los demás se descartan. */
 const MAX_PENDING = 500;

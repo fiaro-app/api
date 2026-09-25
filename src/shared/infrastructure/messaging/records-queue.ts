@@ -28,6 +28,12 @@ export const RECORDS_WORKER_OPTIONS = {
 } satisfies Partial<WorkerOptions>;
 
 /**
+ * Cuánto se espera a que Redis acepte un trabajo antes de darlo por no encolado. BullMQ espera sin
+ * límite una conexión que no llega, y quien registra no puede quedarse colgado de ella.
+ */
+export const ENQUEUE_TIMEOUT_MS = 3_000;
+
+/**
  * Lo que quien registra algo necesita de la cola: encolar un trabajo. Con esta forma estrecha,
  * quien encola no conoce a BullMQ, y una prueba le pasa una cola falsa.
  */
