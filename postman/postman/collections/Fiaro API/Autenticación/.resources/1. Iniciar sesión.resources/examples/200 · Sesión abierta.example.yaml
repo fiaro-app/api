@@ -24,7 +24,6 @@ response:
     type: json
     content: |-
       {
-        "token": "s0rWpyeq2nB1sOBfV2tQCZ2qw6eG4zAT",
         "user": {
           "name": "Ana Pérez",
           "email": "573001234567@phone.fiaro.invalid",

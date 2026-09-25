@@ -56,10 +56,64 @@ describe('writeAuthResponse', () => {
     expect(res.headers.has('connection')).toBe(false);
   });
 
-  it('nunca se guarda en caché: lleva el token de sesión', async () => {
+  it('nunca se guarda en caché: lleva la cookie de sesión y datos personales', async () => {
     const res = await write(new Response('{}'));
 
     expect(res.headers.get('cache-control')).toBe('no-store');
+  });
+
+  describe('el token de sesión solo viaja en la cookie', () => {
+    const json = { 'content-type': 'application/json' };
+
+    it('se quita del cuerpo de iniciar sesión y la cookie sigue llegando', async () => {
+      const headers = new Headers(json);
+      headers.append('set-cookie', 'fiaro.session_token=abc; Path=/; HttpOnly');
+
+      const res = await write(
+        new Response('{"token":"abc","user":{"id":"u1"}}', { headers }),
+      );
+
+      expect(JSON.parse(res.body ?? '')).toEqual({ user: { id: 'u1' } });
+      expect(res.cookies).toEqual([
+        'fiaro.session_token=abc; Path=/; HttpOnly',
+      ]);
+    });
+
+    it('se quita de la sesión que devuelve ver la sesión', async () => {
+      const res = await write(
+        new Response(
+          '{"session":{"id":"s1","token":"abc"},"user":{"id":"u1"}}',
+          { headers: json },
+        ),
+      );
+
+      expect(JSON.parse(res.body ?? '')).toEqual({
+        session: { id: 's1' },
+        user: { id: 'u1' },
+      });
+    });
+
+    it('un cuerpo que no es JSON pasa tal cual', async () => {
+      const res = await write(
+        new Response('token=abc', {
+          headers: { 'content-type': 'text/plain' },
+        }),
+      );
+
+      expect(res.body).toBe('token=abc');
+    });
+
+    it('un cuerpo que dice ser JSON y no lo es pasa tal cual', async () => {
+      const res = await write(new Response('no es json', { headers: json }));
+
+      expect(res.body).toBe('no es json');
+    });
+
+    it('un cuerpo vacío pasa tal cual', async () => {
+      const res = await write(new Response('', { headers: json }));
+
+      expect(res.body).toBe('');
+    });
   });
 
   it('un error de better-auth pasa con su estado y su cuerpo', async () => {

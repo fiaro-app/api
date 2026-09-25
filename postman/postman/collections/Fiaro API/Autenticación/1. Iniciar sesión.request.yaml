@@ -23,6 +23,7 @@ scripts:
       const body = pm.response.json();
       pm.test('la persona es la del celular', () => pm.expect(body.user.phoneNumber).to.eql(pm.variables.get('phone')));
       pm.test('la cuenta no tiene contraseña temporal', () => pm.expect(body.user.mustChangePassword).to.be.false);
+      pm.test('el token no viaja en el cuerpo: solo en la cookie', () => pm.expect(body).to.not.have.property('token'));
       pm.test('no se guarda en caché', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('no-store'));
     language: text/javascript
 examples: ./.resources/1. Iniciar sesión.resources/examples

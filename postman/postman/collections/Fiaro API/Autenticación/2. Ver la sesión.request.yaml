@@ -12,6 +12,7 @@ scripts:
       pm.test('responde 200', () => pm.response.to.have.status(200));
       const body = pm.response.json();
       pm.test('hay sesión y es de la persona', () => pm.expect(body.user.phoneNumber).to.eql(pm.variables.get('phone')));
+      pm.test('la sesión no trae el token: solo viaja en la cookie', () => pm.expect(body.session).to.not.have.property('token'));
       pm.test('la sesión vence en unos 30 días', () => { const days = (Date.parse(body.session.expiresAt) - Date.now()) / 86400000; pm.expect(days).to.be.within(29, 31); });
     language: text/javascript
 examples: ./.resources/2. Ver la sesión.resources/examples

@@ -42,14 +42,11 @@ export const AuthUserSchema = z
   })
   .meta({ id: 'AuthUser' });
 
-/** Sesión abierta en un dispositivo. */
+/** Sesión abierta en un dispositivo. Su token no se expone: solo viaja en la cookie. */
 export const AuthSessionSchema = z
   .object({
     id: IdSchema.meta({ description: 'Identificador de la sesión.' }),
     userId: IdSchema.meta({ description: 'Persona a la que pertenece.' }),
-    token: z.string().meta({
-      description: 'Token de la sesión: el que viaja firmado en la cookie.',
-    }),
     expiresAt: timestamp(
       'Cuándo vence si no se usa; cada día de uso la renueva 30 días.',
     ),

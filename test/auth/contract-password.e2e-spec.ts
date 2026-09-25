@@ -35,7 +35,7 @@ const changePassword = (
 };
 
 describe('POST /auth/change-password', () => {
-  it('200 cumple ChangePasswordResponse, con token y cookie nuevos', async () => {
+  it('200 cumple ChangePasswordResponse y trae la cookie nueva, sin el token en el cuerpo', async () => {
     const app = await startWithUser({ mustChangePassword: true });
     const cookie = await login(app);
 
@@ -45,8 +45,10 @@ describe('POST /auth/change-password', () => {
     });
 
     expect(response.status).toBe(200);
-    const parsed = ChangePasswordResponseSchema.parse(response.body);
-    expect(parsed.token).toEqual(expect.any(String));
+    expect(ChangePasswordResponseSchema.safeParse(response.body).success).toBe(
+      true,
+    );
+    expect(response.body).not.toHaveProperty('token');
     expect(cookieOf(response)).toMatch(/^fiaro\.session_token=/);
   });
 

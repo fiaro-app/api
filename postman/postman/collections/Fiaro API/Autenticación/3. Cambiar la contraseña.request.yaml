@@ -22,7 +22,7 @@ scripts:
       pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
       const body = pm.response.json();
       pm.test('la respuesta ya no marca contraseña temporal', () => pm.expect(body.user.mustChangePassword).to.be.false);
-      pm.test('trae el token de la sesión nueva', () => pm.expect(body.token).to.be.a('string'));
+      pm.test('el token no viaja en el cuerpo: la sesión nueva llega en la cookie', () => pm.expect(body).to.not.have.property('token'));
     language: text/javascript
 examples: ./.resources/3. Cambiar la contraseña.resources/examples
 order: 3000

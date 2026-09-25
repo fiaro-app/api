@@ -1,5 +1,6 @@
 import { ErrorCodeSchema } from '@fiaro-app/contracts';
 import type { Response } from 'express';
+import { withoutSessionToken } from '@/modules/auth/infrastructure/better-auth/auth-response-body.js';
 
 /** Cabeceras de la respuesta de better-auth que Express calcula por su cuenta o maneja aparte. */
 const OWN_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
@@ -47,11 +48,31 @@ function writeRateLimited(res: Response, response: globalThis.Response): void {
 }
 
 /**
+ * El cuerpo de la respuesta de better-auth sin el token de sesión, que solo viaja en la cookie.
+ * Lo que no es JSON, o no se puede leer como JSON, pasa tal cual.
+ */
+async function bodyWithoutToken(
+  response: globalThis.Response,
+): Promise<string> {
+  const text = await response.text();
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    return text;
+  }
+  try {
+    const body: unknown = JSON.parse(text);
+    return JSON.stringify(withoutSessionToken(body));
+  } catch {
+    return text;
+  }
+}
+
+/**
  * Escribe en la respuesta de Express lo que respondió better-auth.
  *
  * @remarks
- * Copia el estado, el cuerpo, las cabeceras y cada cookie en su propio `Set-Cookie`. La
- * respuesta lleva siempre `Cache-Control: no-store` (trae el token de sesión) y se escribe con
+ * Copia el estado, el cuerpo, las cabeceras y cada cookie en su propio `Set-Cookie`. El token de
+ * sesión se quita del cuerpo: solo viaja en la cookie `HttpOnly`. La respuesta lleva siempre
+ * `Cache-Control: no-store` (trae la cookie de sesión y datos personales) y se escribe con
  * `end()`, no con `send()`: Express agregaría un ETag y un cliente podría recibir un 304 sin
  * cuerpo en lugar de la sesión. El 429 de better-auth se reemplaza por el error estándar
  * `RATE_LIMITED` con `Retry-After`.
@@ -69,5 +90,5 @@ export async function writeAuthResponse(
     writeRateLimited(res, response);
     return;
   }
-  res.end(await response.text());
+  res.end(await bodyWithoutToken(response));
 }
