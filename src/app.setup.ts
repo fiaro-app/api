@@ -1,5 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
+import type { DestinationStream } from 'pino';
 import type { Env } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
 import {
@@ -10,10 +11,7 @@ import {
 import { buildCorsOptions } from '@/shared/infrastructure/http/cors.options.js';
 import { SchemaValidationPipe } from '@/shared/infrastructure/http/schema-validation.pipe.js';
 import { createSecurityHeaders } from '@/shared/infrastructure/http/security-headers.middleware.js';
-import {
-  type LoggingSetupOptions,
-  setupLogging,
-} from '@/shared/infrastructure/logging/logging.setup.js';
+import { setupLogging } from '@/shared/infrastructure/logging/logging.setup.js';
 import {
   DOCS_PATH,
   setupSwagger,
@@ -22,7 +20,7 @@ import {
 /** Opciones de `configureApp` que solo cambian las pruebas. */
 export interface AppSetupOptions {
   /** Dónde se escriben los logs; por defecto la salida estándar. */
-  readonly logDestination?: LoggingSetupOptions['destination'];
+  readonly logDestination?: DestinationStream;
 }
 
 /**

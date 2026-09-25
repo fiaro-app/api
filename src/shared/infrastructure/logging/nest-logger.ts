@@ -4,7 +4,7 @@ import type { Logger } from 'pino';
 type Level = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
 /** Una línea de una traza de pila (`    at función (archivo:1:1)`). */
-const STACK_LINE = /\n\s+at /;
+const STACK_LINE = /\n[ \t]+at /;
 
 /** Lo que Nest agrega al mensaje: el contexto (la clase que escribe) y, en errores, la traza. */
 interface Extras {

@@ -26,7 +26,7 @@ export interface LoggerOptions {
   /** Nivel mínimo que se escribe. */
   readonly level: LogLevel;
   /** Dónde se escribe; por defecto la salida estándar. Las pruebas pasan uno propio. */
-  readonly destination?: DestinationStream | undefined;
+  readonly destination?: DestinationStream;
 }
 
 /**

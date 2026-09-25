@@ -8,7 +8,7 @@ import { PinoNestLogger } from '@/shared/infrastructure/logging/nest-logger.js';
 /** Cómo se instalan los logs. */
 export interface LoggingSetupOptions {
   /** Dónde se escribe; por defecto la salida estándar. Solo las pruebas lo cambian. */
-  readonly destination?: DestinationStream | undefined;
+  readonly destination?: DestinationStream;
 }
 
 /**
