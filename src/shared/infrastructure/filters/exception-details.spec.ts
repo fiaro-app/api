@@ -4,10 +4,30 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
+import { InvalidPasswordError } from '@/modules/auth/domain/errors/invalid-password.error.js';
+import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
+import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
+import {
+  DomainError,
+  type DomainErrorDetail,
+  type DomainErrorKind,
+} from '@/shared/domain/errors/domain-error.js';
 import {
   codeForStatus,
   describeException,
 } from '@/shared/infrastructure/filters/exception-details.js';
+
+/** Un error de dominio de prueba de la categoría que se pida. */
+class ProbeDomainError extends DomainError {
+  readonly code = 'PROBE_FAILED';
+
+  constructor(
+    readonly kind: DomainErrorKind,
+    detail?: DomainErrorDetail,
+  ) {
+    super('falló la prueba', detail);
+  }
+}
 
 describe('codeForStatus', () => {
   it.each([
@@ -30,6 +50,96 @@ describe('codeForStatus', () => {
 });
 
 describe('describeException', () => {
+  describe('un error de dominio', () => {
+    it.each([
+      ['INVALID', 400],
+      ['NOT_FOUND', 404],
+      ['CONFLICT', 409],
+      ['FORBIDDEN', 403],
+      ['RULE_VIOLATED', 422],
+    ] as const)('de la categoría %s responde %i', (kind, statusCode) => {
+      expect(describeException(new ProbeDomainError(kind))).toMatchObject({
+        statusCode,
+        code: 'PROBE_FAILED',
+      });
+    });
+
+    it('lleva su código, sus params y su detalle por campo', () => {
+      const details = describeException(
+        new ProbeDomainError('INVALID', {
+          params: { limit: 5 },
+          issues: [
+            {
+              path: ['name', 0],
+              message: 'validation.too_small.string',
+              params: { minimum: '3' },
+            },
+          ],
+        }),
+      );
+
+      expect(details).toEqual({
+        statusCode: 400,
+        code: 'PROBE_FAILED',
+        params: { limit: 5 },
+        issues: [
+          {
+            path: ['name', 0],
+            message: 'validation.too_small.string',
+            params: { minimum: '3' },
+          },
+        ],
+      });
+    });
+
+    it('sin detalle no lleva params ni issues', () => {
+      expect(describeException(new ProbeDomainError('CONFLICT'))).toEqual({
+        statusCode: 409,
+        code: 'PROBE_FAILED',
+        params: undefined,
+        issues: undefined,
+      });
+    });
+
+    it('nunca lleva el mensaje del error: es para el log, no para la persona', () => {
+      const details = describeException(new ProbeDomainError('INVALID'));
+
+      expect(JSON.stringify(details)).not.toContain('falló la prueba');
+    });
+
+    it('el celular repetido es un 409 PHONE_ALREADY_REGISTERED', () => {
+      expect(
+        describeException(new PhoneAlreadyRegisteredError()),
+      ).toMatchObject({ statusCode: 409, code: 'PHONE_ALREADY_REGISTERED' });
+    });
+
+    it('la contraseña de longitud inválida es un 400 con el rango como params', () => {
+      expect(describeException(new InvalidPasswordError(8, 128))).toMatchObject(
+        {
+          statusCode: 400,
+          code: 'INVALID_PASSWORD_LENGTH',
+          params: { minLength: 8, maxLength: 128 },
+        },
+      );
+    });
+
+    it('los datos de la persona inválidos son un 400 VALIDATION_FAILED con un issue por campo', () => {
+      const issues = [
+        { path: ['email'], message: 'validation.invalid_format.email' },
+      ];
+
+      expect(describeException(new InvalidUserDataError(issues))).toMatchObject(
+        {
+          statusCode: 400,
+          code: 'VALIDATION_FAILED',
+          issues: [
+            { path: ['email'], message: 'validation.invalid_format.email' },
+          ],
+        },
+      );
+    });
+  });
+
   describe('una excepción de Nest', () => {
     it('conserva su estado y toma el código del cuerpo', () => {
       const details = describeException(

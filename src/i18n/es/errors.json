@@ -17,6 +17,10 @@
   "UNSUPPORTED_MEDIA_TYPE": "El formato de los datos enviados no es compatible.",
   "UNKNOWN": "No pudimos completar la solicitud.",
 
+  "INVALID_PHONE": "El celular debe ser colombiano y estar en formato internacional, por ejemplo +573001234567.",
+  "INVALID_PASSWORD_LENGTH": "La contraseña debe tener entre {minLength} y {maxLength} caracteres.",
+  "PHONE_ALREADY_REGISTERED": "Ya existe una cuenta con ese celular.",
+
   "INVALID_PHONE_NUMBER_OR_PASSWORD": "El celular o la contraseña no son correctos.",
   "INVALID_PASSWORD": "La contraseña no es correcta.",
   "INVALID_PHONE_NUMBER": "El celular no es válido.",

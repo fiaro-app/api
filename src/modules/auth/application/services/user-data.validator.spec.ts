@@ -52,6 +52,19 @@ describe('validateUserData', () => {
     expect((error as InvalidUserDataError).issues[0]?.path).toEqual([field]);
   });
 
+  it('cada issue lleva los valores de su falla para llenar los marcadores del mensaje', () => {
+    let error: unknown;
+    try {
+      validateUserData({ fullName: 'A' });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect((error as InvalidUserDataError).issues[0]?.params).toEqual({
+      minimum: '2',
+    });
+  });
+
   it('lista un issue por cada campo inválido', () => {
     let error: unknown;
     try {

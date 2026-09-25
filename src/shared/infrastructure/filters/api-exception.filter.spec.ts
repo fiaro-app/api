@@ -7,6 +7,9 @@ import {
 } from '@nestjs/common';
 import { ApiErrorSchema } from '@fiaro-app/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { InvalidPasswordError } from '@/modules/auth/domain/errors/invalid-password.error.js';
+import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
+import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
 import { ApiExceptionFilter } from '@/shared/infrastructure/filters/api-exception.filter.js';
 import { realApiErrors } from '@test/support/api-errors.js';
 import { FakeExpressResponse } from '@test/support/fake-express-response.js';
@@ -94,6 +97,61 @@ describe('ApiExceptionFilter', () => {
         { path: ['name'], message: 'La longitud mínima es 3.' },
         { path: ['phone'], message: 'Ingresa un celular válido.' },
       ],
+    });
+  });
+
+  describe('un error de dominio', () => {
+    it('responde con el estado de su categoría y el texto del catálogo', () => {
+      const res = respondTo(new PhoneAlreadyRegisteredError());
+
+      expect(res.statusCode).toBe(409);
+      expect(res.jsonBody).toMatchObject({
+        statusCode: 409,
+        code: 'PHONE_ALREADY_REGISTERED',
+        message: 'Ya existe una cuenta con ese celular.',
+        issues: null,
+      });
+      expect(ApiErrorSchema.safeParse(res.jsonBody).success).toBe(true);
+    });
+
+    it('llena los marcadores del texto con los params del error', () => {
+      const res = respondTo(new InvalidPasswordError(8, 128));
+
+      expect(res.statusCode).toBe(400);
+      expect(res.jsonBody).toMatchObject({
+        code: 'INVALID_PASSWORD_LENGTH',
+        message: 'La contraseña debe tener entre 8 y 128 caracteres.',
+      });
+    });
+
+    it('traduce el detalle por campo con los valores de cada falla', () => {
+      const res = respondTo(
+        new InvalidUserDataError([
+          {
+            path: ['fullName'],
+            message: 'validation.too_small.string',
+            params: { minimum: '2' },
+          },
+          { path: ['nationalId'], message: 'contracts.national_id.invalid' },
+        ]),
+      );
+
+      expect(res.jsonBody).toMatchObject({
+        statusCode: 400,
+        code: 'VALIDATION_FAILED',
+        message: 'Los datos enviados no son válidos.',
+        issues: [
+          { path: ['fullName'], message: 'La longitud mínima es 2.' },
+          { path: ['nationalId'], message: 'contracts.national_id.invalid' },
+        ],
+      });
+    });
+
+    it('nunca repite el mensaje del error, que es para el log', () => {
+      const res = respondTo(new InvalidPasswordError(8, 128));
+
+      expect(JSON.stringify(res.jsonBody)).not.toContain('Los datos');
+      expect(logged).not.toHaveBeenCalled();
     });
   });
 

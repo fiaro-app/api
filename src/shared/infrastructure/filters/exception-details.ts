@@ -1,5 +1,9 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import {
+  DomainError,
+  type DomainErrorKind,
+} from '@/shared/domain/errors/domain-error.js';
+import {
   type ApiExceptionPayload,
   ApiExceptionPayloadSchema,
   type IssuePayload,
@@ -32,6 +36,18 @@ const CODE_BY_STATUS: Readonly<Record<number, string>> = {
 };
 
 /**
+ * El estado HTTP de cada categoría de error de dominio: el dominio dice qué clase de fallo es y
+ * aquí se decide cómo se responde. Una categoría nueva sin estado no compila.
+ */
+const STATUS_BY_KIND: Readonly<Record<DomainErrorKind, number>> = {
+  INVALID: HttpStatus.BAD_REQUEST,
+  NOT_FOUND: HttpStatus.NOT_FOUND,
+  CONFLICT: HttpStatus.CONFLICT,
+  FORBIDDEN: HttpStatus.FORBIDDEN,
+  RULE_VIOLATED: HttpStatus.UNPROCESSABLE_ENTITY,
+};
+
+/**
  * El código de error que corresponde a un estado HTTP, para las excepciones que no traen uno
  * (el 404 de una ruta que no existe, el 429 del rate limit).
  *
@@ -61,6 +77,19 @@ function statusOfHttpError(error: unknown): number | undefined {
   return undefined;
 }
 
+function describeDomainError(error: DomainError): ExceptionDetails {
+  return {
+    statusCode: STATUS_BY_KIND[error.kind],
+    code: error.code,
+    params: error.params,
+    issues: error.issues?.map(({ path, message, params }) => ({
+      path: [...path],
+      message,
+      params,
+    })),
+  };
+}
+
 function payloadOf(exception: HttpException): ApiExceptionPayload {
   return (
     ApiExceptionPayloadSchema.safeParse(exception.getResponse()).data ?? {}
@@ -71,8 +100,10 @@ function payloadOf(exception: HttpException): ApiExceptionPayload {
  * Qué responder ante una excepción.
  *
  * @remarks
- * Una excepción de Nest conserva su estado y toma del cuerpo que se le pasó el `code`, los
- * `params` y los `issues` (`ApiExceptionPayloadSchema`); sin `code`, se deduce del estado. Un
+ * Un error de dominio (`DomainError`) toma su estado de su categoría (`kind`) y su `code`, sus
+ * `params` y sus `issues` de sí mismo. Una excepción de Nest conserva su estado y toma del cuerpo
+ * que se le pasó el `code`, los `params` y los `issues` (`ApiExceptionPayloadSchema`); sin
+ * `code`, se deduce del estado. Un
  * error con estado HTTP de otra librería lo conserva y también se deduce su código. Cualquier
  * otra cosa que se lance es un error del servidor (500 `INTERNAL_ERROR`): su mensaje nunca sale
  * en la respuesta.
@@ -80,6 +111,9 @@ function payloadOf(exception: HttpException): ApiExceptionPayload {
  * @param exception - Lo que se lanzó.
  */
 export function describeException(exception: unknown): ExceptionDetails {
+  if (exception instanceof DomainError) {
+    return describeDomainError(exception);
+  }
   if (exception instanceof HttpException) {
     const statusCode = exception.getStatus();
     const { code, params, issues } = payloadOf(exception);

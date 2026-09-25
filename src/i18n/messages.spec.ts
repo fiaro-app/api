@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { globSync, readFileSync } from 'node:fs';
 import { ErrorCodeSchema } from '@fiaro-app/contracts';
 import { BASE_ERROR_CODES } from 'better-auth';
 import { describe, expect, it } from 'vitest';
@@ -93,6 +93,17 @@ describe('textos de los errores', () => {
     for (const code of codes) {
       expect(hasText(code), code).toBe(true);
     }
+  });
+
+  it('cada código de error de dominio tiene su texto: al agregar uno sin texto, falla aquí', () => {
+    const codes = globSync('src/**/*.error.ts').flatMap((file) =>
+      [
+        ...readFileSync(file, 'utf8').matchAll(/readonly code = '([A-Z_]+)'/g),
+      ].map((match) => match[1] ?? ''),
+    );
+
+    expect(codes.length).toBeGreaterThanOrEqual(4);
+    expect(codes.filter((code) => !hasText(code))).toEqual([]);
   });
 
   it('cada código de error de better-auth tiene su texto en español: al actualizarlo, uno nuevo falla aquí', () => {
