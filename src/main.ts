@@ -23,6 +23,7 @@ async function bootstrap() {
     bufferLogs: true,
   });
   configureApp(app);
+  app.enableShutdownHooks();
   await app.listen(app.get<Env>(ENV).port);
 }
 await bootstrap();

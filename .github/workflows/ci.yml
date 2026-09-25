@@ -31,6 +31,29 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      # La auditoría durable: la cola de BullMQ (Redis) y los eventos (MongoDB).
+      redis:
+        image: redis:8.10.1-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      mongo:
+        image: mongo:8.0.32
+        env:
+          MONGO_INITDB_ROOT_USERNAME: fiaro
+          MONGO_INITDB_ROOT_PASSWORD: fiaro
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
     steps:
       - uses: actions/checkout@v7
         with:
@@ -72,6 +95,8 @@ jobs:
         run: pnpm run test:cov
         env:
           DATABASE_URL: postgresql://fiaro:fiaro@localhost:5432/fiaro
+          REDIS_URL: redis://localhost:6379
+          MONGODB_URI: mongodb://fiaro:fiaro@localhost:27017/fiaro?authSource=admin
 
       - name: Build
         run: pnpm run build

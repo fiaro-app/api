@@ -92,3 +92,27 @@ export const MobileSchemeSchema = z
     /^[a-z][a-z0-9+.-]*$/,
     'debe ser un esquema en minúsculas, como el `scheme` de app.json (por ejemplo fiaro)',
   );
+
+/** URL de Redis: `redis://` o `rediss://` (con TLS, como la de Upstash). */
+export const RedisUrlSchema = z
+  .string()
+  .regex(/^rediss?:\/\/\S+$/, 'debe ser una URL redis:// o rediss://');
+
+/**
+ * URI de MongoDB (`mongodb://` o `mongodb+srv://`, como la de Atlas) que dice en qué base de datos
+ * se guarda: `mongodb://usuario:clave@host/base`. El resto de la URI lo valida el driver al conectar.
+ */
+export const MongoUriSchema = z
+  .string()
+  .regex(
+    /^mongodb(\+srv)?:\/\/[^/\s]+\/[^/\s?#]+/,
+    'debe ser una URI mongodb:// o mongodb+srv:// que incluya el nombre de la base de datos, por ejemplo mongodb://usuario:clave@host/base',
+  );
+
+/** Prefijo de las llaves de las colas en Redis: separa entornos que comparten una instancia. */
+export const QueuePrefixSchema = z
+  .string()
+  .regex(
+    /^[A-Za-z0-9_-]{1,40}$/,
+    'debe tener de 1 a 40 letras, números, guiones o guiones bajos',
+  );

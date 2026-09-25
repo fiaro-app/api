@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from '@/config/env.js';
 import { LOG_LEVELS } from '@/config/env-fields.js';
-import { REQUIRED_ENV } from '@test/support/required-env.js';
+import { PRODUCTION_ENV, REQUIRED_ENV } from '@test/support/required-env.js';
 
 const load = (source: NodeJS.ProcessEnv = {}) =>
   loadEnv({ ...REQUIRED_ENV, ...source });
@@ -9,7 +9,7 @@ const load = (source: NodeJS.ProcessEnv = {}) =>
 describe('LOG_LEVEL', () => {
   it.each([
     ['development', {}],
-    ['production', { TRUST_PROXY: '1' }],
+    ['production', { TRUST_PROXY: '1', ...PRODUCTION_ENV }],
   ])('por defecto es info en %s', (nodeEnv, extra) => {
     expect(load({ NODE_ENV: nodeEnv, ...extra }).logLevel).toBe('info');
   });

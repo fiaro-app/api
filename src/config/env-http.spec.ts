@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from '@/config/env.js';
-import { REQUIRED_ENV } from '@test/support/required-env.js';
+import { PRODUCTION_ENV, REQUIRED_ENV } from '@test/support/required-env.js';
 
 const load = (source: NodeJS.ProcessEnv = {}) =>
   loadEnv({ ...REQUIRED_ENV, ...source });
@@ -65,7 +65,8 @@ describe('variables de la configuración HTTP', () => {
 
     it('acepta 0 de forma explícita en producción', () => {
       expect(
-        load({ NODE_ENV: 'production', TRUST_PROXY: '0' }).trustProxy,
+        load({ NODE_ENV: 'production', TRUST_PROXY: '0', ...PRODUCTION_ENV })
+          .trustProxy,
       ).toBe(0);
     });
 
@@ -80,7 +81,8 @@ describe('variables de la configuración HTTP', () => {
       expect(load({ NODE_ENV: 'development' }).swaggerEnabled).toBe(true);
       expect(load({ NODE_ENV: 'test' }).swaggerEnabled).toBe(true);
       expect(
-        load({ NODE_ENV: 'production', TRUST_PROXY: '1' }).swaggerEnabled,
+        load({ NODE_ENV: 'production', TRUST_PROXY: '1', ...PRODUCTION_ENV })
+          .swaggerEnabled,
       ).toBe(false);
     });
 
@@ -90,6 +92,7 @@ describe('variables de la configuración HTTP', () => {
           NODE_ENV: 'production',
           TRUST_PROXY: '1',
           SWAGGER_ENABLED: 'true',
+          ...PRODUCTION_ENV,
         }).swaggerEnabled,
       ).toBe(true);
       expect(
