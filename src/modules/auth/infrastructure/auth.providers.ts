@@ -2,12 +2,16 @@ import type { Provider } from '@nestjs/common';
 import type { Env } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
 import type { IdGenerator } from '@/shared/application/ports/id-generator.port.js';
+import { AUDIT_LOG } from '@/shared/application/audit/audit-log.token.js';
+import type { AuditLog } from '@/shared/application/audit/audit-log.port.js';
 import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 import { SESSION_RESOLVER } from '@/shared/application/ports/session-resolver.token.js';
+import { PersonalDataMasker } from '@/shared/infrastructure/audit/personal-data-masker.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { PASSWORD_HASHER } from '@/modules/auth/application/ports/password-hasher.token.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
 import { USER_REPOSITORY } from '@/modules/auth/domain/tokens/user-repository.token.js';
+import { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { createAuth } from '@/modules/auth/infrastructure/better-auth/auth.factory.js';
 import { BETTER_AUTH } from '@/modules/auth/infrastructure/better-auth/auth.token.js';
 import { BetterAuthPasswordHasher } from '@/modules/auth/infrastructure/better-auth/better-auth-password-hasher.js';
@@ -21,9 +25,15 @@ import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/
 export const authProviders: Provider[] = [
   {
     provide: BETTER_AUTH,
-    inject: [ENV, PrismaService, ID_GENERATOR],
-    useFactory: (env: Env, prisma: PrismaService, ids: IdGenerator) =>
-      createAuth({ env, prisma, ids }),
+    inject: [ENV, PrismaService, ID_GENERATOR, AUDIT_LOG, PersonalDataMasker],
+    useFactory: (
+      env: Env,
+      prisma: PrismaService,
+      ids: IdGenerator,
+      audit: AuditLog,
+      masker: PersonalDataMasker,
+    ) =>
+      createAuth({ env, prisma, ids, auditor: new AuthAuditor(audit, masker) }),
   },
   { provide: SESSION_RESOLVER, useClass: BetterAuthSessionResolver },
   { provide: PASSWORD_HASHER, useClass: BetterAuthPasswordHasher },
