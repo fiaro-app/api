@@ -5,11 +5,13 @@ minimumReleaseAgeExclude:
 
 # Scripts de instalación de terceros: pnpm 11 no los ejecuta salvo autorización explícita.
 # `@swc/core` y `unrs-resolver` solo verifican su binario nativo; `@scarf/scarf` envía telemetría.
+# `msgpackr-extract` es un acelerador nativo opcional de BullMQ: sin él codifica con JavaScript puro;
 # `prisma` solo comprueba la versión de Node; `@prisma/engines` descarga el motor de migraciones,
 # que el CLI descarga por su cuenta la primera vez que lo usa: sin código ajeno al instalar.
 allowBuilds:
   '@prisma/engines': false
   '@scarf/scarf': false
   '@swc/core': false
+  msgpackr-extract: false
   prisma: false
   unrs-resolver: false

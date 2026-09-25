@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loadEnv } from '@/config/env.js';
-import { REQUIRED_ENV } from '@test/support/required-env.js';
+import { PRODUCTION_ENV, REQUIRED_ENV } from '@test/support/required-env.js';
 
 const load = (source: NodeJS.ProcessEnv = {}) =>
   loadEnv({ ...REQUIRED_ENV, ...source });
@@ -16,6 +16,7 @@ describe('loadEnv', () => {
       swaggerEnabled: true,
       logLevel: 'info',
       databaseUrl: REQUIRED_ENV.DATABASE_URL,
+      queuePrefix: 'fiaro',
       auth: {
         secret: REQUIRED_ENV.BETTER_AUTH_SECRET,
         baseUrl: REQUIRED_ENV.BETTER_AUTH_URL,
@@ -35,6 +36,8 @@ describe('loadEnv', () => {
       SWAGGER_ENABLED: 'true',
       LOG_LEVEL: 'warn',
       MOBILE_APP_SCHEMES: 'fiaro',
+      QUEUE_PREFIX: 'fiaro-staging',
+      ...PRODUCTION_ENV,
     });
 
     expect(env).toEqual({
@@ -46,6 +49,9 @@ describe('loadEnv', () => {
       swaggerEnabled: true,
       logLevel: 'warn',
       databaseUrl: REQUIRED_ENV.DATABASE_URL,
+      redisUrl: PRODUCTION_ENV.REDIS_URL,
+      mongoUri: PRODUCTION_ENV.MONGODB_URI,
+      queuePrefix: 'fiaro-staging',
       auth: {
         secret: REQUIRED_ENV.BETTER_AUTH_SECRET,
         baseUrl: REQUIRED_ENV.BETTER_AUTH_URL,

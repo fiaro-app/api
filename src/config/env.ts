@@ -6,7 +6,10 @@ import {
   integer,
   LogLevelSchema,
   MobileSchemeSchema,
+  MongoUriSchema,
   OriginSchema,
+  QueuePrefixSchema,
+  RedisUrlSchema,
 } from '@/config/env-fields.js';
 
 /** Variables de entorno de la API, validadas una sola vez al arrancar. */
@@ -23,6 +26,9 @@ const EnvSchema = z
     SWAGGER_ENABLED: z.stringbool().optional(),
     LOG_LEVEL: LogLevelSchema.optional(),
     DATABASE_URL: DatabaseUrlSchema,
+    REDIS_URL: RedisUrlSchema.optional(),
+    MONGODB_URI: MongoUriSchema.optional(),
+    QUEUE_PREFIX: QueuePrefixSchema.default('fiaro'),
     BETTER_AUTH_SECRET: AuthSecretSchema,
     BETTER_AUTH_URL: OriginSchema,
     MOBILE_APP_SCHEMES: commaSeparated(MobileSchemeSchema),
@@ -35,6 +41,14 @@ const EnvSchema = z
         'es obligatoria en producción (usa 1 detrás de un proxy como Fly.io, o 0 si la API recibe tráfico directo)',
     },
   )
+  .refine((env) => env.NODE_ENV !== 'production' || env.REDIS_URL, {
+    path: ['REDIS_URL'],
+    message: 'es obligatoria en producción: la auditoría durable la necesita',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.MONGODB_URI, {
+    path: ['MONGODB_URI'],
+    message: 'es obligatoria en producción: la auditoría durable la necesita',
+  })
   .transform((env) => ({
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
@@ -44,6 +58,9 @@ const EnvSchema = z
     swaggerEnabled: env.SWAGGER_ENABLED ?? env.NODE_ENV !== 'production',
     logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
     databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
+    mongoUri: env.MONGODB_URI,
+    queuePrefix: env.QUEUE_PREFIX,
     auth: {
       secret: env.BETTER_AUTH_SECRET,
       baseUrl: env.BETTER_AUTH_URL,

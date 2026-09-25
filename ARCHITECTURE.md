@@ -75,9 +75,9 @@ src/
       filters/                   #   Filtro global de excepciones y ApiErrorFactory: todo error sale como ApiError de contracts, con el mensaje del catálogo
       crypto/                    #   Hashing y cifrado
       notifications/             #   Email (Resend), WhatsApp (Twilio)
-      messaging/                 #   Colas (BullMQ)
+      messaging/                 #   Conexión a Redis para BullMQ y withTimeout
       store/                     #   Cache y almacenamiento clave-valor (Redis)
-      audit/                     #   PinoAuditLog (una línea de log por evento) y PersonalDataMasker; la cola y MongoDB llegan después
+      audit/                     #   Auditoría: PinoAuditLog, la cola de BullMQ, el consumidor que guarda en MongoDB (DurableAudit) y PersonalDataMasker
       metrics/                   #   Métricas y observabilidad
       maintenance/               #   Modo mantenimiento (503 MAINTENANCE)
       swagger/                   #   Documentación OpenAPI
@@ -202,7 +202,7 @@ Lo que conviene saber, y por qué:
 - **Rate limit:** 5 intentos por minuto y por IP al iniciar sesión y al cambiar la contraseña (el de better-auth, en memoria); el general de la API sigue aplicando. Detalle y límites en la sección 11.
 - **Celular sin verificar (D-51).** Las rutas de código por SMS están apagadas (`DISABLED_PATHS`, y `sendOTP` falla si alguien las enciende): en el MVP quien escribe el celular responde por él. Riesgo que se asume por ahora: alguien podría dar de alta el celular de otra persona. Al agregar el registro público hay que verificarlo (código por WhatsApp o SMS) antes de crear la cuenta.
 - **Errores y caché.** Los errores llevan un `code` estable y, al pasarse del límite, `Retry-After`; toda respuesta de autenticación lleva `Cache-Control: no-store`, porque trae la cookie de sesión y datos personales.
-- **Auditoría de la autenticación (D-61).** Los hooks de better-auth (`auth-hooks.ts`, `auth-database-hooks.ts`) registran cinco eventos: `auth.sign_in.succeeded`, `auth.sign_in.failed`, `auth.sign_out`, `auth.password.changed` y `auth.password.change_failed`. Cada uno lleva quién (`userId`, si se sabe), el celular enmascarado, desde dónde (IP y navegador), el `requestId` de la petición, el resultado y, si fue rechazado, el código del motivo; `AuthAuditor` arma el evento y lo entrega al puerto `AuditLog` (`shared/application/audit`). Por qué desde los hooks: un inicio de sesión fallido no escribe nada en la base de datos, así que solo un hook lo ve; y cerrar sesión se audita en el borrado de la fila de la sesión porque esa ruta no sabe quién era (las sesiones que revoca un cambio de contraseña o que vencen no cuentan como cerrar sesión). **Datos personales:** el celular se guarda enmascarado (`PersonalDataMasker`: últimos 4 dígitos y una huella HMAC-SHA256 de 128 bits con una clave derivada del secreto con HKDF; un hash simple de un celular colombiano se revertiría probando sus mil millones de posibilidades) y nunca se registra una contraseña, una cookie ni un token; las pruebas e2e comprueban que no salen. **Registrar nunca falla ni espera** (`AuditLog.record` devuelve `void`): un log caído no rechaza un inicio de sesión. El primer adaptador (`PinoAuditLog`, en `shared/infrastructure/audit`) escribe cada evento como una línea JSON con `audit: true` (`{service="api"} | json | audit="true"` en Loki); un `LOG_LEVEL` por encima de `info` la silencia. La cola de BullMQ y Mongo se suman después como otro adaptador del mismo puerto, sin tocar los hooks. Los logs de la propia better-auth salen ahora por el logger de Nest (`auth-logger.ts`): JSON con el `requestId`, no una línea de texto suelta.
+- **Auditoría de la autenticación (D-61).** Los hooks de better-auth (`auth-hooks.ts`, `auth-database-hooks.ts`) registran cinco eventos: `auth.sign_in.succeeded`, `auth.sign_in.failed`, `auth.sign_out`, `auth.password.changed` y `auth.password.change_failed`. Cada uno lleva quién (`userId`, si se sabe), el celular enmascarado, desde dónde (IP y navegador), el `requestId` de la petición, el resultado y, si fue rechazado, el código del motivo; `AuthAuditor` arma el evento y lo entrega al puerto `AuditLog` (`shared/application/audit`). Por qué desde los hooks: un inicio de sesión fallido no escribe nada en la base de datos, así que solo un hook lo ve; y cerrar sesión se audita en el borrado de la fila de la sesión porque esa ruta no sabe quién era (las sesiones que revoca un cambio de contraseña o que vencen no cuentan como cerrar sesión). **Datos personales:** el celular se guarda enmascarado (`PersonalDataMasker`: últimos 4 dígitos y una huella HMAC-SHA256 de 128 bits con una clave derivada del secreto con HKDF; un hash simple de un celular colombiano se revertiría probando sus mil millones de posibilidades) y nunca se registra una contraseña, una cookie ni un token; las pruebas e2e comprueban que no salen. **Registrar nunca falla ni espera** (`AuditLog.record` devuelve `void`): un log caído no rechaza un inicio de sesión. El primer adaptador (`PinoAuditLog`, en `shared/infrastructure/audit`) escribe cada evento como una línea JSON con `audit: true` (`{service="api"} | json | audit="true"` en Loki); un `LOG_LEVEL` por encima de `info` la silencia. La cola de BullMQ y Mongo son otro adaptador del mismo puerto (ver «Auditoría durable»), sin tocar los hooks. Los logs de la propia better-auth salen ahora por el logger de Nest (`auth-logger.ts`): JSON con el `requestId`, no una línea de texto suelta.
 
 **Autorización:**
 
@@ -278,18 +278,19 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `BETTER_AUTH_SECRET` | **obligatoria** | Firma las cookies de sesión; mínimo 32 caracteres (`openssl rand -base64 32`). En producción va en los secretos de la plataforma, nunca en el repo |
 | `BETTER_AUTH_URL` | **obligatoria** | Origen público de la API (esquema, host y puerto, sin ruta). Con él better-auth arma sus URLs y reconoce su propio origen: nunca se toma de la cabecera `Host`, que el cliente controla |
 | `MOBILE_APP_SCHEMES` | vacío | Esquemas de enlace profundo de las apps nativas (el `scheme` de su `app.json`), separados por coma. Con `fiaro` la API acepta `expo-origin: fiaro://`. Sin ellos, la app móvil recibe 403 en las peticiones con sesión |
+| `REDIS_URL` | opcional; **obligatoria en producción** | URL de Redis (`redis://` o `rediss://`, la de Upstash) donde vive la cola de la auditoría durable. Sin ella los eventos solo salen por el log |
+| `MONGODB_URI` | opcional; **obligatoria en producción** | URI de MongoDB (`mongodb://` o `mongodb+srv://`) **con el nombre de la base de datos** (`mongodb://usuario:clave@host/base`): ahí se guardan los eventos de auditoría. Sin ella, los eventos solo salen por el log |
+| `QUEUE_PREFIX` | `fiaro` | Prefijo de las llaves de las colas en Redis (letras, números, guiones; máximo 40): separa entornos que comparten una instancia, por ejemplo staging y producción en un mismo Upstash |
 
 **Pendientes** (cada una se agrega con su pieza):
 
 | Variable | Para qué | Se agrega con |
 |---|---|---|
-| `REDIS_URL` | Cache + broker de BullMQ (Upstash) | Colas y caché |
-| `MONGODB_URI` | Auditoría | Auditoría |
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Storage de archivos por API S3: Cloudflare R2 en producción, SeaweedFS en local. Nombres sin el del proveedor: el mismo código sirve para los dos | Logo del prestamista |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Correo saliente (Mailpit en local) | Recuperación de acceso y reportes |
 | `SENTRY_DSN` | Errores en producción | Primer despliegue |
 
-En el entorno local con Docker (sección 12) Compose define `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` y `MOBILE_APP_SCHEMES` con valores de desarrollo, y la API recibe además `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios de Compose; estas últimas se declaran en `src/config/env.ts` cuando el primer módulo las use.
+En el entorno local con Docker (sección 12) Compose define `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` y `MOBILE_APP_SCHEMES` con valores de desarrollo, y la API recibe además `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios de Compose; `S3_*` y `SMTP_*` se declaran en `src/config/env.ts` cuando el primer módulo las use.
 
 ## 10. Ramas y CI
 
@@ -374,11 +375,25 @@ Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 - **Logger de Nest.** `PinoNestLogger` reemplaza al de Nest (`app.useLogger`) y `bufferLogs` en `main.ts` guarda lo que Nest escribe al arrancar hasta que exista: el arranque, las rutas registradas y las excepciones salen en el mismo JSON. Un 5xx sin excepción no escribe el `err` que inventaría pino-http («failed with status code 500», con una traza de la librería): la excepción real la escribe Nest en otra línea con el mismo `requestId`.
 - **Nivel.** `LOG_LEVEL` (§9): `info` por defecto y `silent` en las pruebas, para no llenar su salida; las pruebas que leen los logs pasan su propio destino a `configureApp`.
 
+### Auditoría durable (D-62)
+
+Cada evento de auditoría (D-61) sale por dos caminos a la vez (`CompositeAuditLog`): la línea de log JSON (`PinoAuditLog`, siempre) y, con `REDIS_URL` y `MONGODB_URI`, una cola de BullMQ que lo lleva a MongoDB. Un destino que falla no impide que el otro reciba el evento ni rechaza la petición.
+
+- **Un evento, un trabajo.** `QueueAuditLog` encola cada evento con su acción como nombre y un UUIDv7 como `jobId`; el consumidor (`DurableAudit`, dentro de la propia API) lo guarda en la colección `audit_events` con ese id como `_id`. Guardar es un `upsert` con `$setOnInsert`: si BullMQ reintenta un trabajo que ya se guardó, o se encola dos veces, queda un solo documento (una prueba lo procesa dos veces).
+- **Reintentos.** 6 intentos con espera exponencial desde 2 segundos (unos 62 segundos: lo que tarda en volver un MongoDB que se reinicia); los trabajos fallidos se conservan una semana (hasta 1000) para revisarlos y los correctos se borran. Pasado eso el evento solo existe en el log: por eso el log siempre se escribe.
+- **Nunca bloquea ni rompe.** `record` no espera a Redis. BullMQ espera sin límite una conexión que no llega, así que encolar tiene un límite de 3 segundos (`withTimeout`) y, si Redis está caído, como mucho 500 eventos esperan a la vez: pasado eso se descartan en lugar de llenar la memoria. La API arranca aunque Redis o MongoDB no estén (las conexiones reintentan solas y las fallas quedan en el log, pero el mismo aviso se escribe a lo sumo una vez por minuto y dice cuántas veces se calló: `repeatedWarnings`, porque un Redis caído repite el error en cada reintento, cada par de segundos); los índices se crean con el primer guardado, no al arrancar. Las pruebas e2e comprueban que con Redis caído, y con MongoDB caído, iniciar sesión responde 200.
+- **Retención y datos.** Un índice TTL sobre `occurredAt` borra los eventos al año; hay dos índices dispersos para seguir a una persona (`userId`, y la huella del celular, que también cubre los inicios de sesión fallidos, que no tienen `userId`). El documento lleva el celular enmascarado como el evento (D-61) y `recordedAt`, para medir cuánto tarda la cola.
+- **Costo en Upstash (plan gratuito: 500 mil comandos al mes).** BullMQ consulta Redis aunque no haya trabajo. Con `drainDelay: 60` y `stalledInterval: 300000` (`audit-queue.ts`) se midió con `INFO commandstats` en un Redis local: en reposo, unos 8 comandos por minuto en total y solo 2 los envía el cliente (el resto corre dentro de los scripts de BullMQ), es decir, unos 90 mil al mes; cada evento cuesta unos 40 comandos en total y unos 6 enviados por el cliente. Con los inicios de sesión de un negocio pequeño sobra; si el volumen crece, `drainDelay` es la palanca. Los eventos de la cola (`XADD`) se limitan a 100 (`AUDIT_EVENTS_STREAM_MAX_LENGTH`) en lugar de los 10 000 de BullMQ.
+- **Cierre ordenado.** `main.ts` llama `app.enableShutdownHooks()`: al recibir `SIGTERM` (Fly.io) el consumidor termina el evento que tenga en mano y se cierran la cola, Redis y MongoDB (`onModuleDestroy`); en las pruebas lo hace `app.close()`.
+- **BullMQ 5, no 6.** La 6.0 salió el 30 de julio de 2026 y trae una arquitectura nueva (backends intercambiables, incluido PostgreSQL) y 27 versiones en ocho semanas; la 5.81 es la última de la línea que ya está probada y se sigue manteniendo. `bullmq` e `ioredis` van fijados a la misma versión (5.81.5 y 5.11.1) y se actualizan juntos: BullMQ fija su propio `ioredis`, y dos copias harían que los tipos de la conexión no coincidan. `msgpackr-extract`, un acelerador nativo opcional, no se instala (`allowBuilds`): BullMQ codifica en JavaScript puro.
+- **Redis con `noeviction`.** BullMQ lo exige (Compose lo configura; Upstash lo trae por defecto): con otra política Redis podría borrar trabajos.
+- **Cómo verlo.** En local, `docker compose logs api | grep '"audit":true'` para el log, y en Mongo (`mongodb://fiaro:fiaro@127.0.0.1:27040/?authSource=admin`) la base `fiaro`, colección `audit_events`.
+
 ### Lo que todavía no está
 
 - **Serializar las respuestas con schema** (`StandardSchemaSerializerInterceptor` y `@SerializeOptions({ schema })` de Nest 12), para que una ruta nunca devuelva campos que el contrato no declara.
 - **`Cache-Control: no-store`** en las demás respuestas con datos personales (las de autenticación ya lo llevan).
-- **Registro total en Mongo (D-58).** La cola de BullMQ y el worker que guardan en Mongo los eventos de auditoría de autenticación (D-61, que ya salen por el log) y las líneas de log (el resto de los PRs 2 y 3 del plan). Hoy todo sale solo por la salida estándar.
+- **Registro total en Mongo (D-58).** Las líneas de log por lotes (el PR 3 del plan): los eventos de auditoría ya van a Mongo (D-62), pero las líneas de log de cada petición siguen saliendo solo por la salida estándar.
 
 ## 12. Entorno local con Docker
 
@@ -435,7 +450,7 @@ Un solo `Dockerfile` (con un target por entorno) y dos archivos de Compose. Todo
 
 - **Datos en memoria (`tmpfs`):** cada corrida arranca vacía y no queda nada que limpiar; además es más rápido que el disco.
 - **Aislado del entorno de desarrollo:** puertos propios (5441, 6391, 27041, 8334, 1026 y 8026) y un proyecto distinto (`fiaro-test`), así que puede correr mientras tu stack de desarrollo está arriba y `pnpm docker:test` no puede tocarlo (el script fija el proyecto con `-p`).
-- **Qué corre:** el contenedor `test` espera a que la infraestructura esté sana y ejecuta `pnpm test:cov`: unitarias y e2e juntas, con cobertura. Las e2e usan el PostgreSQL efímero (cada corrida crea su propia base de datos y la borra); Redis, Mongo y S3 quedan listos para las pruebas de integración de BullMQ, la auditoría y el almacenamiento cuando existan.
+- **Qué corre:** el contenedor `test` espera a que la infraestructura esté sana y ejecuta `pnpm test:cov`: unitarias y e2e juntas, con cobertura. Las e2e usan el PostgreSQL efímero (cada corrida crea su propia base de datos y la borra); las de la auditoría durable usan además Redis y Mongo (una base de datos de MongoDB y un prefijo de cola propios por corrida, que se borran al terminar); S3 queda listo para las pruebas del almacenamiento cuando exista.
 - **Para probar desde tu máquina contra esa infraestructura:** `docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml up -d --wait` y usa los puertos de prueba.
 - El CI corre lo mismo en el job `docker`.
 
@@ -478,7 +493,6 @@ cAdvisor, Postgres, Redis, Mongo, Loki, Grafana ─ métricas ─▶ Alloy ─ r
 
 - **Métricas de la API** (`/metrics`): el raspado se agrega a `docker/alloy/config.alloy` cuando exista. Los logs JSON de stdout ya llegan a Loki (§11, Logs).
 - **`/health`:** el healthcheck de la API es por TCP; con el módulo `system` pasa a HTTP (también lo necesita Fly.io).
-- **Cierre ordenado** (`enableShutdownHooks`): hoy no hay conexiones que cerrar; con Prisma y BullMQ sí.
 - **Migraciones en producción:** la API no migra al arrancar: con varias instancias, todas competirían por aplicar las mismas migraciones, y la aplicación no debería tener permisos para alterar el esquema. Con el primer despliegue se agrega el paso que corre `prisma migrate deploy` antes de que arranque la versión nueva (por ejemplo, desde el CI contra la base de datos, o con el `release_command` de Fly.io). La imagen `prod` no trae el CLI de Prisma (es una dependencia de desarrollo): el `release_command` corre con la imagen de la versión nueva, así que usarlo exigiría otra imagen con el CLI; desde el CI, que sí lo tiene, no.
 - **`fly.toml`** y el despliegue.
 - **Trazas** (OpenTelemetry y Tempo): con un solo servicio no hacen falta; Alloy puede recibir OTLP cuando lleguen.
