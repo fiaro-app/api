@@ -1,6 +1,10 @@
-import type { Collection, IndexDescription } from 'mongodb';
+import type { Collection } from 'mongodb';
 import { LOG_RETENTION_SECONDS } from '@/shared/infrastructure/logging/log-batch.js';
 import type { LogDocument } from '@/shared/infrastructure/logging/log-document.js';
+import {
+  type NamedIndex,
+  syncIndexes,
+} from '@/shared/infrastructure/records/sync-indexes.js';
 
 /** Dónde se guardan las líneas de log ya construidas. */
 export interface LogStore {
@@ -13,7 +17,7 @@ export interface LogStore {
  * una petición (`requestId`, todo lo que escribió) o a una persona (`userId`). Son `sparse`: una
  * línea sin esos campos (el arranque, un 404 sin sesión) no ocupa lugar en ellos.
  */
-export const LOG_INDEXES: IndexDescription[] = [
+export const LOG_INDEXES: NamedIndex[] = [
   {
     key: { time: 1 },
     name: 'time_ttl',
@@ -69,7 +73,7 @@ export class MongoLogStore implements LogStore {
   constructor(
     private readonly collection: Pick<
       Collection<LogDocument>,
-      'createIndexes' | 'insertMany'
+      'createIndexes' | 'dropIndex' | 'insertMany'
     >,
   ) {}
 
@@ -91,12 +95,12 @@ export class MongoLogStore implements LogStore {
   }
 
   private ensureIndexes(): Promise<unknown> {
-    this.indexes ??= this.collection
-      .createIndexes(LOG_INDEXES)
-      .catch((error: unknown) => {
+    this.indexes ??= syncIndexes(this.collection, LOG_INDEXES).catch(
+      (error: unknown) => {
         this.indexes = undefined;
         throw error;
-      });
+      },
+    );
     return this.indexes;
   }
 }

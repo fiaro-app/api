@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AuditAction } from '@/shared/domain/audit/audit-event.js';
 import { RECORDS_QUEUE_NAME } from '@/shared/infrastructure/messaging/records-queue.js';
 import {
+  createAppWithUser,
   nextIp,
   PASSWORD,
   PHONE,
@@ -198,5 +199,35 @@ describe('auditoría durable: de la API a MongoDB por la cola', () => {
     );
     await queue.close();
     connection.disconnect();
+  });
+  it('si la colección ya tenía el índice TTL con otra retención lo actualiza y guarda el evento', async () => {
+    const other = await startDurableAuditInfra();
+    await other.events.createIndex(
+      { occurredAt: 1 },
+      { name: 'occurredAt_ttl', expireAfterSeconds: 100 },
+    );
+    const app = await createAppWithUser({ env: other.env });
+    try {
+      await signIn(app);
+
+      await vi.waitFor(
+        async () => {
+          expect(
+            await other.events.countDocuments({
+              action: 'auth.sign_in.succeeded',
+            }),
+          ).toBe(1);
+        },
+        { timeout: 15_000, interval: 100 },
+      );
+
+      const ttl = (await other.events.indexes()).find(
+        (index) => index.name === 'occurredAt_ttl',
+      );
+      expect(ttl?.expireAfterSeconds).toBe(31_536_000);
+    } finally {
+      await app.close();
+      await other.close();
+    }
   });
 });
