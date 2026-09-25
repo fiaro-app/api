@@ -10,7 +10,7 @@ import {
 /** La respuesta trae la cookie de sesión nueva o renovada. */
 export const sessionCookieHeaders = {
   'Set-Cookie': {
-    description: `Cookie de sesión \`${SESSION_COOKIE_NAME}\` (en producción con el prefijo \`__Secure-\`).`,
+    description: `Cookie de sesión \`${SESSION_COOKIE_NAME}\` (en producción con el prefijo \`__Secure-\`). Es la única vía del token de sesión: el cuerpo no lo trae.`,
     schema: { type: 'string' },
   },
 } as const;

@@ -18,7 +18,6 @@ response:
         "session": {
           "id": "01a0d1b8-91db-7628-a73d-fabd196e8de7",
           "userId": "01a0d1b8-914c-74f9-8408-826fd5a0320e",
-          "token": "s0rWpyeq2nB1sOBfV2tQCZ2qw6eG4zAT",
           "expiresAt": "2026-10-24T04:42:09.243Z",
           "ipAddress": "127.0.0.1",
           "userAgent": "PostmanRuntime",

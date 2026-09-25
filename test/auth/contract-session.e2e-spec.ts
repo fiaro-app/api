@@ -22,13 +22,14 @@ import {
 const { startWithUser } = useAuthApp();
 
 describe('POST /auth/sign-in/phone-number', () => {
-  it('200 cumple SignInResponse y trae la cookie de sesión', async () => {
+  it('200 cumple SignInResponse y trae la cookie de sesión, sin el token en el cuerpo', async () => {
     const app = await startWithUser();
 
     const response = await signIn(app);
 
     expect(response.status).toBe(200);
     expect(SignInResponseSchema.safeParse(response.body).success).toBe(true);
+    expect(response.body).not.toHaveProperty('token');
     expect(response.headers['set-cookie']).toBeDefined();
   });
 
@@ -83,7 +84,7 @@ describe('POST /auth/sign-in/phone-number', () => {
 });
 
 describe('GET /auth/get-session', () => {
-  it('200 con sesión cumple SessionResponse', async () => {
+  it('200 con sesión cumple SessionResponse, sin el token de la sesión', async () => {
     const app = await startWithUser();
     const cookie = await login(app);
 
@@ -94,6 +95,7 @@ describe('GET /auth/get-session', () => {
     expect(response.status).toBe(200);
     const parsed = SessionResponseSchema.parse(response.body);
     expect(parsed?.user.phoneNumber).toBe(PHONE);
+    expect(response.body.session).not.toHaveProperty('token');
   });
 
   it('200 sin sesión responde null, que SessionResponse también admite', async () => {
