@@ -50,8 +50,34 @@ describe('SchemaValidationPipe', () => {
     expect(exception.getStatus()).toBe(400);
     expect(exception.getResponse()).toEqual({
       code: 'VALIDATION_FAILED',
-      message: 'Los datos enviados no son válidos.',
-      issues: [{ path: ['clientId'], message: 'obligatorio' }],
+      issues: [
+        {
+          path: ['clientId'],
+          message: 'obligatorio',
+          params: { minimum: '1' },
+        },
+      ],
+    });
+  });
+
+  it('no escribe ningún texto propio: el mensaje lo pone el filtro global según el idioma', async () => {
+    const error = (await failure(
+      pipe.transform(
+        { clientId: '' },
+        { type: 'body', schema: CreateLoanSchema },
+      ),
+    )) as BadRequestException;
+
+    expect(error.getResponse()).not.toHaveProperty('message');
+  });
+
+  it('pasa los valores de la falla para llenar los marcadores del mensaje', async () => {
+    const error = (await failure(
+      pipe.transform('a', { type: 'body', schema: z.string().min(3) }),
+    )) as BadRequestException;
+
+    expect(error.getResponse()).toMatchObject({
+      issues: [{ path: [], params: { minimum: '3' } }],
     });
   });
 
@@ -85,7 +111,7 @@ describe('SchemaValidationPipe', () => {
     expect(issues[0]?.path).toEqual(['notes', 1, 'text']);
   });
 
-  it('solo expone la ruta y el mensaje de cada error', async () => {
+  it('solo lleva la ruta, el mensaje y los valores de los marcadores de cada error', async () => {
     const error = (await failure(
       pipe.transform(
         { clientId: '', installments: 0 },
@@ -96,7 +122,7 @@ describe('SchemaValidationPipe', () => {
     const { issues } = error.getResponse() as { issues: object[] };
     expect(issues).toHaveLength(2);
     for (const issue of issues) {
-      expect(Object.keys(issue).sort()).toEqual(['message', 'path']);
+      expect(Object.keys(issue).sort()).toEqual(['message', 'params', 'path']);
     }
   });
 

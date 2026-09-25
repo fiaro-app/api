@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ApiErrorsModule } from '@/shared/infrastructure/filters/api-errors.module.js';
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
 import {
   authExports,
@@ -12,7 +13,7 @@ import { AuthController } from '@/modules/auth/infrastructure/controllers/auth.c
  * El dominio no conoce better-auth: solo este módulo lo usa.
  */
 @Module({
-  imports: [PersistenceModule],
+  imports: [PersistenceModule, ApiErrorsModule],
   controllers: [AuthController],
   providers: authProviders,
   exports: authExports,

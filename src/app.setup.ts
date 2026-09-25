@@ -11,6 +11,8 @@ import {
 import { buildCorsOptions } from '@/shared/infrastructure/http/cors.options.js';
 import { SchemaValidationPipe } from '@/shared/infrastructure/http/schema-validation.pipe.js';
 import { createSecurityHeaders } from '@/shared/infrastructure/http/security-headers.middleware.js';
+import { createLanguageMiddleware } from '@/shared/infrastructure/i18n/language.middleware.js';
+import { configureZodMessages } from '@/shared/infrastructure/i18n/zod-messages.js';
 import { setupLogging } from '@/shared/infrastructure/logging/logging.setup.js';
 import {
   DOCS_PATH,
@@ -21,6 +23,8 @@ import {
 export interface AppSetupOptions {
   /** Dónde se escriben los logs; por defecto la salida estándar. */
   readonly logDestination?: DestinationStream;
+  /** Idiomas que negocia `Accept-Language`; por defecto los de `src/i18n`. */
+  readonly languages?: readonly string[];
 }
 
 /**
@@ -31,15 +35,19 @@ export interface AppSetupOptions {
  * 1. `trust proxy`: define de dónde sale `req.ip`, que cuenta el rate limit y sale en el log.
  * 2. Logs: el logger de Nest pasa a Pino y cada petición queda registrada. Va antes que todo lo
  *    demás para que también queden las que otro middleware responde por su cuenta (preflight).
- * 3. Cabeceras de seguridad, primero de las demás para que salgan también en errores, 404 y
+ * 3. Idioma: elige el de la petición (`Accept-Language`) para que cualquier error posterior, de
+ *    otro middleware o de una ruta, salga traducido. Los mensajes por defecto de Zod pasan a ser
+ *    claves del catálogo.
+ * 4. Cabeceras de seguridad, primero de las demás para que salgan también en errores, 404 y
  *    preflight.
- * 4. `cookie-parser`.
- * 5. CORS, solo si hay orígenes configurados.
- * 6. `Vary` y versionado por cabecera.
- * 7. Pipe de validación global.
- * 8. Swagger, solo si está activo.
+ * 5. `cookie-parser`.
+ * 6. CORS, solo si hay orígenes configurados.
+ * 7. `Vary` y versionado por cabecera.
+ * 8. Pipe de validación global.
+ * 9. Swagger, solo si está activo.
  *
- * El rate limit es un guard global de `AppModule`, no un middleware.
+ * El rate limit es un guard global de `AppModule`, no un middleware; el filtro global de
+ * excepciones, un provider del mismo módulo.
  *
  * @param app - Aplicación de Nest sobre Express que se configura.
  * @param options - Ajustes que solo usan las pruebas.
@@ -52,6 +60,8 @@ export function configureApp(
 
   app.set('trust proxy', env.trustProxy);
   setupLogging(app, env, { destination: options.logDestination });
+  app.use(createLanguageMiddleware(options.languages));
+  configureZodMessages();
   app.use(createSecurityHeaders(DOCS_PATH));
   app.use(cookieParser());
   if (env.corsOrigins.length > 0) {

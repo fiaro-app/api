@@ -24,7 +24,11 @@ response:
     type: json
     content: |-
       {
+        "statusCode": 429,
         "code": "RATE_LIMITED",
-        "message": "Demasiadas solicitudes. Intenta de nuevo en unos segundos."
+        "message": "Demasiadas solicitudes. Intenta de nuevo en unos segundos.",
+        "path": "/auth/sign-in/phone-number",
+        "timestamp": "2026-09-25T04:00:00.000Z",
+        "issues": null
       }
 order: 1000

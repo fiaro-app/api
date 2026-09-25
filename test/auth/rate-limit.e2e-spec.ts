@@ -24,7 +24,11 @@ describe('rate limit', () => {
 
     expect(statuses).toEqual([401, 401, 401, 401, 401]);
     expect(blocked.status).toBe(429);
-    expect(blocked.body.code).toBe('RATE_LIMITED');
+    expect(blocked.body).toMatchObject({
+      statusCode: 429,
+      code: 'RATE_LIMITED',
+      message: 'Demasiadas solicitudes. Intenta de nuevo en unos segundos.',
+    });
     expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
     expect(blocked.headers['set-cookie']).toBeUndefined();
   });

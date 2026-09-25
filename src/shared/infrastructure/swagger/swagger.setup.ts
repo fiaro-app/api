@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DEFAULT_LANGUAGE, LANGUAGES } from '@/i18n/index.js';
 import { API_VERSION_HEADER } from '@/shared/infrastructure/http/api-versioning.js';
 import {
   SESSION_COOKIE_NAME,
@@ -31,6 +32,7 @@ export function setupSwagger(app: INestApplication, apiVersion: string): void {
         'API del sistema de control de cartera de Fiaro.',
         `La versión se elige con la cabecera \`${API_VERSION_HEADER}\`; sin ella se sirve la versión ${apiVersion}.`,
         'Toda ruta exige una sesión salvo las públicas. Sin sesión responde 401 `UNAUTHENTICATED`; con una contraseña temporal, 403 `PASSWORD_CHANGE_REQUIRED`; al pasarse del rate limit, 429 `RATE_LIMITED` con `Retry-After`. Los errores llevan un `code` estable: las apps reaccionan a él, no al texto del mensaje.',
+        `El texto de los errores sale en el idioma de la cabecera \`Accept-Language\` (\`Content-Language\` dice cuál se usó). Idiomas disponibles: ${LANGUAGES.join(', ')}; sin cabecera, o con un idioma que no existe, se usa ${DEFAULT_LANGUAGE}.`,
       ].join('\n\n'),
     )
     .setVersion(apiVersion)

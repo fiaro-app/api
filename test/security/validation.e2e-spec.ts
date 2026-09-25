@@ -31,6 +31,34 @@ describe('validación', () => {
     expect(issues.map((issue) => issue.path)).toEqual([['name'], ['amount']]);
   });
 
+  it('escribe los mensajes en español con los valores de cada falla', async () => {
+    const api = await startApp();
+
+    const { body } = await api
+      .post('/probe/echo')
+      .send({ name: '', amount: 0 })
+      .expect(400);
+
+    expect(body.issues).toEqual([
+      { path: ['name'], message: 'La longitud mínima es 1.' },
+      { path: ['amount'], message: 'Debe ser mayor o igual a 1.' },
+    ]);
+  });
+
+  it('distingue el dato que falta del que tiene el tipo equivocado', async () => {
+    const api = await startApp();
+
+    const { body } = await api
+      .post('/probe/echo')
+      .send({ amount: 'muchos' })
+      .expect(400);
+
+    expect(body.issues).toEqual([
+      { path: ['name'], message: 'Este dato es obligatorio.' },
+      { path: ['amount'], message: 'Debe ser un número.' },
+    ]);
+  });
+
   it('rechaza los campos que el contrato no declara', async () => {
     const api = await startApp();
 
@@ -40,7 +68,7 @@ describe('validación', () => {
       .expect(400);
 
     expect(body.code).toBe('VALIDATION_FAILED');
-    expect(body.issues[0].message).toContain('role');
+    expect(body.issues[0].message).toBe('Dato no esperado: role.');
   });
 
   it('valida también el body de las rutas QUERY', async () => {

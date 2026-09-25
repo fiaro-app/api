@@ -24,7 +24,11 @@ response:
     type: json
     content: |-
       {
-        "message": "Invalid password",
-        "code": "INVALID_PASSWORD"
+        "statusCode": 400,
+        "code": "INVALID_PASSWORD",
+        "message": "La contraseña no es correcta.",
+        "path": "/auth/change-password",
+        "timestamp": "2026-09-25T04:00:00.000Z",
+        "issues": null
       }
 order: 2000

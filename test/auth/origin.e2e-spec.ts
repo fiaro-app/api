@@ -21,7 +21,10 @@ describe('origen de las peticiones con cookie', () => {
       .set('Origin', 'https://sitio-ajeno.example');
 
     expect(response.status).toBe(403);
-    expect(response.body.code).toBe('INVALID_ORIGIN');
+    expect(response.body).toMatchObject({
+      code: 'INVALID_ORIGIN',
+      message: 'La petición viene de un origen que no es de confianza.',
+    });
     expect(await app.prisma.session.count()).toBe(1);
   });
 
@@ -70,7 +73,10 @@ describe('origen de las peticiones con cookie', () => {
       .set('Cookie', cookie);
 
     expect(response.status).toBe(403);
-    expect(response.body.code).toBe('MISSING_OR_NULL_ORIGIN');
+    expect(response.body).toMatchObject({
+      code: 'MISSING_OR_NULL_ORIGIN',
+      message: 'La petición no dice de dónde viene.',
+    });
   });
 });
 

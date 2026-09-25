@@ -88,7 +88,7 @@ describe('AuthGuard', () => {
       .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(UnauthorizedException);
-    expect((error as UnauthorizedException).getResponse()).toMatchObject({
+    expect((error as UnauthorizedException).getResponse()).toEqual({
       code: 'UNAUTHENTICATED',
     });
   });
@@ -111,7 +111,7 @@ describe('AuthGuard', () => {
       .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(ForbiddenException);
-    expect((error as ForbiddenException).getResponse()).toMatchObject({
+    expect((error as ForbiddenException).getResponse()).toEqual({
       code: 'PASSWORD_CHANGE_REQUIRED',
     });
     expect(getAuthenticatedSession(request)).toBeUndefined();

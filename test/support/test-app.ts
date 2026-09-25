@@ -9,6 +9,8 @@ import { type Env, loadEnv } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
 import type { CreateUserInput } from '@/modules/auth/application/dtos/create-user.dto.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
+import type { FlatCatalogs } from '@/shared/infrastructure/i18n/message-catalog.js';
+import { TranslationService } from '@/shared/infrastructure/i18n/translation.service.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { testEnvSource } from '@test/support/test-env.js';
 
@@ -21,6 +23,10 @@ export interface TestAppOptions {
   readonly controllers?: Type[];
   /** Dónde se escriben los logs (`captureLogs`); por defecto la salida estándar. */
   readonly logDestination?: DestinationStream;
+  /** Idiomas que negocia `Accept-Language`; solo para probar más de uno (`configureApp`). */
+  readonly languages?: readonly string[];
+  /** Catálogos que reemplazan a los reales; solo para probar más de un idioma. */
+  readonly catalogs?: FlatCatalogs;
 }
 
 export interface TestApp {
@@ -43,18 +49,26 @@ export async function startTestApp(
     ...loadEnv(testEnvSource(options.env)),
     ...options.overrides,
   };
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule],
     controllers: options.controllers ?? [],
   })
     .overrideProvider(ENV)
-    .useValue(env)
-    .compile();
+    .useValue(env);
+  if (options.catalogs !== undefined) {
+    builder
+      .overrideProvider(TranslationService)
+      .useValue(new TranslationService(options.catalogs));
+  }
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     logger: false,
   });
-  configureApp(app, { logDestination: options.logDestination });
+  configureApp(app, {
+    logDestination: options.logDestination,
+    languages: options.languages,
+  });
   await app.init();
 
   const prisma = app.get(PrismaService, { strict: false });

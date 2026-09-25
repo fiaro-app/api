@@ -24,7 +24,11 @@ response:
     type: json
     content: |-
       {
-        "message": "Invalid phone number or password",
-        "code": "INVALID_PHONE_NUMBER_OR_PASSWORD"
+        "statusCode": 401,
+        "code": "INVALID_PHONE_NUMBER_OR_PASSWORD",
+        "message": "El celular o la contraseña no son correctos.",
+        "path": "/auth/sign-in/phone-number",
+        "timestamp": "2026-09-25T04:00:00.000Z",
+        "issues": null
       }
 order: 2000
