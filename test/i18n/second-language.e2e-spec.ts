@@ -25,6 +25,8 @@ const ENGLISH = {
   'errors.VALIDATION_FAILED': 'The data sent is not valid.',
   'validation.invalid_type.missing': 'This field is required.',
   'validation.unrecognized_keys': 'Unexpected field: {keys}.',
+  'contracts.phone.invalid_mobile':
+    'Enter a valid 10-digit Colombian mobile number.',
 };
 
 const withEnglish = {
@@ -109,18 +111,26 @@ describe('la aplicación ensamblada con un segundo idioma', () => {
     ]);
   });
 
-  it('un mensaje que el schema escribió (los de contracts) sale tal cual en cualquier idioma', async () => {
+  it('un mensaje de un schema del contrato sale en el idioma pedido, y en español sin la cabecera', async () => {
     const app = await startWithUser(withEnglish);
+    const invalidPhone = (language?: string) => {
+      const request = app.http
+        .post('/auth/sign-in/phone-number')
+        .set('X-Forwarded-For', nextIp());
+      if (language !== undefined) {
+        request.set('Accept-Language', language);
+      }
+      return request.send({ phoneNumber: '3001234567', password: PASSWORD });
+    };
 
-    const { body } = await app.http
-      .post('/auth/sign-in/phone-number')
-      .set('X-Forwarded-For', nextIp())
-      .set('Accept-Language', 'en')
-      .send({ phoneNumber: '3001234567', password: PASSWORD })
-      .expect(400);
+    const english = await invalidPhone('en').expect(400);
+    const spanish = await invalidPhone().expect(400);
 
-    expect(body.issues[0].path).toEqual(['phoneNumber']);
-    expect(body.issues[0].message).toBe(
+    expect(english.body.issues[0].path).toEqual(['phoneNumber']);
+    expect(english.body.issues[0].message).toBe(
+      'Enter a valid 10-digit Colombian mobile number.',
+    );
+    expect(spanish.body.issues[0].message).toBe(
       'Ingresa un celular colombiano válido de 10 dígitos.',
     );
   });

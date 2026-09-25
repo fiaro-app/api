@@ -1,5 +1,9 @@
 import { globSync, readFileSync } from 'node:fs';
-import { ErrorCodeSchema } from '@fiaro-app/contracts';
+import {
+  CONTRACT_MESSAGES,
+  contractMessage,
+  ErrorCodeSchema,
+} from '@fiaro-app/contracts';
 import { BASE_ERROR_CODES } from 'better-auth';
 import { describe, expect, it } from 'vitest';
 import {
@@ -10,7 +14,10 @@ import {
 } from '@/i18n/index.js';
 import { authPlugins } from '@/modules/auth/infrastructure/better-auth/auth-plugins.js';
 import { codeForStatus } from '@/shared/infrastructure/filters/exception-details.js';
-import { FLAT_CATALOGS } from '@/shared/infrastructure/i18n/message-catalog.js';
+import {
+  FLAT_CATALOGS,
+  flatten,
+} from '@/shared/infrastructure/i18n/message-catalog.js';
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 
@@ -72,6 +79,27 @@ describe('catálogos de idiomas', () => {
     const incomplete: Messages = { errors: {}, validation: {} };
 
     expect(incomplete).toBeDefined();
+  });
+});
+
+describe('textos de los schemas del contrato', () => {
+  it('cada idioma de la API tiene los textos que el contrato escribe, iguales a los del paquete', () => {
+    for (const language of LANGUAGES) {
+      const fromPackage = flatten(CONTRACT_MESSAGES[language]);
+      const inApi = Object.fromEntries(
+        Object.entries(FLAT_CATALOGS[language] ?? {}).filter(([key]) =>
+          key.startsWith('contracts.'),
+        ),
+      );
+
+      expect(Object.keys(fromPackage).length).toBeGreaterThan(0);
+      expect(inApi).toEqual(fromPackage);
+      for (const key of Object.keys(fromPackage)) {
+        expect(inApi[key], `${language}: ${key}`).toBe(
+          contractMessage(language, key),
+        );
+      }
+    }
   });
 });
 
