@@ -39,7 +39,9 @@ describe('assertPasswordAllowed', () => {
     }
 
     expect(error).toMatchObject({
-      code: 'INVALID_PASSWORD',
+      code: 'INVALID_PASSWORD_LENGTH',
+      kind: 'INVALID',
+      params: { minLength: 8, maxLength: 128 },
       message: 'La contraseña debe tener entre 8 y 128 caracteres.',
     });
   });

@@ -5,8 +5,8 @@ import {
   type ArgumentMetadata,
 } from '@nestjs/common';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
+import { zodIssueParams } from '@/shared/application/validation/zod-issue-params.js';
 import type { ApiExceptionPayload } from '@/shared/infrastructure/filters/api-exception-payload.js';
-import { zodIssueParams } from '@/shared/infrastructure/i18n/zod-messages.js';
 
 function toPathSegment(
   segment: PropertyKey | StandardSchemaV1.PathSegment,

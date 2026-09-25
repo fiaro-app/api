@@ -1,5 +1,6 @@
 import { UserSchema } from '@fiaro-app/contracts';
 import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
+import { zodIssueParams } from '@/shared/application/validation/zod-issue-params.js';
 
 /** Los datos de la persona que valida el contrato compartido (`UserSchema`). */
 const UserDataSchema = UserSchema.pick({
@@ -47,7 +48,8 @@ export const toIssuePath = (
  *
  * @param input - Datos de la persona. El email y la cédula son opcionales.
  * @returns Los datos normalizados: el nombre sin espacios sobrantes y `null` en lo que falte.
- * @throws {@link InvalidUserDataError} Con un `issue` por cada campo que no cumple el contrato.
+ * @throws {@link InvalidUserDataError} Con un `issue` por cada campo que no cumple el contrato, con
+ * los valores de la falla (`params`) para llenar los marcadores de su mensaje.
  */
 export function validateUserData(input: UserDataInput): ValidUserData {
   const result = UserDataSchema.safeParse({
@@ -60,6 +62,7 @@ export function validateUserData(input: UserDataInput): ValidUserData {
       result.error.issues.map((issue) => ({
         path: toIssuePath(issue.path),
         message: issue.message,
+        params: zodIssueParams(issue),
       })),
     );
   }

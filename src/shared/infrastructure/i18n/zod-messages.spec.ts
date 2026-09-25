@@ -1,19 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { FLAT_CATALOGS } from '@/shared/infrastructure/i18n/message-catalog.js';
-import {
-  configureZodMessages,
-  zodIssueParams,
-} from '@/shared/infrastructure/i18n/zod-messages.js';
+import { configureZodMessages } from '@/shared/infrastructure/i18n/zod-messages.js';
 
-/** La primera falla de un schema con ese dato: su mensaje y los valores de sus marcadores. */
+/** La primera falla de un schema con ese dato: su mensaje. */
 function firstIssue(schema: z.ZodType, input: unknown) {
-  const result = schema.safeParse(input);
-  const issue = result.error?.issues[0];
+  const issue = schema.safeParse(input).error?.issues[0];
   if (issue === undefined) {
     throw new Error('Se esperaba que el schema rechazara el dato.');
   }
-  return { message: issue.message, params: zodIssueParams(issue) };
+  return { message: issue.message };
 }
 
 describe('mensajes de Zod', () => {
@@ -175,54 +171,5 @@ describe('mensajes de Zod', () => {
     const { message } = firstIssue(z.string().min(3, 'Muy corto'), 'a');
 
     expect(message).toBe('Muy corto');
-  });
-});
-
-describe('zodIssueParams', () => {
-  beforeAll(() => {
-    configureZodMessages();
-  });
-
-  afterAll(() => {
-    z.config(z.locales.en());
-  });
-
-  it('trae el mínimo de un texto', () => {
-    expect(firstIssue(z.string().min(3), 'a').params).toEqual({ minimum: '3' });
-  });
-
-  it('trae el máximo de un número', () => {
-    expect(firstIssue(z.number().max(3), 9).params).toEqual({ maximum: '3' });
-  });
-
-  it('trae el divisor', () => {
-    expect(firstIssue(z.number().multipleOf(5), 3).params).toEqual({
-      divisor: '5',
-    });
-  });
-
-  it('junta los campos que sobran', () => {
-    const schema = z.strictObject({ a: z.string() });
-
-    expect(firstIssue(schema, { a: 'x', b: 1, c: 2 }).params).toEqual({
-      keys: 'b, c',
-    });
-  });
-
-  it('junta los valores permitidos', () => {
-    expect(firstIssue(z.enum(['A', 'B']), 'C').params).toEqual({
-      values: 'A, B',
-    });
-    expect(firstIssue(z.literal([1, null]), 'C').params).toEqual({
-      values: '1, null',
-    });
-  });
-
-  it('muestra un bigint como texto', () => {
-    expect(zodIssueParams({ minimum: 10n })).toEqual({ minimum: '10' });
-  });
-
-  it('queda vacío si la falla no trae ninguno de esos campos', () => {
-    expect(firstIssue(z.string(), 1).params).toEqual({});
   });
 });

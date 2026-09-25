@@ -37,6 +37,7 @@ describe('MobilePhone', () => {
 
     expect(error).toMatchObject({
       code: 'INVALID_PHONE',
+      kind: 'INVALID',
       name: 'InvalidMobilePhoneError',
     });
   });
