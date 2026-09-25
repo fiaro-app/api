@@ -122,7 +122,7 @@ describe('MongoLogStore', () => {
     await expect(store.save(documents)).rejects.toBe('texto suelto');
   });
 
-  it('el índice TTL borra a los 90 días y los otros dos son dispersos', () => {
+  it('el índice TTL borra a los 60 días y los otros dos son dispersos', () => {
     expect(LOG_INDEXES).toEqual([
       {
         key: { time: 1 },
@@ -132,6 +132,6 @@ describe('MongoLogStore', () => {
       { key: { requestId: 1 }, name: 'requestId', sparse: true },
       { key: { userId: 1, time: -1 }, name: 'userId_time', sparse: true },
     ]);
-    expect(LOG_RETENTION_SECONDS).toBe(7_776_000);
+    expect(LOG_RETENTION_SECONDS).toBe(5_184_000);
   });
 });

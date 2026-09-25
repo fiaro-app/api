@@ -1,4 +1,5 @@
 import type { JobsOptions } from 'bullmq';
+import type { Level } from 'pino';
 import type { LogEntry } from '@/shared/infrastructure/logging/log-entry.js';
 
 /** Nombre del trabajo de la cola de registros que lleva un lote de líneas de log a MongoDB. */
@@ -7,8 +8,16 @@ export const LOG_BATCH_JOB_NAME = 'logs.batch';
 /** Colección de MongoDB donde se guardan las líneas de log. */
 export const LOG_COLLECTION = 'logs';
 
-/** Cuánto se conserva una línea en MongoDB: 90 días. Pasado ese tiempo un índice TTL la borra. */
-export const LOG_RETENTION_SECONDS = 90 * 24 * 60 * 60;
+/** Cuánto se conserva una línea en MongoDB: 60 días. Pasado ese tiempo un índice TTL la borra. */
+export const LOG_RETENTION_SECONDS = 60 * 24 * 60 * 60;
+
+/**
+ * El nivel más bajo que se copia a MongoDB: `warn` y por encima (avisos, errores, respuestas 4xx y
+ * 5xx). Lo que está por debajo (`info`: las peticiones que salen bien, el arranque) queda solo en
+ * la salida estándar y en Loki. Con el plan gratuito de Atlas (512 MB en todo el clúster,
+ * compartido con la auditoría) copiarlo todo llenaba el espacio con lo que menos falta hace.
+ */
+export const LOG_BATCH_MIN_LEVEL: Level = 'warn';
 
 /** Lo que viaja por la cola: las líneas de un lote, ya leídas (la hora sigue siendo un texto ISO 8601). */
 export interface LogBatchJobData {

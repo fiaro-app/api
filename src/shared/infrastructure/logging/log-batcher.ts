@@ -31,8 +31,9 @@ const TOO_MANY_PENDING_WARNING =
  *
  * @remarks
  * Es la copia de mejor esfuerzo del registro total: la salida estándar siempre tiene todas las
- * líneas; esta copia las hace consultables y las guarda 90 días. Por eso escribir es barato (un
- * `push`, sin leer el JSON) y nunca falla, y nada de lo que pase aquí frena a la petición:
+ * líneas; esta copia hace consultables las que importan (`warn` y por encima, ver
+ * `LOG_BATCH_MIN_LEVEL`) y las guarda 60 días. Por eso escribir es barato (un `push`, sin leer el
+ * JSON) y nunca falla, y nada de lo que pase aquí frena a la petición:
  * - el lote se envía cuando pasa {@link LogBatchLimits.intervalMs} desde la primera línea guardada
  *   (no hay temporizador mientras no se escribe nada) o cuando junta demasiadas líneas o bytes;
  * - si Redis no responde en {@link ENQUEUE_TIMEOUT_MS} el lote se descarta y se avisa (una vez por

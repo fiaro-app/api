@@ -9,7 +9,7 @@ export interface LogStore {
 }
 
 /**
- * Índices de la colección: el TTL que borra las líneas a los 90 días y los dos con que se sigue
+ * Índices de la colección: el TTL que borra las líneas a los 60 días y los dos con que se sigue
  * una petición (`requestId`, todo lo que escribió) o a una persona (`userId`). Son `sparse`: una
  * línea sin esos campos (el arranque, un 404 sin sesión) no ocupa lugar en ellos.
  */
