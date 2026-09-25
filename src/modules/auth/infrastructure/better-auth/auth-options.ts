@@ -2,6 +2,7 @@ import type { BetterAuthOptions } from 'better-auth';
 import type { Env } from '@/config/env.js';
 import type { IdGenerator } from '@/shared/application/ports/id-generator.port.js';
 import { SESSION_COOKIE_PREFIX } from '@/shared/infrastructure/http/session-cookie.js';
+import { logToNest } from '@/modules/auth/infrastructure/better-auth/auth-logger.js';
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
@@ -98,12 +99,18 @@ export function rateLimitOptions(
 }
 
 /**
- * Registro sin colores (llegan a Loki) y apagado en las pruebas, donde los rechazos son esperados.
+ * Los logs de better-auth salen por el logger de Nest (`logToNest`), es decir, como JSON de Pino
+ * con el `requestId`; solo avisos y errores, y apagados en las pruebas, donde los rechazos son
+ * esperados.
  *
  * @param nodeEnv - Entorno de ejecución.
  */
 export function loggerOptions(
   nodeEnv: Env['nodeEnv'],
 ): NonNullable<BetterAuthOptions['logger']> {
-  return { disableColors: true, disabled: nodeEnv === 'test', level: 'warn' };
+  return {
+    disabled: nodeEnv === 'test',
+    level: 'warn',
+    log: logToNest,
+  };
 }

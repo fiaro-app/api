@@ -5,6 +5,7 @@ import type { Env } from '@/config/env.js';
 import { EnvModule } from '@/config/env.module.js';
 import { ENV } from '@/config/env.token.js';
 import { AuthModule } from '@/modules/auth/auth.module.js';
+import { AuditModule } from '@/shared/infrastructure/audit/audit.module.js';
 import { ApiErrorsModule } from '@/shared/infrastructure/filters/api-errors.module.js';
 import { AuthGuard } from '@/shared/infrastructure/http/auth.guard.js';
 import { I18nModule } from '@/shared/infrastructure/i18n/i18n.module.js';
@@ -25,6 +26,7 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
   imports: [
     EnvModule,
     I18nModule,
+    AuditModule,
     ApiErrorsModule,
     RuntimeModule,
     AuthModule,

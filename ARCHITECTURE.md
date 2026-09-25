@@ -61,11 +61,11 @@ src/
     domain/
       value-objects/             #   mobile-phone (ya existe); money, national-id, business-date
       errors/                    #   DomainError base: code, kind, params e issues
-      audit/                     #   Eventos de auditoría
+      audit/                     #   AuditEvent: qué se registra (acciones, resultado, celular enmascarado)
     application/
       ports/                     #   clock, id-generator, session-resolver (ya existen); email-sender
       security/                  #   Reglas de autorización: qué rol puede hacer qué sobre qué recurso
-      audit/                     #   Puerto y servicio para registrar auditoría
+      audit/                     #   AuditLog: el puerto donde se registra la auditoría; nunca falla ni espera
       validation/                #   zodIssueParams: los valores de una falla de Zod que llenan los marcadores del texto (ya existe)
     infrastructure/
       persistence/               #   schema/ y migrations/ de Prisma, generated/ (no se commitea) y PrismaService
@@ -77,7 +77,7 @@ src/
       notifications/             #   Email (Resend), WhatsApp (Twilio)
       messaging/                 #   Colas (BullMQ)
       store/                     #   Cache y almacenamiento clave-valor (Redis)
-      audit/                     #   Adaptador de auditoría (MongoDB)
+      audit/                     #   PinoAuditLog (una línea de log por evento) y PersonalDataMasker; la cola y MongoDB llegan después
       metrics/                   #   Métricas y observabilidad
       maintenance/               #   Modo mantenimiento (503 MAINTENANCE)
       swagger/                   #   Documentación OpenAPI
@@ -202,6 +202,7 @@ Lo que conviene saber, y por qué:
 - **Rate limit:** 5 intentos por minuto y por IP al iniciar sesión y al cambiar la contraseña (el de better-auth, en memoria); el general de la API sigue aplicando. Detalle y límites en la sección 11.
 - **Celular sin verificar (D-51).** Las rutas de código por SMS están apagadas (`DISABLED_PATHS`, y `sendOTP` falla si alguien las enciende): en el MVP quien escribe el celular responde por él. Riesgo que se asume por ahora: alguien podría dar de alta el celular de otra persona. Al agregar el registro público hay que verificarlo (código por WhatsApp o SMS) antes de crear la cuenta.
 - **Errores y caché.** Los errores llevan un `code` estable y, al pasarse del límite, `Retry-After`; toda respuesta de autenticación lleva `Cache-Control: no-store`, porque trae la cookie de sesión y datos personales.
+- **Auditoría de la autenticación (D-61).** Los hooks de better-auth (`auth-hooks.ts`, `auth-database-hooks.ts`) registran cinco eventos: `auth.sign_in.succeeded`, `auth.sign_in.failed`, `auth.sign_out`, `auth.password.changed` y `auth.password.change_failed`. Cada uno lleva quién (`userId`, si se sabe), el celular enmascarado, desde dónde (IP y navegador), el `requestId` de la petición, el resultado y, si fue rechazado, el código del motivo; `AuthAuditor` arma el evento y lo entrega al puerto `AuditLog` (`shared/application/audit`). Por qué desde los hooks: un inicio de sesión fallido no escribe nada en la base de datos, así que solo un hook lo ve; y cerrar sesión se audita en el borrado de la fila de la sesión porque esa ruta no sabe quién era (las sesiones que revoca un cambio de contraseña o que vencen no cuentan como cerrar sesión). **Datos personales:** el celular se guarda enmascarado (`PersonalDataMasker`: últimos 4 dígitos y una huella HMAC-SHA256 de 128 bits con una clave derivada del secreto con HKDF; un hash simple de un celular colombiano se revertiría probando sus mil millones de posibilidades) y nunca se registra una contraseña, una cookie ni un token; las pruebas e2e comprueban que no salen. **Registrar nunca falla ni espera** (`AuditLog.record` devuelve `void`): un log caído no rechaza un inicio de sesión. El primer adaptador (`PinoAuditLog`, en `shared/infrastructure/audit`) escribe cada evento como una línea JSON con `audit: true` (`{service="api"} | json | audit="true"` en Loki); un `LOG_LEVEL` por encima de `info` la silencia. La cola de BullMQ y Mongo se suman después como otro adaptador del mismo puerto, sin tocar los hooks. Los logs de la propia better-auth salen ahora por el logger de Nest (`auth-logger.ts`): JSON con el `requestId`, no una línea de texto suelta.
 
 **Autorización:**
 
@@ -377,7 +378,7 @@ Además Helmet agrega HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 
 - **Serializar las respuestas con schema** (`StandardSchemaSerializerInterceptor` y `@SerializeOptions({ schema })` de Nest 12), para que una ruta nunca devuelva campos que el contrato no declara.
 - **`Cache-Control: no-store`** en las demás respuestas con datos personales (las de autenticación ya lo llevan).
-- **Registro total en Mongo (D-58).** La cola de BullMQ y el worker que guardan en Mongo la auditoría de autenticación y las líneas de log (los PRs 2 y 3 del plan). Hoy los logs solo salen por la salida estándar.
+- **Registro total en Mongo (D-58).** La cola de BullMQ y el worker que guardan en Mongo los eventos de auditoría de autenticación (D-61, que ya salen por el log) y las líneas de log (el resto de los PRs 2 y 3 del plan). Hoy todo sale solo por la salida estándar.
 
 ## 12. Entorno local con Docker
 
