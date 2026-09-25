@@ -1,4 +1,11 @@
-import { createAuthMiddleware } from 'better-auth/api';
+import { ErrorCodeSchema } from '@fiaro-app/contracts';
+import {
+  APIError,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from 'better-auth/api';
+import { isPasswordLengthAllowed } from '@/modules/auth/domain/policies/password.policy.js';
+import { findPasswordWeakness } from '@/modules/auth/domain/policies/password-strength.policy.js';
 import {
   CHANGE_PASSWORD_PATH,
   SIGN_IN_PATH,
@@ -9,6 +16,7 @@ import {
   failureCodeOf,
   newSessionOf,
   originOf,
+  ownerOf,
   phoneOf,
   requesterOf,
 } from '@/modules/auth/infrastructure/better-auth/auth-audit-rules.js';
@@ -46,8 +54,50 @@ function auditPasswordChange(auditor: AuthAuditor, ctx: AuthHookContext): void {
   }
 }
 
-/** Lo que corre antes de la ruta: nivela el tiempo del inicio de sesión y fuerza revocar las demás sesiones. */
-function createBeforeHook() {
+/**
+ * Rechaza una contraseña nueva demasiado fácil de adivinar antes de que la ruta la cambie.
+ *
+ * @remarks
+ * Si la longitud no es la permitida, o no hay sesión, no hace nada: better-auth rechaza la longitud
+ * con su propio código y la ruta responde 401 sin sesión. Como
+ * un hook `before` que rechaza no deja correr a los `after`, la falla se audita aquí.
+ *
+ * @param auditor - A quien se le avisa del rechazo.
+ * @param ctx - Contexto del hook, con la cookie de la sesión en los encabezados.
+ * @throws {@link APIError} `PASSWORD_TOO_WEAK` (400) si la contraseña es demasiado débil.
+ */
+async function rejectWeakNewPassword(
+  auditor: AuthAuditor,
+  ctx: Parameters<typeof getSessionFromCtx>[0],
+): Promise<void> {
+  const body: unknown = ctx.body;
+  const newPassword = isRecord(body) ? body.newPassword : undefined;
+  if (
+    typeof newPassword !== 'string' ||
+    !isPasswordLengthAllowed(newPassword)
+  ) {
+    return;
+  }
+  const session = await getSessionFromCtx(ctx, { disableRefresh: true });
+  if (
+    session === null ||
+    findPasswordWeakness(newPassword, ownerOf(session)) === undefined
+  ) {
+    return;
+  }
+  const code = ErrorCodeSchema.enum.PASSWORD_TOO_WEAK;
+  auditor.passwordChangeFailed(requesterOf(ctx), code, originOf(ctx));
+  throw APIError.from('BAD_REQUEST', {
+    code,
+    message: 'La contraseña es demasiado fácil de adivinar.',
+  });
+}
+
+/**
+ * Lo que corre antes de la ruta: nivela el tiempo del inicio de sesión y, al cambiar la
+ * contraseña, rechaza la débil y fuerza revocar las demás sesiones.
+ */
+function createBeforeHook(auditor: AuthAuditor) {
   return createAuthMiddleware(async (ctx) => {
     if (ctx.path === SIGN_IN_PATH) {
       await hashWhenPhoneIsUnknown(
@@ -64,6 +114,7 @@ function createBeforeHook() {
       return;
     }
     if (ctx.path === CHANGE_PASSWORD_PATH) {
+      await rejectWeakNewPassword(auditor, ctx);
       return {
         context: {
           body: {
@@ -107,14 +158,18 @@ function createAfterHook(auditor: AuthAuditor) {
  *
  * - Iniciar sesión: nivela el tiempo de respuesta entre celulares con y sin cuenta y audita el
  *   resultado (`auth.sign_in.succeeded` o `auth.sign_in.failed`).
- * - Cambiar la contraseña: revoca siempre las demás sesiones (quien conocía la contraseña
- *   anterior, por ejemplo la temporal, pierde el acceso), audita el resultado y, si sale bien,
- *   quita la marca de contraseña temporal.
+ * - Cambiar la contraseña: rechaza la nueva si es demasiado fácil de adivinar (`PASSWORD_TOO_WEAK`),
+ *   revoca siempre las demás sesiones (quien conocía la contraseña anterior, por ejemplo la
+ *   temporal, pierde el acceso), audita el resultado y, si sale bien, quita la marca de contraseña
+ *   temporal.
  *
  * Cerrar sesión se audita en {@link createAuthDatabaseHooks}, porque esa ruta no sabe quién era.
  *
  * @param auditor - A quien se le avisa de cada resultado.
  */
 export function createAuthHooks(auditor: AuthAuditor) {
-  return { before: createBeforeHook(), after: createAfterHook(auditor) };
+  return {
+    before: createBeforeHook(auditor),
+    after: createAfterHook(auditor),
+  };
 }

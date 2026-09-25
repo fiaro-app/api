@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InvalidPasswordError } from '@/modules/auth/domain/errors/invalid-password.error.js';
 import {
   assertPasswordAllowed,
+  isPasswordLengthAllowed,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
 } from '@/modules/auth/domain/policies/password.policy.js';
@@ -48,5 +49,17 @@ describe('assertPasswordAllowed', () => {
 
   it('el mínimo es de 8, como en el prototipo', () => {
     expect(PASSWORD_MIN_LENGTH).toBe(8);
+  });
+});
+
+describe('isPasswordLengthAllowed', () => {
+  it.each([
+    [true, PASSWORD_MIN_LENGTH],
+    [true, PASSWORD_MAX_LENGTH],
+    [false, PASSWORD_MIN_LENGTH - 1],
+    [false, PASSWORD_MAX_LENGTH + 1],
+    [false, 0],
+  ])('devuelve %s con %s caracteres', (allowed, length) => {
+    expect(isPasswordLengthAllowed('a'.repeat(length))).toBe(allowed);
   });
 });

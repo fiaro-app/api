@@ -88,7 +88,7 @@ export const ApiChangePassword = () =>
     ApiOperation({
       summary: 'Cambiar la contraseña',
       description:
-        'Cambia la contraseña con la actual como prueba. Siempre revoca las demás sesiones de la persona (quien conocía la contraseña anterior pierde el acceso), responde con una sesión nueva y, si la contraseña era temporal, quita `mustChangePassword`. Es, junto con ver la sesión y cerrar sesión, una de las tres rutas que sirven con una contraseña temporal. Máximo 5 intentos por minuto y por IP.',
+        'Cambia la contraseña con la actual como prueba. Siempre revoca las demás sesiones de la persona (quien conocía la contraseña anterior pierde el acceso), responde con una sesión nueva y, si la contraseña era temporal, quita `mustChangePassword`. Rechaza una contraseña nueva demasiado fácil de adivinar: de las más usadas, un patrón (`12345678`, `aaaaaaaa`) o que lleva el celular o la cédula de la persona. Es, junto con ver la sesión y cerrar sesión, una de las tres rutas que sirven con una contraseña temporal. Máximo 5 intentos por minuto y por IP.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiOriginHeaders(),
@@ -102,7 +102,8 @@ export const ApiChangePassword = () =>
     ApiValidationFailedResponse(),
     ApiResponse({
       status: 400,
-      description: 'La contraseña actual es incorrecta (`INVALID_PASSWORD`).',
+      description:
+        'La contraseña actual es incorrecta (`INVALID_PASSWORD`) o la nueva es demasiado fácil de adivinar (`PASSWORD_TOO_WEAK`).',
       standardSchema: AuthErrorSchema,
     }),
     ApiResponse({

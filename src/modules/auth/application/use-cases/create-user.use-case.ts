@@ -9,6 +9,7 @@ import { PASSWORD_HASHER } from '@/modules/auth/application/ports/password-hashe
 import { validateUserData } from '@/modules/auth/application/services/user-data.validator.js';
 import { User } from '@/modules/auth/domain/entities/user.entity.js';
 import { assertPasswordAllowed } from '@/modules/auth/domain/policies/password.policy.js';
+import { assertPasswordStrong } from '@/modules/auth/domain/policies/password-strength.policy.js';
 import type { UserRepository } from '@/modules/auth/domain/repositories/user.repository.js';
 import { USER_REPOSITORY } from '@/modules/auth/domain/tokens/user-repository.token.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
@@ -39,12 +40,17 @@ export class CreateUserUseCase {
    * @throws {@link InvalidMobilePhoneError} Si el celular no está en formato E.164.
    * @throws {@link InvalidUserDataError} Si el nombre, la cédula o el email no cumplen el contrato.
    * @throws {@link InvalidPasswordError} Si la contraseña no tiene la longitud permitida.
+   * @throws {@link WeakPasswordError} Si la contraseña es de las más usadas, un patrón o lleva el celular o la cédula.
    * @throws {@link PhoneAlreadyRegisteredError} Si el celular ya tiene cuenta.
    */
   async execute(input: CreateUserInput): Promise<CreatedUser> {
     const phone = MobilePhone.parse(input.phone);
     const data = validateUserData(input);
     assertPasswordAllowed(input.password);
+    assertPasswordStrong(input.password, {
+      phone: phone.value,
+      nationalId: data.nationalId,
+    });
 
     const user = User.create({
       id: this.ids.next(),

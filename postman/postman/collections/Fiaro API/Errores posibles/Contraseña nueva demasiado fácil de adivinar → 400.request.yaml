@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/change-password"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "currentPassword": "{{password}}",
+      "newPassword": "password123"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('el código de error es PASSWORD_TOO_WEAK', () => pm.expect(pm.response.json().code).to.eql('PASSWORD_TOO_WEAK'));
+      pm.test('el mensaje sale en español', () => pm.expect(pm.response.json().message).to.include('demasiado fácil de adivinar'));
+      pm.test('no cambia la contraseña: sigue la sesión abierta', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+    language: text/javascript
+order: 8500
