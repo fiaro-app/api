@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/change-password"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "currentPassword": "x",
+      "newPassword": "contraseña-nueva-2"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 401', () => pm.response.to.have.status(401));
+      pm.test('el código de error es UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));
+    language: text/javascript
+order: 7000

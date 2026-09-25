@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Reemplaza la temporal. Quita la marca, revoca las demás sesiones y entrega una sesión nueva. Solo funciona una vez por seed: después la cuenta ya tiene contraseña propia (`pnpm docker:reset` y `pnpm docker:seed` la dejan como nueva)."
+url: "{{baseUrl}}/auth/change-password"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "currentPassword": "{{tempPassword}}",
+      "newPassword": "{{newTempPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+      pm.test('la marca de contraseña temporal desaparece', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.false);
+    language: text/javascript
+order: 3000

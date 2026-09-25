@@ -1,0 +1,3 @@
+$kind: collection
+description: Cada respuesta de error que documenta Swagger, con su código. Ejecútala después de *Autenticación*; ninguna abre una sesión.
+order: 3000

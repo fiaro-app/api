@@ -1,0 +1,39 @@
+$kind: http-request
+description: "**Bloquea tu IP para iniciar sesión durante un minuto.** Envía 5 intentos fallidos antes de esta solicitud, así que la sexta recibe 429 con `Retry-After`. Ejecútala al final o espera un minuto."
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{phone}}",
+      "password": "no-es-la-contraseña"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      // Postman espera a que terminen los pm.sendRequest antes de enviar la solicitud.
+      const attempt = (remaining) => {
+        if (remaining === 0) { return; }
+        pm.sendRequest({
+          url: pm.variables.get('baseUrl') + '/auth/sign-in/phone-number', method: 'POST',
+          header: { 'Content-Type': 'application/json' },
+          body: { mode: 'raw', raw: JSON.stringify({ phoneNumber: pm.variables.get('phone'), password: 'no-es-la-contraseña' }) },
+        }, () => attempt(remaining - 1));
+      };
+      attempt(5);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 429', () => pm.response.to.have.status(429));
+      pm.test('el código de error es RATE_LIMITED', () => pm.expect(pm.response.json().code).to.eql('RATE_LIMITED'));
+      pm.test('dice cuántos segundos esperar', () => pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0));
+    language: text/javascript
+examples: ./.resources/Superar el límite de intentos → 429.resources/examples
+order: 1000

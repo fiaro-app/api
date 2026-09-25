@@ -1,0 +1,3 @@
+$kind: collection
+description: Iniciar sesión con celular y contraseña, ver la sesión, cambiar la contraseña y cerrar sesión. Ejecútala en orden.
+order: 1000

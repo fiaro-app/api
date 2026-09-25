@@ -5,34 +5,98 @@ on:
     branches: [dev, main]
   push:
     branches: [dev]
+  workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      # Los hooks de git son para desarrollo local; en CI no hacen falta.
+      HUSKY: 0
+    # Las pruebas e2e corren contra un PostgreSQL real: la misma versión que el entorno local.
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: fiaro
+          POSTGRES_PASSWORD: fiaro
+          POSTGRES_DB: fiaro
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fiaro -d fiaro"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      # La auditoría durable: la cola de BullMQ (Redis) y los eventos (MongoDB).
+      redis:
+        image: redis:8.10.1-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      mongo:
+        image: mongo:8.0.32
+        env:
+          MONGO_INITDB_ROOT_USERNAME: fiaro
+          MONGO_INITDB_ROOT_PASSWORD: fiaro
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # needed for Sonar blame/history analysis
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@fiaro-app'
 
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # TypeScript incremental y la caché de Prettier entre ejecuciones: el CI solo revisa de nuevo
+      # lo que cambió. Ambas herramientas comparan contenido, así que la caché nunca da resultados viejos.
+      - name: Restore tool caches
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache
+          key: tools-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: tools-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Lint
         run: pnpm run lint
 
+      - name: Format
+        run: pnpm run format:check
+
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Unit tests
-        run: pnpm run test
-
-      - name: E2E tests
-        run: pnpm run test:e2e
+      # Unitarias y e2e en una sola corrida: coverage/lcov.info junta la cobertura de las dos y es la
+      # que lee SonarCloud. Cada corrida crea su propia base de datos en el servicio y la borra al terminar.
+      - name: Tests with coverage
+        run: pnpm run test:cov
+        env:
+          DATABASE_URL: postgresql://fiaro:fiaro@localhost:5432/fiaro
+          REDIS_URL: redis://localhost:6379
+          MONGODB_URI: mongodb://fiaro:fiaro@localhost:27017/fiaro?authSource=admin
 
       - name: Build
         run: pnpm run build
@@ -41,16 +105,60 @@ jobs:
         run: pnpm run docs
 
       - name: Upload docs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs
           path: docs
           retention-days: 14
 
-      # Requires the SONAR_TOKEN repo secret (sonarcloud.io -> project -> Administration -> Analysis Method).
-      # Left as continue-on-error until that secret exists, so it never blocks the pipeline.
+      # Requires the SONAR_TOKEN repo secret and Automatic Analysis disabled in Sonar
+      # (Administration -> Analysis Method -> keep only CI-based Analysis).
       - name: SonarQube Cloud scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        continue-on-error: true
+        uses: sonarsource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate compose files
+        run: |
+          docker compose config --quiet
+          docker compose --profile observability config --quiet
+          docker compose -f compose.yaml -f compose.test.yaml config --quiet
+
+      # El token de GitHub Packages entra como secreto de BuildKit: no queda en ninguna capa de la imagen.
+      - name: Build production image
+        run: docker build --target prod --secret id=NODE_AUTH_TOKEN,env=NODE_AUTH_TOKEN --tag fiaro-api:ci .
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Valores de mentira: la API se conecta a la base de datos con la primera consulta, y a Redis y
+      # MongoDB en segundo plano (si no responden reintenta y lo avisa en el log), así que arrancar y
+      # quedar sana no las necesita. Redis y MongoDB se pasan porque en producción son obligatorias.
+      - name: Smoke test production image
+        run: |
+          docker run -d --name api \
+            -e TRUST_PROXY=1 \
+            -e DATABASE_URL=postgresql://fiaro:fiaro@localhost:5432/fiaro \
+            -e REDIS_URL=redis://localhost:6379 \
+            -e MONGODB_URI=mongodb://localhost:27017/fiaro \
+            -e BETTER_AUTH_SECRET=secreto-solo-para-la-prueba-de-humo-0123456789 \
+            -e BETTER_AUTH_URL=https://api.example.com \
+            fiaro-api:ci
+          for _ in $(seq 1 30); do
+            [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs api
+          exit 1
+
+      - name: Run tests in containers
+        run: docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml run --rm --build test
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

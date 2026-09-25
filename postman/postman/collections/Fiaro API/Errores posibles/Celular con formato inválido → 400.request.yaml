@@ -1,0 +1,26 @@
+$kind: http-request
+description: El celular debe estar en formato internacional E.164 (`+573001234567`); la app convierte los 10 dígitos con `toColombianE164` de contracts.
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "3001234567",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('el código de error es VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));
+      pm.test('indica el campo', () => pm.expect(pm.response.json().issues[0].path).to.eql(['phoneNumber']));
+    language: text/javascript
+examples: ./.resources/Celular con formato inválido → 400.resources/examples
+order: 1000

@@ -1,0 +1,66 @@
+name: fiaro-test
+
+services:
+  postgres:
+    ports: !override
+      - '127.0.0.1:${TEST_POSTGRES_PORT:-5441}:5432'
+    volumes: !reset []
+    tmpfs:
+      - /var/lib/postgresql
+
+  redis:
+    ports: !override
+      - '127.0.0.1:${TEST_REDIS_PORT:-6391}:6379'
+    volumes: !reset []
+    tmpfs:
+      - /data
+
+  mongo:
+    ports: !override
+      - '127.0.0.1:${TEST_MONGO_PORT:-27041}:27017'
+    volumes: !reset []
+    tmpfs:
+      - /data/db
+      - /data/configdb
+
+  s3:
+    ports: !override
+      - '127.0.0.1:${TEST_S3_PORT:-8334}:8333'
+    volumes: !reset []
+    tmpfs:
+      - /data
+
+  mailpit:
+    ports: !override
+      - '127.0.0.1:${TEST_MAILPIT_SMTP_PORT:-1026}:1025'
+      - '127.0.0.1:${TEST_MAILPIT_UI_PORT:-8026}:8025'
+
+  test:
+    build:
+      context: .
+      target: test
+      secrets:
+        - NODE_AUTH_TOKEN
+    init: true
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fiaro}:${POSTGRES_PASSWORD:-fiaro}@postgres:5432/${POSTGRES_DB:-fiaro}
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://${MONGO_USER:-fiaro}:${MONGO_PASSWORD:-fiaro}@mongo:27017/fiaro_test?authSource=admin
+      S3_ENDPOINT: http://s3:8333
+      S3_REGION: auto
+      S3_BUCKET: ${S3_BUCKET:-fiaro-dev}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-fiaro}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fiaro-secret}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy

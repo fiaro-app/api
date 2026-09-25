@@ -1,0 +1,37 @@
+name: Fiaro local
+values:
+  - key: baseUrl
+    value: 'http://localhost:3040'
+    enabled: true
+    type: default
+    description: 'Origen de la API con `pnpm docker:dev`. Con `pnpm start:dev` es http://localhost:3000.'
+  - key: phone
+    value: '+573001234567'
+    enabled: true
+    type: default
+    description: 'Ana Pérez, del seed de desarrollo (`pnpm docker:seed`).'
+  - key: password
+    value: 'fiaro-dev-2026'
+    enabled: true
+    type: default
+    description: 'Contraseña de Ana Pérez en el seed de desarrollo. Es pública y solo sirve en desarrollo.'
+  - key: newPassword
+    value: 'fiaro-dev-2026-nueva'
+    enabled: true
+    type: default
+    description: 'La que se pone al probar el cambio de contraseña; la colección vuelve a la original.'
+  - key: tempPhone
+    value: '+573109998877'
+    enabled: true
+    type: default
+    description: 'Luis Gómez, cobrador con contraseña temporal en el seed de desarrollo.'
+  - key: tempPassword
+    value: 'temporal-2026'
+    enabled: true
+    type: default
+    description: 'Contraseña temporal de Luis Gómez en el seed de desarrollo. Es pública y solo sirve en desarrollo.'
+  - key: newTempPassword
+    value: 'contraseña-propia-2026'
+    enabled: true
+    type: default
+    description: 'La contraseña propia que elige Luis Gómez en su primer ingreso.'

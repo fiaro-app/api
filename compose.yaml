@@ -1,0 +1,277 @@
+name: fiaro
+
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fiaro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fiaro}
+      POSTGRES_DB: ${POSTGRES_DB:-fiaro}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5440}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8.10.1-alpine
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6390}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:8.0.32
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-fiaro}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-fiaro}
+    ports:
+      - '127.0.0.1:${MONGO_PORT:-27040}:27017'
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    healthcheck:
+      test:
+        ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  s3:
+    image: chrislusf/seaweedfs:4.45
+    command:
+      - mini
+      - -dir=/data
+      - -bucket=${S3_BUCKET:-fiaro-dev}
+      - -webdav=false
+      - -admin.ui=false
+      - -s3.port.iceberg=0
+      - -s3.port.lance=0
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-fiaro}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fiaro-secret}
+    ports:
+      - '127.0.0.1:${S3_PORT:-8333}:8333'
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8333/healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  mailpit:
+    image: axllent/mailpit:v1.31.1
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - '127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      target: dev
+      secrets:
+        - NODE_AUTH_TOKEN
+    init: true
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      NO_COLOR: 1
+      NODE_OPTIONS: --enable-source-maps
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fiaro}:${POSTGRES_PASSWORD:-fiaro}@postgres:5432/${POSTGRES_DB:-fiaro}
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://${MONGO_USER:-fiaro}:${MONGO_PASSWORD:-fiaro}@mongo:27017/fiaro?authSource=admin
+      S3_ENDPOINT: http://s3:8333
+      S3_REGION: auto
+      S3_BUCKET: ${S3_BUCKET:-fiaro-dev}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-fiaro}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fiaro-secret}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-secreto-solo-para-desarrollo-de-fiaro-2026}
+      BETTER_AUTH_URL: http://localhost:${API_PORT:-3040}
+      MOBILE_APP_SCHEMES: ${MOBILE_APP_SCHEMES:-mobile}
+    ports:
+      - '127.0.0.1:${API_PORT:-3040}:3000'
+      - '127.0.0.1:${API_DEBUG_PORT:-9229}:9229'
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - require('node:net').connect(3000, '127.0.0.1').once('connect', () => process.exit(0)).once('error', () => process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  prometheus:
+    image: prom/prometheus:v3.13.3
+    profiles: [observability]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-remote-write-receiver
+    ports:
+      - '127.0.0.1:${PROMETHEUS_PORT:-9090}:9090'
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:9090/-/ready']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.5
+    profiles: [observability]
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=15s
+      - --containerd=/var/run/docker/containerd/containerd.sock
+    privileged: true
+    devices:
+      - /dev/kmsg
+    ports:
+      - '127.0.0.1:${CADVISOR_PORT:-8081}:8080'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8080/healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  loki:
+    image: grafana/loki:3.7.7
+    profiles: [observability]
+    command: ['-config.file=/etc/loki/loki.yaml']
+    ports:
+      - '127.0.0.1:${LOKI_PORT:-3100}:3100'
+    volumes:
+      - ./docker/loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+
+  alloy:
+    image: grafana/alloy:v1.19.2
+    profiles: [observability]
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      POSTGRES_DSN: postgresql://${POSTGRES_USER:-fiaro}:${POSTGRES_PASSWORD:-fiaro}@postgres:5432/${POSTGRES_DB:-fiaro}?sslmode=disable
+      MONGO_URI: mongodb://${MONGO_USER:-fiaro}:${MONGO_PASSWORD:-fiaro}@mongo:27017/?authSource=admin
+    ports:
+      - '127.0.0.1:${ALLOY_PORT:-12345}:12345'
+    volumes:
+      - ./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      cadvisor:
+        condition: service_healthy
+      loki:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
+      GF_NEWS_NEWS_FEED_ENABLED: 'false'
+    ports:
+      - '127.0.0.1:${GRAFANA_PORT:-3030}:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
+    healthcheck:
+      test:
+        ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000/api/health']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+secrets:
+  NODE_AUTH_TOKEN:
+    environment: NODE_AUTH_TOKEN
+
+volumes:
+  postgres-data:
+  redis-data:
+  mongo-data:
+  mongo-config:
+  s3-data:
+  prometheus-data:
+  loki-data:
+  alloy-data:
+  grafana-data:

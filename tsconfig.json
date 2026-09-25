@@ -1,24 +1,29 @@
 {
   "compilerOptions": {
+    "target": "es2025",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": ".",
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
-    "strictPropertyInitialization": false,
-    "types": ["vitest/globals", "node"]
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "types": ["node"],
+    "paths": { "@/*": ["./src/*"], "@test/*": ["./test/*"] }
   },
-  "exclude": ["node_modules", "dist", "docs"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "docs",
+    "src/shared/infrastructure/persistence/generated"
+  ]
 }

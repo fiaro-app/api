@@ -1,0 +1,77 @@
+/// Persona que inicia sesión: una cuenta por persona, identificada por su celular en formato E.164.
+/// No tiene rol propio; los roles viven en la membresía con cada prestamista (D-02).
+/// better-auth exige un email único por usuario, así que `loginEmail` guarda una dirección técnica
+/// derivada del celular; el email real y opcional de la persona es `contactEmail` (D-07).
+model User {
+  id                 String   @id @db.Uuid
+  fullName           String   @map("full_name")
+  phone              String   @unique
+  phoneVerified      Boolean  @default(false) @map("phone_verified")
+  loginEmail         String   @unique @map("login_email")
+  emailVerified      Boolean  @default(false) @map("email_verified")
+  contactEmail       String?  @map("contact_email")
+  nationalId         String?  @map("national_id")
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
+  image              String?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions Session[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+/// Sesión iniciada en un dispositivo. Revocarla (borrar la fila) la invalida de inmediato.
+model Session {
+  id        String   @id @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Método de autenticación de un usuario. Hoy solo existe `providerId = 'credential'`: el hash de
+/// la contraseña queda en `password`.
+model Account {
+  id                    String    @id @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id") @db.Uuid
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Valores de un solo uso con vencimiento (enlaces y códigos de verificación).
+model Verification {
+  id         String   @id @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}

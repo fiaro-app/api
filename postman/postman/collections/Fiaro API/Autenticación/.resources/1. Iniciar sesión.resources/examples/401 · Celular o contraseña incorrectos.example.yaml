@@ -1,0 +1,34 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/auth/sign-in/phone-number"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Origin
+      value: "{{baseUrl}}"
+      description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+  body:
+    type: json
+    content: |-
+      {
+        "phoneNumber": "{{phone}}",
+        "password": "{{password}}"
+      }
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 401,
+        "code": "INVALID_PHONE_NUMBER_OR_PASSWORD",
+        "message": "El celular o la contraseña no son correctos.",
+        "path": "/auth/sign-in/phone-number",
+        "timestamp": "2026-09-25T04:00:00.000Z",
+        "issues": null
+      }
+order: 2000

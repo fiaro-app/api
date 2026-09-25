@@ -2,8 +2,11 @@
 node_modules/
 
 # build
-dist/
+/dist/
 *.tsbuildinfo
+
+# cliente de Prisma: se genera desde el esquema (`pnpm db:generate`)
+src/shared/infrastructure/persistence/generated/
 
 # env — never commit real values
 .env
@@ -16,7 +19,10 @@ npm-debug.log*
 pnpm-debug.log*
 
 # coverage
-coverage/
+/coverage/
+
+# reportes de `postman collection run -r json,html`
+/postman-cli-reports/
 
 # OS / IDE
 .DS_Store
@@ -24,4 +30,4 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 
-docs/
+/docs/

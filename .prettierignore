@@ -1,0 +1,13 @@
+# Generado o de terceros
+/dist/
+/coverage/
+/docs/
+pnpm-lock.yaml
+src/shared/infrastructure/persistence/generated/
+
+# Lo escribe Postman (su app y su CLI): Prettier lo reformatearía y el siguiente guardado en Postman lo desharía
+/postman/
+/postman-cli-reports/
+
+# Documentación: se edita a mano; Prettier reordenaría tablas y saltos de línea
+*.md

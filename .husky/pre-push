@@ -1,0 +1,9 @@
+# TypeScript incremental: reutiliza el resultado anterior y solo revisa lo que cambió.
+pnpm run typecheck
+
+# Solo las pruebas afectadas por los cambios de la rama frente a dev; el CI corre la suite completa.
+if base=$(git merge-base HEAD origin/dev 2>/dev/null); then
+  pnpm exec vitest run --project unit --changed "$base" --passWithNoTests
+else
+  pnpm run test
+fi

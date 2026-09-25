@@ -1,0 +1,303 @@
+# Arquitectura — Sistema de Control de Cartera (Gota a Gota)
+
+> Documento de producto: consolida las decisiones de dominio, arquitectura e infraestructura a nivel de negocio (entidades, multi-tenancy, suscripciones, roadmap). Esta es la copia canónica y versionada — actualízalo aquí cada vez que se tome una decisión nueva; es la fuente de verdad para cualquiera que se sume al proyecto (incluido tú mismo en 3 meses).
+>
+> Para la arquitectura de código de este repo (estructura de carpetas, convenciones, reglas de dependencia) ver [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## 1. Resumen del proyecto
+
+Sistema SaaS multi-tenant para que dueños de comercio (Owners) gestionen la operación de uno o varios prestamistas (Lenders) dedicados a crédito informal de cobro diario. El sistema **no calcula intereses ni procesa pagos reales** — es un libro de control (ledger) de acuerdos pactados manualmente entre el Lender y su cliente, con seguimiento de cobro en campo por parte de Collectors.
+
+El valor diferencial del producto no es prestar dinero, es la **visibilidad**: mora en tiempo real, efectividad de cobro por cobrador, y estadísticas que hoy ninguna hoja de Excel puede dar de forma confiable.
+
+## 2. Repositorios
+
+| Repo | Contenido | Despliegue |
+|---|---|---|
+| `api` | NestJS, arquitectura hexagonal interna, Prisma | Fly.io (Docker) |
+| `web` | Next.js + Tailwind, panel de Owner/Lender — **fase 2** (ver D-01) | Vercel |
+| `mobile` | Expo (React Native), app única para Lender **y** Collector, navegación por rol | Distribución directa (sin Play Store) |
+| `contracts` | Paquete npm privado `@fiaro-app/contracts` con schemas de Zod compartidos | GitHub Packages |
+
+`contracts` no es una app, es una librería. Se versiona con semver (`1.2.0`) y `api`/`web` la instalan como dependencia normal. `mobile` puede consumirla también, pero no es obligatorio.
+
+## 3. Stack tecnológico
+
+| Capa | Tecnología | Justificación breve |
+|---|---|---|
+| Backend | NestJS + TypeScript | Arquitectura por capas, DI nativa, ecosistema maduro |
+| ORM | **Prisma** | Migraciones declarativas, cliente tipado; se aísla del dominio con mapper (ver sección 4.3) |
+| Base de datos relacional | PostgreSQL (Neon, free tier) | Fuente de verdad transaccional |
+| Cache / colas | Redis (Upstash, free tier) + BullMQ | Cache de estado de crédito + jobs asíncronos de auditoría |
+| Auditoría / logs de eventos | MongoDB Atlas M0 (free) | Datos no estructurados, nunca datos transaccionales del crédito |
+| Frontend web | Next.js + Tailwind | Estándar actual, buen soporte de Vercel |
+| App móvil | Expo (React Native, managed workflow) | Curva de entrada baja, OTA updates nativas |
+| Autenticación | better-auth (librería self-hosted, tablas en nuestro Postgres vía Prisma), teléfono + contraseña | Sesiones, revocación y rate limit sin escribirlos; cero costo y cero lock-in (ver D-08 y D-48) |
+| Almacenamiento de archivos | Cloudflare R2 (S3-compatible) con URLs firmadas | 10 GB gratis, sin costo de egress; logo ahora, KYC en fase 2 |
+| CI/CD | GitHub Actions | Gratis, lint + test + build + deploy |
+| Análisis estático | ESLint estricto + CodeQL | SonarCloud gratis solo en repos públicos — no aplica si el repo es privado |
+| Logging | Pino (JSON estructurado) | Preparado para conectar a cualquier plataforma de observabilidad después |
+| Errores | Sentry (free tier) | Visibilidad de errores en producción |
+
+## 4. Arquitectura hexagonal (repo `api`)
+
+### 4.1 Estructura por módulos
+
+Un módulo por funcionalidad del dominio en `src/modules/<módulo>/` (`loans`, `clients`, `collections`...), cada uno con sus capas `domain`, `application` e `infrastructure`. El código transversal (auditoría, crypto, filtros, notificaciones, persistencia compartida, Swagger...) vive en `src/shared/`, con las mismas tres capas. El árbol completo, el propósito de cada carpeta y las convenciones de nombres están en [ARCHITECTURE.md §2](./ARCHITECTURE.md#2-estructura-de-carpetas).
+
+### 4.2 Regla de dependencia (obligatoria)
+
+Dentro de cada módulo, `domain` no importa de ninguna otra capa ni de librerías externas; `application` solo depende de `domain` (y de `@nestjs/common` para la inyección de dependencias); `infrastructure` puede depender de todo el módulo. Entre módulos, solo `application` usa el `application` de otro módulo; `shared` nunca depende de un módulo. Se fuerza con ESLint (`eslint-plugin-boundaries`), no con disciplina de equipo: el lint falla si una importación rompe la regla. Tabla completa en [ARCHITECTURE.md §3](./ARCHITECTURE.md#3-regla-de-dependencia-obligatoria-forzada-por-lint).
+
+### 4.3 Prisma sin ensuciar el dominio
+
+Prisma genera su propio cliente tipado, pero ese tipo **no es tu entidad de dominio**. Se traduce con un mapper explícito, siempre en `infrastructure`:
+
+```typescript
+// modules/loans/domain/entities/loan.entity.ts — sin decoradores, sin Prisma
+export class Loan {
+  private constructor(
+    public readonly id: string,
+    public readonly clientId: string,
+    public readonly lenderId: string,
+    public readonly principalAmount: number,
+    public readonly totalPayable: number,
+    public readonly status: LoanStatus,
+  ) {}
+
+  static reconstitute(props: LoanProps): Loan {
+    return new Loan(props.id, props.clientId, props.lenderId, props.principalAmount, props.totalPayable, props.status);
+  }
+}
+```
+
+```typescript
+// modules/loans/infrastructure/persistence/loan.mapper.ts
+export class LoanMapper {
+  static toDomain(record: PrismaLoan): Loan {
+    return Loan.reconstitute({ ...record });
+  }
+
+  static toPersistence(loan: Loan): Prisma.LoanCreateInput {
+    return { id: loan.id, clientId: loan.clientId, lenderId: loan.lenderId, /* ... */ };
+  }
+}
+```
+
+```typescript
+// modules/loans/infrastructure/persistence/prisma-loan.repository.ts
+@Injectable()
+export class PrismaLoanRepository implements LoanRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findById(id: string): Promise<Loan | null> {
+    const record = await this.prisma.loan.findUnique({ where: { id } });
+    return record ? LoanMapper.toDomain(record) : null;
+  }
+}
+```
+
+## 5. Modelo de dominio
+
+> Diagrama conceptual (relaciones). La forma pública de cada entidad (campos, tipos y validaciones) está en el paquete `@fiaro-app/contracts`; el detalle de persistencia (columnas, índices, constraints) vive en `schema.prisma`. Este diagrama se regenera desde el esquema.
+
+```mermaid
+erDiagram
+    USER ||--o{ MEMBERSHIP : tiene
+    TENANT ||--o{ LENDER : posee
+    TENANT ||--|| SUBSCRIPTION : paga
+    LENDER ||--o{ MEMBERSHIP : "otorga roles"
+    LENDER ||--o{ PORTFOLIO : organiza
+    LENDER ||--o{ CLIENT : gestiona
+    LENDER ||--o{ NON_WORKING_DAY : configura
+    PORTFOLIO |o--o{ MEMBERSHIP : agrupa
+    CLIENT ||--o{ LOAN : solicita
+    LOAN ||--o{ COLLECTION_ASSIGNMENT : tiene
+    LOAN ||--o{ COLLECTION_VISIT : recibe
+    MEMBERSHIP ||--o{ COLLECTION_ASSIGNMENT : "es asignado (rol COLLECTOR)"
+    MEMBERSHIP ||--o{ COLLECTION_VISIT : realiza
+    COLLECTION_VISIT ||--o| PAYMENT : produce
+    PAYMENT ||--o| PAYMENT_REVERSAL : "se corrige con"
+    MEMBERSHIP ||--o{ DAILY_SETTLEMENT : cierra
+    USER ||--o{ NOTIFICATION : recibe
+```
+
+### Entidades clave
+
+- **User**: identidad de login (una persona). Celular único global + contraseña; email opcional. Guarda también la cédula de la persona (obligatoria para cobradores) y `must_change_password`, porque son de la persona y de su credencial, no de su relación con un prestamista (D-34). **No tiene rol propio** — los roles viven en `Membership`. Tablas de sesión/cuenta las gestiona better-auth.
+- **Membership**: `User` ↔ `Lender` con un **conjunto** de roles (`OWNER`, `LENDER`, `COLLECTOR`). Una misma cuenta puede tener los 3 a la vez (el operador que trabaja solo) — ver D-02. Campos propios: `portfolio_id` (obligatorio si tiene rol `COLLECTOR`), `status: ACTIVE | INACTIVE` y `deactivated_at`.
+- **Tenant**: raíz de facturación. En el MVP el registro crea `Tenant` + `Lender` + `Membership` con los 3 roles en una sola transacción (1:1); el modelo ya soporta N Lenders por Tenant.
+- **Lender**: la operación/negocio (`name`, `logo_url`, `non_working_weekdays`, `skip_national_holidays`). Aísla su cartera de otros Lenders, incluso del mismo Tenant.
+- **Portfolio**: agrupación opcional de cobradores/clientes por zona. Cada Lender nace con una `General` por defecto.
+- **NonWorkingDay** (+ días de la semana no hábiles en config del Lender): días en que no se cobra; excluidos del cálculo de fechas esperadas.
+- **Client**: persona deudora, no es usuario. Aislado por `lender_id`; `national_id` **único por Lender**. Puede tener varios `Loan` activos a la vez (la UI alerta al crear uno nuevo).
+- **Loan**: `principal_amount`, `installment_count`, `installment_value`, `total_payable`, `frequency` (`DAILY | WEEKLY | BIWEEKLY | MONTHLY`), `start_date`. `total_payable` es un **campo guardado** (la UI sugiere `cuotas × valor`, pero se respeta lo pactado). El calendario de cuotas **no se materializa**: fechas esperadas, mora y días de atraso se calculan desde `start_date + frequency − días no hábiles`. Saldo = `total_payable − Σ pagos netos`. Estados: `ACTIVE`, `PAID_OFF` (automático al llegar el saldo a cero) y `CANCELED` (anulación por error antes de recibir pagos) (D-35). Solo el Lender crea préstamos (el Collector no, en MVP).
+- **CollectionAssignment**: quién cobra un préstamo y en qué ventana (`effective_to = NULL` → permanente; `effective_to = effective_from` → solo un día). Se asigna al **préstamo** (no al cliente) para conservar historial y medir efectividad por cobrador.
+- **CollectionVisit**: bitácora de cada intento. `outcome`: `PAID | NOT_FOUND | REFUSED | RESCHEDULED`. Guarda un **snapshot** `expected_amount` (cuota vigente en ese momento); el monto cobrado y el medio de pago viven en su `Payment`, y "parcial"/"mayor" se derivan comparando ambos. `promised_date` opcional: si se llena, el préstamo reaparece en la ruta ese día. Si hay dinero, genera un `Payment` en la misma transacción. Su `id` (UUIDv7) lo genera el dispositivo para soportar registro offline y funciona como llave de idempotencia (D-29).
+- **Payment**: **append-only**. `method: CASH | NEQUI | TRANSFER` (default `CASH`). Un pago por visita (`visit_id` único): como el `id` de la visita lo genera el dispositivo, reenviarla nunca duplica el pago.
+- **PaymentReversal**: única forma de corregir un pago. Anula el pago completo y un pago se reversa una sola vez; si el monto correcto era otro, se registra un pago nuevo. Solo la crea un rol `LENDER`, con `reason` obligatorio.
+- **DailySettlement**: cierre diario del cobrador (esperado vs. cobrado, con desglose por medio de pago). Uno por cobrador y día; reenviarlo lo actualiza y lo devuelve a `PENDING`. Los montos son los declarados al cerrar (D-36). Nota **obligatoria si hay diferencia**. `APPROVED`/`REJECTED` por el Lender, con nota de revisión; el rechazo es informativo (no bloquea la ruta), el cobrador puede reenviar con aclaración.
+- **Notification**: destinatario es `user_id` (sirve para ambos roles), con `severity` (`ALERT | WARNING | SUCCESS | INFO`) y un enlace opcional a la entidad relacionada. MVP: Lender recibe alertas de cuadres/mora; Collector recibe "cuadre rechazado" y "préstamo asignado".
+- **Subscription**: plan del Tenant, determina límite de Lenders activos. Guarda el fin del período pagado; el estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`) se calcula a partir de las fechas.
+
+> Nota de tipos: los montos en pesos colombianos se modelan como enteros, no como `DECIMAL(12,2)` — el COP no maneja centavos en la práctica de este negocio. Cada registro usa `INTEGER` (hasta unos 2.147 millones de pesos por préstamo o pago); las sumas agregadas se calculan como enteros de 64 bits. Ajustar solo si en algún momento se soporta otra moneda.
+
+## 6. Multi-tenancy y control de acceso
+
+- **Aislamiento por fila**, no por schema — cada tabla relevante tiene `lender_id`, indexado.
+- **Row Level Security (RLS) de Postgres como segunda capa**, además del guard de aplicación — nunca confiar solo en que el código de la app filtre bien.
+- **`LenderScopeGuard`**: toma `lenderId` de la sesión (membership activa), nunca del body/query del request. Si la request se hace en **modo cobrador**, valida además que el préstamo tenga una `CollectionAssignment` vigente para esa membership.
+- **Roles acumulables**: la autorización se evalúa contra el *conjunto* de roles de la membership, no contra un único rol. La app móvil muestra un selector "Modo Admin / Modo Cobrador" solo si la cuenta tiene ambos.
+- **Desactivar un cobrador** exige reasignar sus préstamos en el mismo flujo (una transacción: cierra asignaciones viejas con `effective_to`, abre nuevas). Nunca quedan préstamos sin cobrador.
+- La matriz completa rol × recurso × acción vive en `PERMISSIONS.md` (pendiente, siguiente paso).
+
+## 7. Suscripciones y facturación
+
+- Enforcement: **modo solo lectura** cuando la suscripción no está activa. Todo `GET` sigue funcionando; `POST/PUT/PATCH/DELETE` se bloquean salvo el propio endpoint de renovación.
+- **Período de gracia: 7 días** tras el vencimiento, con banner diario de "renueva". Después, solo lectura — **excepto registrar visitas/pagos**, que siempre se permiten (bloquear el cobro perjudica al deudor y al Lender, y genera rechazo al producto).
+- Plan recomendado: por número de Lenders activos, no por cartera gestionada (cartera gestionada es una métrica que el propio sistema reporta, circular como base de facturación).
+
+## 8. Autenticación
+
+- **Login con celular colombiano (10 dígitos, guardado en formato E.164 `+573001234567`, único global) + contraseña** (D-27); email opcional (`contactEmail`: recuperación, reportes; D-49). Muchos cobradores no usan correo.
+- **Librería: better-auth** corriendo dentro del API, con adaptador Prisma — las tablas de usuario/sesión quedan en nuestro Postgres. better-auth resuelve **autenticación** (sesiones, revocación, rate limit); la **autorización** (roles, `lender_id`, asignaciones, RLS) es código propio del dominio. Un adaptador propio publica ~~cuatro~~ seis de sus rutas tal como son (D-48 y D-67), porque la app móvil usa el cliente oficial de better-auth con su plugin de Expo: `POST /auth/sign-in/phone-number { phoneNumber, password }`, `GET /auth/get-session`, `POST /auth/sign-out`, `POST /auth/change-password { currentPassword, newPassword }`, `POST /auth/revoke-other-sessions` y `POST /auth/revoke-sessions`. El spike previo quedó resuelto: NestJS, el plugin de Expo y el login por celular están construidos y probados.
+- **Sesión de 30 días que se renueva con el uso, revocable desde el servidor** (D-50), guardada cifrada en el dispositivo (SecureStore). Quien no abre la app en 30 días vuelve a iniciar sesión; cambiar la contraseña cierra las demás sesiones.
+- **PIN / huella = desbloqueo local** de esa sesión (`expo-local-authentication`). No existe `/auth/login-pin`; funciona offline.
+- El Collector no se autoregistra: el Lender lo crea, el backend genera contraseña temporal que se muestra **una sola vez** (para enviarla por WhatsApp) y `must_change_password` obliga a cambiarla en el primer login. Si el teléfono ya tiene cuenta, se le agrega la membership en vez de crear otro usuario. Cambiar la contraseña exige la actual como prueba (`currentPassword`): en el primer ingreso la app usa la temporal con la que la persona acaba de entrar, así que no le pide un campo más. La contraseña nueva no puede ser de las más usadas, un patrón ni llevar el celular o la cédula de la persona (D-65). Tras 5 contraseñas incorrectas seguidas para un celular, sus inicios de sesión nuevos se bloquean 15 minutos (D-66). Desde otro dispositivo se pueden cerrar las demás sesiones o todas (D-67).
+- **El celular no se verifica en el MVP** (D-51): quien lo escribe responde por él. El registro público lo verificará con un código.
+- **Estado:** el alta de personas existe como caso de uso (`CreateUserUseCase`, que también usa el seed de desarrollo); el registro del Owner y el alta de cobradores llegan con sus módulos.
+
+## 9. Infraestructura y despliegue
+
+| Servicio | Proveedor | Costo | Nota |
+|---|---|---|---|
+| API | Fly.io | ~5-7 USD/mes | Único componente que paga, para evitar cold start en campo |
+| Web | Vercel | Gratis | |
+| PostgreSQL | Neon | Gratis | Autosuspend con latencia baja, aceptable |
+| Redis | Upstash | Gratis | También usado como broker de BullMQ |
+| MongoDB (auditoría) | Atlas M0 | Gratis | Solo eventos, nunca datos transaccionales |
+| Paquete `contracts` | GitHub Packages | Gratis (repo privado) | Requiere configurar auth en CI de `api` y `web` |
+| CI/CD | GitHub Actions | Gratis | |
+
+### Flujo de auditoría (Mongo desacoplado, sin dual-write)
+
+```typescript
+// Después de confirmar el pago en Postgres (no antes)
+await this.auditQueue.add(
+  'payment.registered',
+  { loanId, amount, registeredBy, occurredAt: new Date() },
+  { attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+);
+```
+
+Si el job de auditoría falla tras reintentos, se pierde una entrada de log — nunca un pago real, porque Postgres ya lo confirmó antes de encolar el evento.
+
+## 10. Estrategia móvil (Lender + Collector, sin Play Store)
+
+- **Android-only en el MVP, distribución directa del APK** (confirmado). iOS se evalúa cuando un cliente lo pida (requiere Apple Developer, 99 USD/año).
+- **Offline para registrar visitas**: la ruta del día se descarga al abrir la app; visitas y pagos se encolan localmente y se sincronizan al recuperar señal. Requisitos que se fijan desde el esquema: el `id` de cada visita es un UUIDv7 generado en el dispositivo y sirve de llave de idempotencia (D-29); `occurred_at` (hora real del cobro) es distinto de `created_at` (hora de llegada al servidor). El resto de la app (altas, estadísticas, admin) es online.
+- **EAS Update (OTA)** cubre el 99% de las actualizaciones (lógica, UI, textos) sin que el cobrador haga nada.
+- **Firebase App Distribution** para los pocos cambios que requieren nueva build nativa (cambio de SDK de Expo, nuevo permiso).
+- **Version-gate obligatorio**: la app consulta `GET /mobile/version` antes de mostrar cualquier pantalla; si está por debajo de `minimumSupportedVersion`, bloquea con pantalla de actualización y el link de descarga.
+- Cuidado con `runtimeVersion`: cambia al subir el SDK de Expo o agregar módulos nativos, y en ese momento las OTA dejan de aplicar a builds viejas — ahí es cuando se necesita el flujo de Firebase App Distribution.
+
+## 11. Migración de datos
+
+**Arranque limpio confirmado**: los Lenders que se unan a la plataforma no migran su cartera activa del Excel. Los créditos viejos se terminan de cobrar en la hoja actual; todo crédito nuevo se registra directo en el sistema. No se requiere importador.
+
+## 12. Roadmap propuesto
+
+**Fase 1 (MVP — núcleo del control de cartera):**
+- CRUD de Lender, Client, Loan
+- Registro de visitas de cobro (`CollectionVisit`) + ledger de pagos
+- Dashboard de mora, saldo y efectividad de cobro por cobrador
+- Multi-tenancy + RBAC de 3 niveles
+- Suscripción con límite de Lenders + modo solo lectura al vencer
+
+**Fase 2 (extras, sin prioridad definida aún):**
+- Recordatorios automáticos por WhatsApp (Twilio) antes del vencimiento de cuota
+- Captura de foto + cédula del cliente al crear el crédito (KYC básico, para disputas)
+- Ruta de cobro geolocalizada para el Collector
+- Alerta informativa si la tasa efectiva implícita (`total_a_pagar / valor_prestado`) supera la tasa de usura vigente (Superintendencia Financiera)
+
+## 13. Próximas definiciones
+
+Temas abiertos para iteraciones posteriores al MVP, ninguno bloquea el diseño del esquema:
+
+- Precio y límites de cada plan de suscripción (número de Lenders por plan).
+- Priorización de extras de Fase 2 (WhatsApp, KYC, ruta geolocalizada, comparativo contra período anterior).
+- Verificación del celular con un código (WhatsApp o SMS) al agregar el registro público (D-51).
+
+## 14. Registro de decisiones
+
+Decisiones D-01 a D-26 tomadas el 2026-09-22, al cerrar el diseño; D-27 en adelante, el 2026-09-23, al definir los contratos y configurar la API (D-40 a D-43, la base de seguridad HTTP); D-48 a D-55, el 2026-09-24, al construir la autenticación; D-56 y D-57, el mismo día, al pasar Postman al formato de Git nativo y al sacar el token de sesión de las respuestas; D-58, el 2026-09-25, al empezar los logs y la auditoría; D-59, el mismo día, al mover los textos de las respuestas a catálogos por idioma; D-60, el mismo día, al empezar a usar los errores de dominio; D-61, el mismo día, al empezar la auditoría de la autenticación; D-62, el mismo día, al llevarla a MongoDB por una cola; D-63, el mismo día, al llevar también las líneas de log; D-64, el mismo día, al ver su costo medido; D-65, el mismo día, al rechazar las contraseñas demasiado fáciles de adivinar; D-66, el mismo día, al bloquear los intentos de más por celular; D-67, el mismo día, al publicar las rutas de cerrar sesiones. Cada una tiene un ID para poder referenciarla desde código, PRs y otros documentos. Si una se revierte, se tacha y se agrega la nueva — no se borra.
+
+| ID | Tema | Decisión | Por qué |
+|---|---|---|---|
+| D-01 | App del Lender | Móvil en MVP (una sola app Expo con navegación por rol); web en fase 2 | El Lender de gota a gota opera desde el celular; evita construir dos frontends a la vez |
+| D-02 | Roles | `User` + `Membership` con **conjunto** de roles; una cuenta puede ser Owner + Lender + Collector | Operadores que trabajan solos; el mismo producto escala a negocios con equipo |
+| D-03 | Tenant vs Lender | Se mantienen separados; registro crea ambos 1:1; sin panel de Owner en MVP | Suscripción por nº de Lenders sin migración futura |
+| D-04 | Plataforma | Android-only, APK directo | Costo $0, es lo que usan los cobradores |
+| D-05 | Offline | Offline solo para registrar visitas/pagos; UUID en cliente + ~~`idempotency_key`~~ (reemplazado por D-29) | La señal en campo es irregular; sin esto el cobrador vuelve al papel |
+| D-06 | Multi-rol en UI | Selector "Modo Admin / Modo Cobrador", visible solo con ambos roles | Reutiliza las pantallas del prototipo sin rediseño |
+| D-07 | Identificador de login | Teléfono + contraseña; email opcional | Muchos cobradores no usan correo |
+| D-08 | Librería de auth | better-auth (self-hosted). ~~Sujeto a spike~~ (resuelto y construido, ver D-48) | Control total de datos, $0, ahorra sesiones/revocación/rate limit |
+| D-09 | PIN | Desbloqueo local + huella de una sesión larga revocable | Funciona offline, sin endpoint extra |
+| D-10 | Calendario | `frequency` por préstamo + días no hábiles por Lender; cuotas calculadas, no materializadas | Soporta diario/semanal/etc. sin miles de filas |
+| D-11 | `total_payable` | Campo guardado, sugerido = cuotas × valor | Respeta acuerdos no lineales y redondeos |
+| D-12 | Cartera | Entidad `Portfolio` opcional, `General` por defecto | Filtros consistentes en estadísticas sin forzar al operador solo |
+| D-13 | Asignación | Por préstamo, con historial (`effective_from/to`) | Reemplazos de un día + efectividad por cobrador exacta |
+| D-14 | Outcome | `PAID` + snapshot `expected_amount`; parcial/mayor derivados | Sin duplicar información; reportes históricos estables |
+| D-15 | Método de pago | `CASH | NEQUI | TRANSFER`, default `CASH` | El cuadre necesita saber cuánto efectivo entrega el cobrador |
+| D-16 | Corrección de pagos | Solo Lender, vía `PaymentReversal` con motivo | Auditoría completa; evita que un cobrador borre dinero cobrado |
+| D-17 | Promesa de pago | `promised_date` opcional; el préstamo reaparece en la ruta ese día | Seguimiento de promesas incumplidas |
+| D-18 | Desactivar cobrador | Reasignación obligatoria en el mismo flujo, transaccional | Nunca préstamos huérfanos |
+| D-19 | Cuadre | Rechazo informativo (no bloquea ruta); nota obligatoria si hay diferencia | La cobranza no puede parar; trazabilidad de faltantes |
+| D-20 | Notificaciones | Destinatario `user_id`; Collector recibe lo esencial | Un solo modelo para ambos roles |
+| D-21 | Gracia de suscripción | 7 días; luego solo lectura excepto registrar pagos | No castigar al deudor ni generar rechazo |
+| D-22 | Préstamos simultáneos | Permitidos, con alerta al crear | Práctica común de "renovar" antes de terminar |
+| D-23 | Alta desde campo | Solo el Lender crea clientes/préstamos en MVP | El Lender presta el dinero; el operador solo tiene ambos roles igual |
+| D-24 | Alcance de clientes | Por Lender, cédula única por Lender | Aislamiento ya definido en §6 |
+| D-25 | Storage | Cloudflare R2 con URLs firmadas | 10 GB gratis, sin egress |
+| D-26 | Lecturas con filtros | Método HTTP `QUERY` con body JSON para búsquedas, filtros y reportes; `GET` solo para lecturas por identificador | Filtros tipados y validados con Zod, sin límites de URL ni datos sensibles en logs de acceso (ver ARCHITECTURE.md §5) |
+| D-27 | Formato de teléfono | Celulares y fijos colombianos de 10 dígitos, guardados y transmitidos en E.164 (`+573001234567`). Corrige la regla anterior de 11 dígitos | Es el formato real en Colombia y el que exigen WhatsApp/Twilio para los recordatorios de fase 2 |
+| D-28 | Documento de identidad | Solo cédula de ciudadanía, en dígitos sin puntos | Alcance definido para el MVP |
+| D-29 | Idempotencia offline | El `id` de la visita (UUIDv7 generado en el dispositivo) es la llave de idempotencia; no existe un campo `idempotency_key` aparte | Reenviar una visita devuelve el resultado original sin duplicar el pago, con un campo menos |
+| D-30 | Contratos compartidos | `@fiaro-app/contracts` define entidades, requests, respuestas y endpoints (`defineEndpoint`); la API valida con esos schemas de Zod | Una sola fuente de verdad para api, mobile y web; reemplaza los DTOs con class-validator |
+| D-31 | Formato de datos en la API | JSON en camelCase; fechas de calendario `AAAA-MM-DD` y marcas de tiempo ISO 8601 con zona horaria; dinero en enteros; `null` explícito en las respuestas | Detalle y razones en el README de `contracts` |
+| D-32 | Identificadores | UUIDv7 para todas las entidades | Se ordenan por fecha (índices compactos) y se pueden generar sin conexión |
+| D-33 | Empaquetado de contracts | Solo ESM, compilado con tsdown; TypeScript 6.0 (el más nuevo que soportan typescript-eslint y TypeDoc); Node 24 | Herramientas actuales y mantenidas; se sube a TypeScript 7 cuando esas herramientas lo soporten |
+| D-34 | Datos de la persona | La cédula y `must_change_password` viven en `User`, no en `Membership` | Son de la persona y de su credencial: quien trabaja para dos prestamistas tiene una sola cédula y una sola contraseña |
+| D-35 | Estados y calendario del préstamo | `ACTIVE`, `PAID_OFF` (automático con saldo cero) y `CANCELED` (anulación por error antes de pagos). Quincenal = cada 15 días; mensual = mismo día de cada mes (o el último si el mes es más corto); una fecha que cae en día sin cobro pasa al siguiente día de cobro | Reglas necesarias para calcular ruta, mora y días de atraso sin ambigüedad |
+| D-36 | Unicidad del cuadre | Un cuadre por cobrador y día; reenviarlo lo actualiza y vuelve a `PENDING`; guarda los montos declarados al cerrar | Evita cuadres duplicados; el historial de cambios queda en la auditoría |
+| D-37 | Estructura de la API | Un módulo por funcionalidad en `src/modules/<módulo>/` con sus capas `domain`, `application` e `infrastructure`; lo transversal en `src/shared/` con las mismas capas; nombres de carpeta en plural. Entre módulos solo se usan los casos de uso (`application`) | Todo lo de una funcionalidad queda junto y cada módulo puede cambiar su modelo interno sin romper a los demás; ESLint fuerza las reglas |
+| D-38 | Herramientas de calidad de la API | ESLint (typescript-eslint con tipos + eslint-plugin-boundaries) en lugar de oxlint; Prettier; Husky + lint-staged + commitlint; pruebas compiladas con SWC y ~~cobertura mínima de 80 %~~ (95 %, ver D-54) | boundaries es la única forma de forzar la regla de capas; los hooks detectan errores antes del CI y solo revisan lo que cambió |
+| D-39 | Método de merge | PR de funcionalidad → `dev`: squash. PR de release `dev` → `main`: merge commit. Configurado en los cuatro repos (el plan Free no permite forzarlo por rama, así que es convención) | Con squash en los releases, `main` acumula commits que `dev` no tiene y cada release siguiente genera conflictos |
+| D-40 | Seguridad HTTP base | Se configura antes del primer endpoint: cabeceras con Helmet (política de contenido estricta para la API), CORS con lista explícita de orígenes, `cookie-parser` y rate limit por IP y ruta (`@nestjs/throttler`) | Cada endpoint nuevo hereda las protecciones en lugar de agregarlas después; una API financiera no puede depender de acordarse. Detalle en ARCHITECTURE.md §11 |
+| D-41 | Versionado de la API | Por cabecera `API-Version`; sin ella se sirve la versión 1. Las rutas no llevan prefijo, igual que en `contracts`. Las de infraestructura (`/health`, `/mobile/version`) son `VERSION_NEUTRAL` | Un cambio incompatible crea la versión 2 junto a la 1 sin romper las apps instaladas (que no envían la cabecera) y sin cambiar las rutas de `contracts`; el version-gate sigue alcanzable aunque se retire una versión |
+| D-42 | Validación de requests | Un pipe global sobre el `StandardSchemaValidationPipe` de NestJS 12 valida contra los schemas de Zod de `contracts`; un `@Body()` o `@Query()` sin schema falla en lugar de pasar sin validar | NestJS 12 ya trae el pipe (no hace falta uno propio ni `nestjs-zod`, que no soporta Nest 12); un olvido no debe abrir la puerta a datos sin revisar |
+| D-43 | Configuración por entorno | Variables de entorno validadas con Zod al arrancar (`src/config`) e inyectadas por token; `TRUST_PROXY` es obligatoria en producción | Un valor inválido detiene el arranque en lugar de fallar en producción; sin `TRUST_PROXY` el rate limit cuenta a todos los usuarios como uno, o deja que se falsifique la IP |
+| D-44 | Entorno local con Docker | `compose.yaml` es el entorno de desarrollo (Postgres, Redis, Mongo, S3, Mailpit y la API con recarga en caliente); `compose.test.yaml` lo reutiliza con datos en memoria para las pruebas. Un solo `Dockerfile` con un target por entorno (`dev`, `test`, `prod`). Los puertos se publican solo en `127.0.0.1` y no son los estándar | Todos trabajan sobre el mismo entorno y el CI corre lo mismo; sin puertos estándar no choca con otros proyectos de la misma máquina; las pruebas de integración tendrán su infraestructura lista y aislada. Detalle en ARCHITECTURE.md §12 |
+| D-45 | S3 en local | SeaweedFS en lugar de MinIO, con la misma API S3 que Cloudflare R2 (D-25). Las variables se llaman `S3_*`, sin el nombre del proveedor | MinIO se archivó el 25 de abril de 2026 y desde octubre de 2025 no publicaba imágenes oficiales; SeaweedFS está mantenido, es Apache-2.0 y pasó las pruebas con el SDK de AWS v3 (URLs firmadas, multipart y CORS). Con nombres neutrales el mismo código sirve para R2 y para local |
+| D-46 | Observabilidad local | Alloy como único recolector (logs a Loki, métricas a Prometheus por *remote write*), cAdvisor para los contenedores y Grafana con dashboards aprovisionados, en un perfil opcional (`observability`) | Es la forma de producción: cambiar el destino de Alloy basta para usar Grafana Cloud. En el día a día no gasta la memoria que no hace falta |
+| D-47 | Imagen de la API | Construcción en varias etapas: `prod` lleva solo las dependencias de runtime y `dist`, corre con un usuario sin privilegios y no puede escribir su código. Un `.pnpmfile.cjs` quita de `@prisma/client`, `@better-auth/prisma-adapter` y `better-auth` los peers opcionales hacia herramientas de desarrollo (`prisma`, `typescript`, `vitest`, `react`, `react-dom`, `mysql2`), que `pnpm install --prod` arrastraba. El token del paquete privado entra como secreto de BuildKit | El token no queda en la imagen; lo que se despliega es lo que la API necesita (unos 560 MB en lugar de 940 MB) y el CI comprueba que se construye y arranca antes de cada merge. Costo: cambiar `.pnpmfile.cjs` obliga a regenerar el lockfile, y sin el CLI de Prisma en la imagen las migraciones no corren desde ella. Detalle en ARCHITECTURE.md §12 |
+| D-48 | Integración de better-auth | Adaptador propio dentro de `modules/auth`: publica solo ~~cuatro~~ (seis, D-67) rutas de better-auth, tal como son (`POST /auth/sign-in/phone-number`, `GET /auth/get-session`, `POST /auth/sign-out`, `POST /auth/change-password`); las demás responden 404. No hay registro público: las personas se crean con `CreateUserUseCase`. Un guard global exige sesión salvo en las rutas `@Public()` | La app móvil usa el cliente oficial con su plugin de Expo, que espera esas rutas: no hace falta un contrato propio de login. Publicar solo cuatro deja la validación con Zod, el versionado, Swagger, el rate limit y el guard bajo nuestro control, y el dominio no conoce better-auth. Detalle en ARCHITECTURE.md §6 |
+| D-49 | Email de better-auth | `loginEmail` es una dirección técnica derivada del celular y `emailAndPassword` está apagado. El correo real y opcional de la persona es `contactEmail` | better-auth exige un email único por usuario, pero el login es por celular (D-07): un email técnico satisface a la librería sin volverse una credencial ni obligar a los cobradores a tener correo |
+| D-50 | Sesiones | 30 días que se renuevan con el uso (cada día de uso las alarga), guardadas en PostgreSQL y sin caché en la cookie. Cambiar la contraseña revoca siempre las demás sesiones | Un cobrador que trabaja a diario no reinicia sesión cada mes, y quien deja de usar la app deja de tener acceso. Sin caché, revocar una sesión surte efecto en la siguiente petición; revocar las demás al cambiar la contraseña deja fuera a quien solo conocía la temporal |
+| D-51 | Celular sin verificar | En el MVP las rutas de código por SMS están apagadas: quien escribe el celular responde por él | Verificarlo exige un proveedor de SMS o WhatsApp que aún no está contratado. Riesgo asumido: alguien podría dar de alta el celular de otra persona; se cierra al agregar el registro público, con un código antes de crear la cuenta |
+| D-52 | Código pequeño e imports con alias | Los imports usan `@/` (src) y `@test/` (test), nunca `./` ni `../`. ESLint limita cada archivo a 200 líneas de código, cada función a 50, la complejidad a 10 y la anidación a 3 | Mover un archivo no rompe los imports y la ruta dice a qué capa se llega; el código pequeño y con una sola responsabilidad se entiende, se prueba y se cambia sin miedo. Un límite en el lint funciona mejor que una recomendación |
+| D-53 | Pruebas e2e | Contra PostgreSQL real, con una base de datos nueva por corrida (migraciones aplicadas, borrada al terminar) y sin mocks de Prisma | Un mock prueba el mock: en producción se rompen las migraciones, las restricciones y las transacciones. Una base por corrida aísla las pruebas de los datos de desarrollo |
+| D-54 | Cobertura | Mínimo de 95 % en líneas, funciones, ramas y sentencias, en total y en cada archivo, midiendo las pruebas unitarias y las e2e juntas. Reemplaza el 80 % de D-38 | La lógica del negocio es dinero y accesos: lo que no se prueba es lo que falla en producción. Medir las dos suites juntas evita excluir el código que solo ejercen las e2e (módulos, la factory de better-auth, Prisma) |
+| D-55 | Documentación | TSDoc en todo símbolo exportado (publicado con Compodoc), Swagger con todas las respuestas posibles de cada ruta (OpenAPI 3.2) y una colección de Postman en el repo | La documentación que sale del código no envejece: las pruebas de contrato validan las respuestas reales con los mismos schemas que documentan |
+| D-56 | Postman en el repo | La colección y el entorno se guardan en el formato de Git nativo de Postman (Collection v3 en YAML, un archivo por solicitud, en `postman/postman/`; `postman/.postman/resources.yaml` enlaza la carpeta con el workspace FIARO), no como JSON exportado. En la app se conecta la carpeta `postman/` y desde la terminal se corren con el CLI de Postman | Un archivo por solicitud se revisa en un PR como cualquier código, y la app, el CLI y el repo trabajan sobre los mismos archivos: nadie exporta ni importa a mano. Un JSON exportado es un solo archivo que cambia entero con cada edición. Se conecta `postman/` y no la raíz porque así queda aislada del código y la app la lee sin mover nada; el costo es que no ve el `.git` (un nivel arriba) y su integración con Git no aplica, y se commitea con git. Conectar la raíz es el camino si se quiere esa integración. Postman reescribe estos archivos, así que Prettier no los formatea. Detalle en ARCHITECTURE.md §11 |
+| D-57 | Token de sesión solo en la cookie | Ninguna respuesta de autenticación devuelve el token de sesión en el cuerpo (ni `token` al iniciar sesión o cambiar la contraseña, ni `session.token` al ver la sesión): solo viaja en la cookie `HttpOnly`. Se recorta al escribir la respuesta HTTP; por dentro la API sigue viéndolo | La cookie `HttpOnly` existe para que el JavaScript de una página no pueda leer la sesión: si el mismo valor sale en el cuerpo, un script inyectado (XSS) lo lee con una llamada a `get-session` y esa protección no sirve. Los clientes no lo necesitan: el navegador manda la cookie solo y el plugin de Expo guarda la de `Set-Cookie`. Detalle en ARCHITECTURE.md §6 |
+| D-58 | Registro total: logs y auditoría | Pino escribe cada petición y cada error en JSON por la salida estándar. Después, una cola de BullMQ lleva a Mongo los eventos de autenticación (inicio de sesión bueno y fallido, cierre, cambio de contraseña), uno por uno y con reintentos, y las líneas de log en lotes. El celular y la cédula se guardan enmascarados (últimos 4 dígitos y un hash) y nunca se guardan cuerpos, contraseñas, cookies ni tokens. Retención con índice TTL: ~~90 días de peticiones~~ (60 días, D-64) y 1 año de auditoría. Se construye en tres PRs: 1) Pino, 2) cola y Mongo con la auditoría de autenticación, 3) líneas de log por lotes | Un log en JSON se filtra por campo (Loki, Mongo); el texto plano no. La cola desacopla la escritura de la petición, como en «Flujo de auditoría» (sección 3): una falla de la cola o de Mongo no frena ni revierte la operación. Los lotes evitan gastar los comandos del plan gratuito de Upstash (500 mil al mes), porque BullMQ usa varios por trabajo y consulta Redis aunque no haya trabajo. Enmascarar y borrar por tiempo limita el daño si Mongo se filtra y respeta la minimización de datos personales. Detalle en ARCHITECTURE.md §11 |
+| D-59 | Mensajes de la API por idioma (i18n) | Ningún texto de una respuesta vive en el código: salen de catálogos por idioma (`src/i18n/<idioma>/`, hoy solo español) en el idioma de `Accept-Language`, y si piden otro que no existe se responde en español. Todo error sale de un filtro global con la forma de `ApiError` de `contracts` (`statusCode`, `code`, `message`, `path`, `timestamp`, `issues`), incluidos los de better-auth, los de validación y los del framework (404, JSON mal formado); el código que falla solo dice el `code`. Agregar un idioma es agregar una carpeta de textos y una línea en `MESSAGES` | Las apps reaccionan al `code`, no al texto (D-30): el texto es para mostrar, y mostrarlo en el idioma de la persona debe ser un cambio de catálogo, no de código. Con los textos en el código, cada idioma nuevo obligaría a tocar guards, pipes y rutas, y el inglés de una librería (better-auth, Zod, Nest) llegaría tal cual a la persona. Un solo filtro evita que cada ruta arme sus errores a su manera y que un error interno revele detalles. Los mensajes por defecto de Zod pasan a ser claves para poder traducirlos por petición; los de los schemas de `contracts` también son claves: el paquete (0.2.0) trae sus textos por idioma y la API los suma a sus catálogos. Detalle en ARCHITECTURE.md §5 |
+| D-60 | Errores de dominio → HTTP por categoría | Cada `DomainError` declara su `code`, una categoría (`INVALID`, `NOT_FOUND`, `CONFLICT`, `FORBIDDEN`, `RULE_VIOLATED`), los `params` que llenan su texto y, si valida varios datos, los `issues` por campo. El filtro global traduce la categoría a un estado HTTP (400, 404, 409, 403, 422) y el texto sale del catálogo de idiomas por `code`. El código de la contraseña de longitud inválida pasa de `INVALID_PASSWORD` a `INVALID_PASSWORD_LENGTH` | El dominio no debe conocer HTTP (regla de dependencia, ARCHITECTURE.md §3): con una categoría en lugar de un estado, el mismo error sirve a una ruta, a una cola o a un script, y una categoría sin estado no compila. El `message` del error queda para el log; lo que ve la persona sale del catálogo, en su idioma (D-59), y los `params` llenan sus marcadores. `INVALID_PASSWORD` significaba dos cosas (la longitud, en el dominio, y «contraseña incorrecta», en better-auth) y una app que reacciona al código no puede distinguirlas. Detalle en ARCHITECTURE.md §5 |
+| D-61 | Auditoría de la autenticación | Los hooks de better-auth registran cinco eventos (`auth.sign_in.succeeded`, `auth.sign_in.failed`, `auth.sign_out`, `auth.password.changed`, `auth.password.change_failed`) con quién, desde dónde (IP y navegador), el `requestId` y, si fue rechazado, el código del motivo. El celular se guarda enmascarado (últimos 4 dígitos y una huella HMAC con clave derivada del secreto de la aplicación) y nunca una contraseña, una cookie ni un token. Los eventos pasan por un puerto (`AuditLog`) cuyo primer adaptador es una línea de log en JSON con `audit: true`; la cola de BullMQ y Mongo se suman como otro adaptador (D-58). Los logs de la propia better-auth pasan por el logger de Nest | Un inicio de sesión fallido no escribe nada en la base de datos: solo un hook lo ve, y auditar desde los hooks cubre lo que la API responde sin tocar cada ruta. El puerto separa qué se audita de dónde se guarda, y registrar nunca falla ni espera, así que un log caído no rechaza un inicio de sesión. Un hash simple de un celular colombiano se revertiría probando sus mil millones de posibilidades: por eso la huella lleva clave, y por eso cambiar el secreto de la aplicación impide unir los eventos anteriores con los nuevos. Cerrar sesión se audita en el borrado de la fila de la sesión (esa ruta no sabe quién era) y las sesiones que revoca un cambio de contraseña no cuentan como cierre. Detalle en ARCHITECTURE.md §6 |
+| D-62 | Auditoría durable: cola de BullMQ a MongoDB | Cada evento de auditoría sale por el log y, con Redis y MongoDB configuradas, por una cola de BullMQ 5 que un consumidor (dentro de la API) guarda en la colección `audit_events`: un trabajo por evento, con reintentos (6 intentos, espera exponencial) y guardado idempotente por `_id`. Un índice TTL borra los eventos al año. `REDIS_URL` y `MONGODB_URI` son obligatorias en producción; `QUEUE_PREFIX` separa entornos que comparten Redis | El log garantiza que ningún evento se pierde aunque la cola falle, y la cola lo hace durable y consultable por persona (`userId`, huella del celular) sin que la petición espere: registrar nunca bloquea ni rechaza (Redis o MongoDB caídos no afectan iniciar sesión, y hay pruebas). Un trabajo por evento y un `_id` por trabajo hacen que reintentar sea seguro. Se mide el costo en Redis por comando (Upstash, 500 mil al mes): en reposo unos 90 mil y unos 6 por evento con `drainDelay: 60`. BullMQ 5 y no 6: la 6.0 tiene ocho semanas, una arquitectura nueva y 27 versiones; la 5 es la línea probada. Hacerlas obligatorias en producción evita desplegar sin auditoría durable por un olvido de configuración. Detalle en ARCHITECTURE.md §11 |
+| D-63 | Líneas de log en MongoDB | Cada línea que escribe Pino sale por la salida estándar (siempre) y, con Redis y MongoDB configuradas, se copia en memoria (~~todas~~ solo las de `warn` hacia arriba, D-64) y se envía en lotes (5 minutos después de la primera línea guardada, o al juntar 1000 líneas) por la misma cola y el mismo consumidor de la auditoría (D-62). El consumidor las guarda con `insertMany` en la colección `logs` y un índice TTL las borra a los ~~90~~ 60 días (D-64). Los eventos de auditoría no se copian (ya tienen su colección) y la copia es de mejor esfuerzo: si Redis no responde, el lote se descarta y solo queda la salida estándar | El registro total (D-58) pide poder consultar todo, pero un trabajo por línea agotaría los 500 mil comandos al mes de Upstash en días: en lotes cuesta unos 52 mil al mes sea cual sea el tráfico. Una sola cola y un solo consumidor, porque cada consumidor consulta Redis aunque no haya trabajo y un segundo duplicaría ese costo. De mejor esfuerzo porque la salida estándar ya es completa y nada de esto debe frenar una petición. Costo asumido: una línea pesa unos 420 bytes, así que el plan gratuito de Atlas (512 MB, compartido con la auditoría) aguanta unas 10 mil líneas al día durante 90 días; pasado eso hay que acortar la retención, guardar solo `warn` o pagar un plan. Detalle en ARCHITECTURE.md §11 |
+| D-64 | Logs en Mongo: solo `warn` y superiores, 60 días | Mongo guarda únicamente las líneas de log de nivel `warn` hacia arriba (avisos, errores, respuestas 4xx y 5xx). Las de `info` (las peticiones que salen bien, el arranque) quedan solo en la salida estándar y en Loki. La retención baja de 90 a 60 días. Reemplaza el «cada línea» y los 90 días de D-63 (y los de D-58) | Con todo y 90 días, el plan gratuito de Atlas (512 MB en todo el clúster, compartido con la auditoría) aguantaba unas 10 mil líneas al día, y si se llena también fallan los eventos de auditoría. Lo que sale bien es la mayoría de las líneas y la que menos falta hace en una base de consulta, y Loki ya la tiene entera; con `warn`+ y 60 días caben unas 15 mil líneas de problemas al día. El nivel se filtra leyendo el comienzo de la línea (`onlyFromLevel`) y no con `pino.multistream`, porque Pino descarta los niveles por destino en los loggers hijos que usa pino-http. Detalle en ARCHITECTURE.md §11 |
+| D-65 | Contraseñas demasiado fáciles de adivinar | Al dar de alta a una persona y al cambiar su contraseña se rechaza con `PASSWORD_TOO_WEAK` (400) una contraseña de las más usadas (lista corta y ampliable, sin tildes ni mayúsculas, con hasta cuatro dígitos al final y en «leet»), un patrón (un bloque repetido o una escalera de caracteres seguidos) o una que lleva el celular o la cédula de su dueño. No se exigen mayúsculas, números ni símbolos. La longitud sigue siendo de 8 a 128 | Una contraseña como `password123` o el propio celular es lo primero que prueba quien quiere entrar a una cuenta de cobro, y en esta aplicación una cuenta comprometida mueve dinero de otros. NIST 800-63B recomienda comparar con una lista de contraseñas conocidas y no exigir composición, que solo vuelve las contraseñas más difíciles de recordar: y muchos cobradores no tienen correo ni un gestor de contraseñas. La lista es corta a propósito (atrapa lo obvio sin una dependencia nueva ni una llamada externa); comparar con un corpus de contraseñas filtradas queda como extensión. Código nuevo en `contracts` 0.3.0. Detalle en ARCHITECTURE.md §6 |
+| D-66 | Bloqueo del inicio de sesión por celular | Con 5 contraseñas incorrectas seguidas para un mismo celular dentro de 15 minutos, los inicios de sesión nuevos con ese celular se rechazan con `SIGN_IN_LOCKED` (429, con `Retry-After`) sin comprobar la contraseña, aunque sea la correcta y aunque vengan de otra IP; un inicio de sesión que sale bien reinicia la cuenta. Cuenta por el celular que se envía, exista o no; las sesiones ya abiertas no se tocan; se cuenta en Redis (compartido entre instancias) y, sin Redis, en memoria; si Redis falla el intento pasa. Se audita como `auth.sign_in.locked` | El límite por IP (5 por minuto) no detiene a quien prueba contraseñas de un celular desde muchas IP, y un celular colombiano es fácil de conseguir. Contar por celular cierra ese hueco sin exigir nada más a la persona. Se cuenta antes de comprobar la contraseña para que los intentos simultáneos no se pasen del límite, y por igual con celulares sin cuenta para no revelar cuáles la tienen. Costo asumido: quien conozca un celular puede bloquearle los inicios de sesión nuevos, pero los cobradores en campo llevan sesiones de 30 días abiertas y la ventana es corta; y falla abierto porque perder el bloqueo es mejor que perder el inicio de sesión. Código nuevo en `contracts` 0.3.0. Detalle en ARCHITECTURE.md §6 |
+| D-67 | Cerrar las demás sesiones o todas | Se publican `POST /auth/revoke-other-sessions` (cierra todas las sesiones de la persona salvo la de la cookie) y `POST /auth/revoke-sessions` (cierra todas, la de la cookie incluida), las de better-auth tal como son y sin cuerpo. Cada sesión cerrada se audita como `auth.session.revoked` con su alcance. No se publican `list-sessions` ni `revoke-session`. Amplía D-48 de cuatro a seis rutas | Un cobrador que pierde el teléfono con la sesión de 30 días abierta necesita poder cortar el acceso de ese aparato desde otro (D-50 ya quiere la revocación inmediata desde el servidor). Se publican solo estas dos porque no necesitan que la app conozca el token de ninguna sesión, que D-57 quita de todas las respuestas: `list-sessions` lo devolvería y exige una sesión «fresca» (un día) que la de 30 días casi nunca es, y `revoke-session` lo pide en el cuerpo. Una lista de dispositivos con «cerrar este» pedirá rutas propias con el `id` de la sesión cuando la app tenga esa pantalla. Detalle en ARCHITECTURE.md §6 |

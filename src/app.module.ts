@@ -1,10 +1,49 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type { Env } from '@/config/env.js';
+import { EnvModule } from '@/config/env.module.js';
+import { ENV } from '@/config/env.token.js';
+import { AuthModule } from '@/modules/auth/auth.module.js';
+import { AuditModule } from '@/shared/infrastructure/audit/audit.module.js';
+import { ApiErrorsModule } from '@/shared/infrastructure/filters/api-errors.module.js';
+import { AuthGuard } from '@/shared/infrastructure/http/auth.guard.js';
+import { I18nModule } from '@/shared/infrastructure/i18n/i18n.module.js';
+import { RecordsModule } from '@/shared/infrastructure/records/records.module.js';
+import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js';
 
+/**
+ * Módulo raíz. Registra la configuración, los textos traducidos (`I18nModule`), el filtro global
+ * de errores (`ApiErrorsModule`), un rate limit global por IP y por ruta (`ThrottlerGuard`) y la
+ * autenticación (`AuthGuard`): toda ruta exige sesión salvo las marcadas con `@Public()`. Una ruta
+ * ajusta el rate limit con `@Throttle()` o lo omite con `@SkipThrottle()`.
+ *
+ * @remarks
+ * El orden de los guards importa: el rate limit corre primero, para que las peticiones
+ * sobrantes se rechacen sin consultar la base de datos. Ninguno escribe el mensaje de su
+ * rechazo: el filtro global lo toma del catálogo según el `code`.
+ */
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    EnvModule,
+    I18nModule,
+    RecordsModule,
+    AuditModule,
+    ApiErrorsModule,
+    RuntimeModule,
+    AuthModule,
+    ThrottlerModule.forRootAsync({
+      /** Redundante en runtime (`EnvModule` es global): los tipos de `@nestjs/throttler` 6.7 con Nest 12 lo exigen. */
+      imports: [EnvModule],
+      inject: [ENV],
+      useFactory: (env: Env) => ({
+        throttlers: [{ ttl: env.throttle.ttlMs, limit: env.throttle.limit }],
+      }),
+    }),
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
 })
 export class AppModule {}

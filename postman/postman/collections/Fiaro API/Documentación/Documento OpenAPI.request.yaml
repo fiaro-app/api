@@ -1,0 +1,11 @@
+$kind: http-request
+description: Describe las rutas, sus cuerpos y todas sus respuestas (OpenAPI 3.2). Solo existe fuera de producción (`SWAGGER_ENABLED`). Se puede importar en Postman con Import → Link.
+url: "{{baseUrl}}/docs/openapi.json"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('es OpenAPI 3.2 con las cuatro rutas de autenticación', () => { const doc = pm.response.json(); pm.expect(doc.openapi).to.eql('3.2.0'); pm.expect(Object.keys(doc.paths).filter((p) => p.startsWith('/auth'))).to.have.lengthOf(4); });
+    language: text/javascript
+order: 1000

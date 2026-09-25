@@ -1,0 +1,41 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/auth/sign-in/phone-number"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Origin
+      value: "{{baseUrl}}"
+      description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+  body:
+    type: json
+    content: |-
+      {
+        "phoneNumber": "3001234567",
+        "password": "{{password}}"
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 400,
+        "code": "VALIDATION_FAILED",
+        "message": "Los datos enviados no son válidos.",
+        "path": "/auth/sign-in/phone-number",
+        "timestamp": "2026-09-25T04:00:00.000Z",
+        "issues": [
+          {
+            "path": [
+              "phoneNumber"
+            ],
+            "message": "Ingresa un celular colombiano válido de 10 dígitos."
+          }
+        ]
+      }
+order: 1000

@@ -1,0 +1,17 @@
+$kind: http-request
+description: "Revoca la sesión de la cookie en el servidor y borra la cookie. Es idempotente: sin sesión también responde 200."
+url: "{{baseUrl}}/auth/sign-out"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la respuesta confirma el cierre', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('la cookie ya no sirve', () => pm.sendRequest({ url: pm.variables.get('baseUrl') + '/auth/get-session', method: 'GET' }, (err, res) => pm.expect(res.json()).to.eql(null)));
+    language: text/javascript
+examples: ./.resources/4. Cerrar sesión.resources/examples
+order: 5000

@@ -1,0 +1,34 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/auth/sign-in/phone-number"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Origin
+      value: "{{baseUrl}}"
+      description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+  body:
+    type: json
+    content: |-
+      {
+        "phoneNumber": "{{phone}}",
+        "password": "no-es-la-contraseña"
+      }
+response:
+  statusCode: 429
+  statusText: Too Many Requests
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 429,
+        "code": "RATE_LIMITED",
+        "message": "Demasiadas solicitudes. Intenta de nuevo en unos segundos.",
+        "path": "/auth/sign-in/phone-number",
+        "timestamp": "2026-09-25T04:00:00.000Z",
+        "issues": null
+      }
+order: 1000

@@ -1,0 +1,3 @@
+$kind: collection
+description: "**Bloquea tu IP para iniciar sesión durante un minuto.** Ejecútala al final."
+order: 4000
