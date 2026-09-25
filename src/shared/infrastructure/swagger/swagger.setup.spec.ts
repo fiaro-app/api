@@ -7,6 +7,7 @@ import {
   DOCS_PATH,
   setupSwagger,
 } from '@/shared/infrastructure/swagger/swagger.setup.js';
+import { listenOnLoopback } from '@test/support/loopback.js';
 
 const EchoSchema = z.strictObject({ name: z.string().min(1) });
 
@@ -28,6 +29,7 @@ describe('setupSwagger', () => {
     app = moduleRef.createNestApplication({ logger: false });
     setupSwagger(app, '1');
     await app.init();
+    await listenOnLoopback(app);
   });
 
   afterAll(async () => {
