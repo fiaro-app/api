@@ -4,7 +4,7 @@ import type { LogEntry } from '@/shared/infrastructure/logging/log-entry.js';
 export interface LogDocument {
   /** El id del lote y la posición de la línea en él: guardar el mismo lote dos veces no duplica nada. */
   readonly _id: string;
-  /** Cuándo se escribió; el índice TTL cuenta los 90 días de retención desde aquí. */
+  /** Cuándo se escribió; el índice TTL cuenta los 60 días de retención desde aquí. */
   readonly time: Date;
   /** Cuándo llegó a MongoDB, para medir cuánto tarda el lote. */
   readonly recordedAt: Date;

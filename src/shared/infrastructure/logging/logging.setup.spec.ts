@@ -56,7 +56,7 @@ describe('setupLogging', () => {
       setupLogging(app, envWith('silent'));
     }).not.toThrow();
   });
-  it('con un batcher, cada línea sale por el destino y además se le entrega', () => {
+  it('con un batcher, cada línea sale por el destino y solo las de warn hacia arriba se le entregan', () => {
     const { app, useLogger } = fakeApp();
     const logs = captureLogs();
     const batcher = { write: vi.fn() };
@@ -65,13 +65,21 @@ describe('setupLogging', () => {
       destination: logs.destination,
       batcher,
     });
-    (useLogger.mock.calls[0] as [PinoNestLogger])[0].log('hola');
+    const nestLogger = (useLogger.mock.calls[0] as [PinoNestLogger])[0];
+    nestLogger.log('sale bien');
+    nestLogger.warn('sale mal');
+    nestLogger.error('sale muy mal');
 
-    expect(logs.entries().map((entry) => entry.msg)).toEqual(['hola']);
-    expect(batcher.write).toHaveBeenCalledOnce();
-    const [line] = batcher.write.mock.calls[0] as [string];
-    expect(JSON.parse(line)).toMatchObject({ level: 'info', msg: 'hola' });
-    expect(line).toBe(logs.text());
+    expect(logs.entries().map((entry) => entry.msg)).toEqual([
+      'sale bien',
+      'sale mal',
+      'sale muy mal',
+    ]);
+    expect(batcher.write).toHaveBeenCalledTimes(2);
+    const copies = batcher.write.mock.calls.map(
+      ([copy]) => (JSON.parse(copy as string) as { msg: string }).msg,
+    );
+    expect(copies).toEqual(['sale mal', 'sale muy mal']);
   });
 
   it('con un batcher y sin destino escribe en la salida estándar y se lo entrega', () => {
@@ -83,7 +91,7 @@ describe('setupLogging', () => {
     const batcher = { write: vi.fn() };
 
     setupLogging(app, envWith('info'), { batcher });
-    (useLogger.mock.calls[0] as [PinoNestLogger])[0].log('hola');
+    (useLogger.mock.calls[0] as [PinoNestLogger])[0].warn('hola');
 
     expect(destination).toHaveBeenCalledWith(1);
     expect(stdout.write).toHaveBeenCalledOnce();
