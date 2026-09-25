@@ -19,3 +19,9 @@ export const SIGN_OUT_PATH = '/sign-out';
 
 /** Ruta de better-auth para cambiar la contraseña con una sesión abierta. */
 export const CHANGE_PASSWORD_PATH = '/change-password';
+
+/** Ruta de better-auth para cerrar todas las sesiones de la persona salvo la de la cookie. */
+export const REVOKE_OTHER_SESSIONS_PATH = '/revoke-other-sessions';
+
+/** Ruta de better-auth para cerrar todas las sesiones de la persona, la de la cookie incluida. */
+export const REVOKE_SESSIONS_PATH = '/revoke-sessions';

@@ -1,0 +1,16 @@
+$kind: http-request
+description: "Cierra en el servidor todas las sesiones de la persona, la de esta cookie incluida: la cookie sigue guardada pero ya no vale."
+url: "{{baseUrl}}/auth/revoke-sessions"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la respuesta confirma el cierre', () => pm.expect(pm.response.json().status).to.be.true);
+      pm.test('la cookie ya no sirve', () => pm.sendRequest({ url: pm.variables.get('baseUrl') + '/auth/get-session', method: 'GET' }, (err, res) => pm.expect(res.json()).to.eql(null)));
+    language: text/javascript
+order: 4600

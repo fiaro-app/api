@@ -89,6 +89,24 @@ describe('AuthAuditor', () => {
     });
   });
 
+  it.each(['others', 'all'] as const)(
+    'cerrar una sesión desde otra (%s) guarda de quién era y el alcance, sin celular',
+    (scope) => {
+      const { auditor, events } = setup();
+
+      auditor.sessionRevoked('u1', scope, origin);
+
+      expect(events[0]).toMatchObject({
+        action: 'auth.session.revoked',
+        outcome: 'SUCCESS',
+        userId: 'u1',
+        details: { scope },
+        ip: origin.ip,
+      });
+      expect(events[0]?.phone).toBeUndefined();
+    },
+  );
+
   it('cambiar la contraseña guarda quién', () => {
     const { auditor, events } = setup();
 

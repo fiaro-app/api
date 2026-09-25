@@ -30,3 +30,8 @@ export const SignOutResponseSchema = z
 export const ChangePasswordResponseSchema = z
   .object({ user: AuthUserSchema })
   .meta({ id: 'ChangePasswordResponse' });
+
+/** Respuesta de `POST /auth/revoke-other-sessions` y de `POST /auth/revoke-sessions`. */
+export const StatusResponseSchema = z
+  .object({ status: z.literal(true) })
+  .meta({ id: 'StatusResponse' });

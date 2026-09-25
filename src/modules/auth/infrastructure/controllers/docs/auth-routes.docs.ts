@@ -15,6 +15,7 @@ import {
   SessionResponseSchema,
   SignInResponseSchema,
   SignOutResponseSchema,
+  StatusResponseSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/auth-responses.schema.js';
 
 /** Documenta `POST /auth/sign-in/phone-number`. */
@@ -106,6 +107,54 @@ export const ApiChangePassword = () =>
       description:
         'La contraseña actual es incorrecta (`INVALID_PASSWORD`) o la nueva es demasiado fácil de adivinar (`PASSWORD_TOO_WEAK`).',
       standardSchema: AuthErrorSchema,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No hay sesión vigente (`UNAUTHORIZED`).',
+      standardSchema: AuthErrorSchema,
+    }),
+    ApiOriginRejectedResponse(),
+    ApiRateLimitedResponse(),
+  );
+
+/** Documenta `POST /auth/revoke-other-sessions`. */
+export const ApiRevokeOtherSessions = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Cerrar las demás sesiones',
+      description:
+        'Cierra en el servidor todas las sesiones de la persona salvo la de la cookie: los demás dispositivos pierden el acceso en su siguiente petición. Sirve cuando se pierde o se presta un teléfono. No cambia la contraseña (para eso, `change-password`, que también cierra las demás). Cada sesión cerrada queda en la auditoría como `auth.session.revoked`.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiOriginHeaders(),
+    ApiResponse({
+      status: 200,
+      description: 'Las demás sesiones quedaron cerradas.',
+      standardSchema: StatusResponseSchema,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No hay sesión vigente (`UNAUTHORIZED`).',
+      standardSchema: AuthErrorSchema,
+    }),
+    ApiOriginRejectedResponse(),
+    ApiRateLimitedResponse(),
+  );
+
+/** Documenta `POST /auth/revoke-sessions`. */
+export const ApiRevokeSessions = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Cerrar todas las sesiones',
+      description:
+        'Cierra en el servidor todas las sesiones de la persona, la de la cookie incluida: en este dispositivo la cookie sigue guardada pero ya no vale, así que la app debe tratarla como cerrada y borrarla. Cada sesión cerrada queda en la auditoría como `auth.session.revoked`.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiOriginHeaders(),
+    ApiResponse({
+      status: 200,
+      description: 'Todas las sesiones quedaron cerradas.',
+      standardSchema: StatusResponseSchema,
     }),
     ApiResponse({
       status: 401,
