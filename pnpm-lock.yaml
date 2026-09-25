@@ -17,8 +17,8 @@ importers:
         specifier: ~1.7.5
         version: 1.7.5(@better-auth/core@1.7.5(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.6.5))(jose@6.2.12)(kysely@0.29.6)(nanostores@1.5.3))(@better-auth/utils@0.4.2)(@prisma/client@7.10.0)
       '@fiaro-app/contracts':
-        specifier: ^0.1.0
-        version: 0.1.0(zod@4.6.5)
+        specifier: ^0.2.0
+        version: 0.2.0(zod@4.6.5)
       '@nestjs/common':
         specifier: ^12.0.4
         version: 12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -506,8 +506,8 @@ packages:
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@fiaro-app/contracts@0.1.0':
-    resolution: {integrity: sha512-b2bYaDob3OCVGPpdOelctIZAdZ/s0c5YzoDmc5Qp4UvuQOcRmtJX5BOpD9yuv4RUMKq4GE1UsJf6rU60TiquqA==, tarball: https://npm.pkg.github.com/download/@fiaro-app/contracts/0.1.0/6c051db079c166e8324c6ff6933272b54e06bab2}
+  '@fiaro-app/contracts@0.2.0':
+    resolution: {integrity: sha512-pzNS4Ts2n80eWoc4CP1HKJZ9fnDFjApM/XRnKgFOOzT9jlUBHNDESt2v9Rvxgbgr97rXu8CcnL8bXaz3J3RQ0Q==, tarball: https://npm.pkg.github.com/download/@fiaro-app/contracts/0.2.0/80b0760f61fd2d60e0cfcb9482f4f707d5111a80}
     engines: {node: '>=24'}
     peerDependencies:
       zod: ^4.6.5
@@ -4302,7 +4302,7 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@fiaro-app/contracts@0.1.0(zod@4.6.5)':
+  '@fiaro-app/contracts@0.2.0(zod@4.6.5)':
     dependencies:
       zod: 4.6.5
 

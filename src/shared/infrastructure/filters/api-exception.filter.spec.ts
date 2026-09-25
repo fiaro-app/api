@@ -124,7 +124,7 @@ describe('ApiExceptionFilter', () => {
       });
     });
 
-    it('traduce el detalle por campo con los valores de cada falla', () => {
+    it('traduce el detalle por campo: las claves de Zod con sus valores y las del contrato', () => {
       const res = respondTo(
         new InvalidUserDataError([
           {
@@ -142,7 +142,10 @@ describe('ApiExceptionFilter', () => {
         message: 'Los datos enviados no son válidos.',
         issues: [
           { path: ['fullName'], message: 'La longitud mínima es 2.' },
-          { path: ['nationalId'], message: 'contracts.national_id.invalid' },
+          {
+            path: ['nationalId'],
+            message: 'Ingresa una cédula válida: solo números, sin puntos.',
+          },
         ],
       });
     });

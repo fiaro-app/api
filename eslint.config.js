@@ -179,6 +179,9 @@ export default defineConfig(
             // config: lectura y validación del entorno.
             { from: from('config'), allow: elements(['config']) },
 
+            // i18n: los textos de la API; suma los que trae el contrato en cada idioma.
+            { from: from('i18n'), allow: packages(['@fiaro-app/contracts']) },
+
             // Raíz de composición: registra los módulos y lo compartido.
             {
               from: from('app'),
