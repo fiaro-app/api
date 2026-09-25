@@ -59,18 +59,24 @@ async function bodyWithoutToken(
 
 /**
  * El código de un error de better-auth (`INVALID_PHONE_NUMBER_OR_PASSWORD`), o el que corresponde
- * a su estado cuando el cuerpo no lo trae. El rate limit de better-auth siempre es `RATE_LIMITED`.
+ * a su estado cuando el cuerpo no lo trae. Un 429 es siempre `RATE_LIMITED` (el rate limit de
+ * better-auth no lleva código) salvo el bloqueo de un celular, que es de la API y trae el suyo,
+ * `SIGN_IN_LOCKED`.
  */
 async function errorCodeOf(response: globalThis.Response): Promise<string> {
-  if (response.status === 429) {
-    return ErrorCodeSchema.enum.RATE_LIMITED;
-  }
+  const fallback =
+    response.status === 429
+      ? ErrorCodeSchema.enum.RATE_LIMITED
+      : codeForStatus(response.status);
   try {
     const body: unknown = await response.json();
     const code = UpstreamErrorSchema.safeParse(body).data?.code;
-    return code ?? codeForStatus(response.status);
+    if (response.status === 429) {
+      return code === ErrorCodeSchema.enum.SIGN_IN_LOCKED ? code : fallback;
+    }
+    return code ?? fallback;
   } catch {
-    return codeForStatus(response.status);
+    return fallback;
   }
 }
 
@@ -109,7 +115,7 @@ async function writeError(
  * `end()`, no con `send()`: Express agregaría un ETag y un cliente podría recibir un 304 sin
  * cuerpo en lugar de la sesión. Un error (4xx o 5xx) no pasa tal cual: better-auth escribe sus
  * mensajes en inglés, así que solo se toma su `code` y el mensaje sale del catálogo, con la forma
- * de error de la API. El 429 se reemplaza por `RATE_LIMITED` con `Retry-After`.
+ * de error de la API. El 429 se reemplaza por `RATE_LIMITED` (o `SIGN_IN_LOCKED`) con `Retry-After`.
  *
  * @param res - Respuesta de Express.
  * @param response - Respuesta de better-auth.

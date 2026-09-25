@@ -11,6 +11,7 @@ import {
   SIGN_IN_PATH,
 } from '@/modules/auth/infrastructure/better-auth/auth.constants.js';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
+import type { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
 import {
   type AuthHookContext,
   failureCodeOf,
@@ -26,12 +27,20 @@ import {
   withPasswordChangeCleared,
 } from '@/modules/auth/infrastructure/better-auth/auth-hook-rules.js';
 
-/** Audita cómo terminó un inicio de sesión: la sesión que abrió, o el código con que lo rechazó. */
-function auditSignIn(auditor: AuthAuditor, ctx: AuthHookContext): void {
+/**
+ * Audita cómo terminó un inicio de sesión: la sesión que abrió (y entonces se reinician los intentos
+ * del celular), o el código con que lo rechazó.
+ */
+async function auditSignIn(
+  auditor: AuthAuditor,
+  guard: SignInGuard,
+  ctx: AuthHookContext,
+): Promise<void> {
   const origin = originOf(ctx);
   const opened = newSessionOf(ctx);
   if (opened) {
     auditor.signedIn(opened.person, opened.mustChangePassword, origin);
+    await guard.forgive(phoneOf(ctx));
     return;
   }
   const code = failureCodeOf(ctx);
@@ -97,9 +106,10 @@ async function rejectWeakNewPassword(
  * Lo que corre antes de la ruta: nivela el tiempo del inicio de sesión y, al cambiar la
  * contraseña, rechaza la débil y fuerza revocar las demás sesiones.
  */
-function createBeforeHook(auditor: AuthAuditor) {
+function createBeforeHook(auditor: AuthAuditor, guard: SignInGuard) {
   return createAuthMiddleware(async (ctx) => {
     if (ctx.path === SIGN_IN_PATH) {
+      await guard.admit(phoneOf(ctx), originOf(ctx));
       await hashWhenPhoneIsUnknown(
         {
           phoneExists: async (phone) =>
@@ -128,10 +138,10 @@ function createBeforeHook(auditor: AuthAuditor) {
 }
 
 /** Lo que corre después de la ruta: audita el resultado y, al cambiar la contraseña, quita la marca de temporal. */
-function createAfterHook(auditor: AuthAuditor) {
+function createAfterHook(auditor: AuthAuditor, guard: SignInGuard) {
   return createAuthMiddleware(async (ctx) => {
     if (ctx.path === SIGN_IN_PATH) {
-      auditSignIn(auditor, ctx);
+      await auditSignIn(auditor, guard, ctx);
       return;
     }
     if (ctx.path !== CHANGE_PASSWORD_PATH) {
@@ -156,8 +166,9 @@ function createAfterHook(auditor: AuthAuditor) {
  * Reglas de Fiaro sobre las rutas de better-auth; la lógica de cada una está en
  * `auth-hook-rules.ts` y la de la auditoría en `auth-audit-rules.ts`.
  *
- * - Iniciar sesión: nivela el tiempo de respuesta entre celulares con y sin cuenta y audita el
- *   resultado (`auth.sign_in.succeeded` o `auth.sign_in.failed`).
+ * - Iniciar sesión: rechaza con `SIGN_IN_LOCKED` al celular que agotó sus intentos (`SignInGuard`),
+ *   nivela el tiempo de respuesta entre celulares con y sin cuenta y audita el resultado
+ *   (`auth.sign_in.succeeded` o `auth.sign_in.failed`); si sale bien, reinicia los intentos.
  * - Cambiar la contraseña: rechaza la nueva si es demasiado fácil de adivinar (`PASSWORD_TOO_WEAK`),
  *   revoca siempre las demás sesiones (quien conocía la contraseña anterior, por ejemplo la
  *   temporal, pierde el acceso), audita el resultado y, si sale bien, quita la marca de contraseña
@@ -166,10 +177,11 @@ function createAfterHook(auditor: AuthAuditor) {
  * Cerrar sesión se audita en {@link createAuthDatabaseHooks}, porque esa ruta no sabe quién era.
  *
  * @param auditor - A quien se le avisa de cada resultado.
+ * @param guard - Cuenta los intentos de iniciar sesión de cada celular y bloquea al que se pasa.
  */
-export function createAuthHooks(auditor: AuthAuditor) {
+export function createAuthHooks(auditor: AuthAuditor, guard: SignInGuard) {
   return {
-    before: createBeforeHook(auditor),
-    after: createAfterHook(auditor),
+    before: createBeforeHook(auditor, guard),
+    after: createAfterHook(auditor, guard),
   };
 }

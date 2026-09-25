@@ -140,6 +140,7 @@ describe('la documentación de las rutas de autenticación', () => {
         'AuthError',
         'ValidationError',
         'RateLimited',
+        'SignInLocked',
       ]),
     );
   });

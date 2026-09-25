@@ -6,6 +6,7 @@ import {
 import { APIError } from 'better-auth/api';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { createAuthHooks } from '@/modules/auth/infrastructure/better-auth/auth-hooks.js';
+import type { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
 
 /** Un auditor que solo anota a qué se le avisó. */
 function fakeAuditor() {
@@ -19,7 +20,14 @@ function fakeAuditor() {
 }
 
 const auditor = fakeAuditor();
-const hooks = createAuthHooks(auditor as unknown as AuthAuditor);
+const guard = {
+  admit: vi.fn(() => Promise.resolve()),
+  forgive: vi.fn(() => Promise.resolve()),
+};
+const hooks = createAuthHooks(
+  auditor as unknown as AuthAuditor,
+  guard as unknown as SignInGuard,
+);
 
 /**
  * Los hooks de better-auth son middlewares que se pueden invocar con un contexto a medida: aquí

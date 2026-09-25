@@ -1,13 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { createAuthHooks } from '@/modules/auth/infrastructure/better-auth/auth-hooks.js';
+import type { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
 import {
   CHANGE_PASSWORD_PATH,
   CLIENT_IP_HEADER,
 } from '@/modules/auth/infrastructure/better-auth/auth.constants.js';
 
 const auditor = { passwordChangeFailed: vi.fn() };
-const hooks = createAuthHooks(auditor as unknown as AuthAuditor);
+const guard = {
+  admit: vi.fn(() => Promise.resolve()),
+  forgive: vi.fn(() => Promise.resolve()),
+};
+const hooks = createAuthHooks(
+  auditor as unknown as AuthAuditor,
+  guard as unknown as SignInGuard,
+);
 
 /** Los hooks de better-auth son middlewares que se invocan con un contexto a medida. */
 const run = (context: object): Promise<unknown> =>

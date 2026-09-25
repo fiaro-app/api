@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AuthErrorSchema,
   RateLimitedSchema,
+  SignInLockedSchema,
   ValidationErrorSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/auth-errors.schema.js';
 import {
@@ -79,6 +80,22 @@ describe('POST /auth/sign-in/phone-number', () => {
 
     expect(response.status).toBe(429);
     expect(RateLimitedSchema.safeParse(response.body).success).toBe(true);
+    expect(response.headers['retry-after']).toMatch(/^\d+$/);
+  });
+});
+
+describe('POST /auth/sign-in/phone-number: bloqueo por celular', () => {
+  it('429 con SIGN_IN_LOCKED cumple SignInLocked y trae Retry-After', async () => {
+    const app = await startWithUser();
+    for (let i = 0; i < 5; i++) {
+      await signIn(app, { password: 'incorrecta-a-proposito' });
+    }
+
+    const response = await signIn(app);
+
+    expect(response.status).toBe(429);
+    expect(SignInLockedSchema.safeParse(response.body).success).toBe(true);
+    expect(RateLimitedSchema.safeParse(response.body).success).toBe(false);
     expect(response.headers['retry-after']).toMatch(/^\d+$/);
   });
 });

@@ -9,6 +9,8 @@ import { SESSION_RESOLVER } from '@/shared/application/ports/session-resolver.to
 import { PersonalDataMasker } from '@/shared/infrastructure/audit/personal-data-masker.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { PASSWORD_HASHER } from '@/modules/auth/application/ports/password-hasher.token.js';
+import type { SignInAttempts } from '@/modules/auth/application/ports/sign-in-attempts.port.js';
+import { SIGN_IN_ATTEMPTS } from '@/modules/auth/application/ports/sign-in-attempts.token.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
 import { USER_REPOSITORY } from '@/modules/auth/domain/tokens/user-repository.token.js';
 import { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
@@ -16,6 +18,8 @@ import { createAuth } from '@/modules/auth/infrastructure/better-auth/auth.facto
 import { BETTER_AUTH } from '@/modules/auth/infrastructure/better-auth/auth.token.js';
 import { BetterAuthPasswordHasher } from '@/modules/auth/infrastructure/better-auth/better-auth-password-hasher.js';
 import { BetterAuthSessionResolver } from '@/modules/auth/infrastructure/better-auth/better-auth-session-resolver.js';
+import { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
+import { createSignInAttempts } from '@/modules/auth/infrastructure/lockout/sign-in-attempts.factory.js';
 import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/prisma-user.repository.js';
 
 /**
@@ -24,16 +28,37 @@ import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/
  */
 export const authProviders: Provider[] = [
   {
+    provide: SIGN_IN_ATTEMPTS,
+    inject: [ENV],
+    useFactory: (env: Env): SignInAttempts => createSignInAttempts(env),
+  },
+  {
     provide: BETTER_AUTH,
-    inject: [ENV, PrismaService, ID_GENERATOR, AUDIT_LOG, PersonalDataMasker],
+    inject: [
+      ENV,
+      PrismaService,
+      ID_GENERATOR,
+      AUDIT_LOG,
+      PersonalDataMasker,
+      SIGN_IN_ATTEMPTS,
+    ],
     useFactory: (
       env: Env,
       prisma: PrismaService,
       ids: IdGenerator,
       audit: AuditLog,
       masker: PersonalDataMasker,
-    ) =>
-      createAuth({ env, prisma, ids, auditor: new AuthAuditor(audit, masker) }),
+      attempts: SignInAttempts,
+    ) => {
+      const auditor = new AuthAuditor(audit, masker);
+      return createAuth({
+        env,
+        prisma,
+        ids,
+        auditor,
+        guard: new SignInGuard(attempts, masker, auditor),
+      });
+    },
   },
   { provide: SESSION_RESOLVER, useClass: BetterAuthSessionResolver },
   { provide: PASSWORD_HASHER, useClass: BetterAuthPasswordHasher },
