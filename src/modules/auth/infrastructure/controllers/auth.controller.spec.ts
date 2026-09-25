@@ -10,6 +10,7 @@ import type { Env } from '@/config/env.js';
 import type { Auth } from '@/modules/auth/infrastructure/better-auth/auth.factory.js';
 import { AuthController } from '@/modules/auth/infrastructure/controllers/auth.controller.js';
 import { IS_PUBLIC_KEY } from '@/shared/infrastructure/http/public.decorator.js';
+import { realApiErrors } from '@test/support/api-errors.js';
 import { FakeExpressResponse } from '@test/support/fake-express-response.js';
 
 const env = { auth: { baseUrl: 'https://api.fiaro.co' } } as Env;
@@ -22,7 +23,11 @@ function setup(reply: () => Response = () => new Response('{}')) {
     () => Promise.resolve(reply()),
   );
   return {
-    controller: new AuthController({ handler } as unknown as Auth, env),
+    controller: new AuthController(
+      { handler } as unknown as Auth,
+      env,
+      realApiErrors(),
+    ),
     handler,
     res: new FakeExpressResponse(),
   };
@@ -131,5 +136,30 @@ describe('AuthController', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe('{"success":true}');
+  });
+
+  it('escribe los errores de better-auth con la forma y el idioma de la API', async () => {
+    const { controller, res } = setup(
+      () =>
+        new Response(
+          '{"code":"INVALID_PASSWORD","message":"Invalid password"}',
+          {
+            status: 400,
+          },
+        ),
+    );
+
+    await controller.changePassword(
+      CHANGE,
+      requestOf('POST'),
+      res.asResponse(),
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body ?? '')).toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_PASSWORD',
+      message: 'La contraseña no es correcta.',
+    });
   });
 });

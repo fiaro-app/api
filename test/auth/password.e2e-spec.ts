@@ -24,7 +24,11 @@ describe('contraseña temporal', () => {
       .set('Cookie', cookie);
 
     expect(protectedRoute.status).toBe(403);
-    expect(protectedRoute.body.code).toBe('PASSWORD_CHANGE_REQUIRED');
+    expect(protectedRoute.body).toMatchObject({
+      statusCode: 403,
+      code: 'PASSWORD_CHANGE_REQUIRED',
+      message: 'Debes cambiar tu contraseña temporal antes de continuar.',
+    });
     expect(session.body.user.mustChangePassword).toBe(true);
   });
 
@@ -92,7 +96,10 @@ describe('contraseña temporal', () => {
       });
 
     expect(change.status).toBe(400);
-    expect(change.body.code).toBe('INVALID_PASSWORD');
+    expect(change.body).toMatchObject({
+      code: 'INVALID_PASSWORD',
+      message: 'La contraseña no es correcta.',
+    });
     const user = await app.prisma.user.findUniqueOrThrow({
       where: { phone: PHONE },
     });
@@ -119,6 +126,9 @@ describe('contraseña temporal', () => {
       expect(change.status).toBe(400);
       expect(change.body.code).toBe('VALIDATION_FAILED');
       expect(change.body.issues[0].path).toEqual(['newPassword']);
+      expect(change.body.issues[0].message).toMatch(
+        /^La longitud (mínima|máxima) es \d+\.$/,
+      );
     },
   );
 

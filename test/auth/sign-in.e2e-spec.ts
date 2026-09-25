@@ -50,10 +50,16 @@ describe('iniciar sesión con celular y contraseña', () => {
     });
     const unknownPhone = await signIn(app, { phone: '+573109998877' });
 
+    const withoutTimestamp = (body: object) => ({ ...body, timestamp: '' });
     expect(wrongPassword.status).toBe(401);
     expect(unknownPhone.status).toBe(401);
-    expect(unknownPhone.body).toEqual(wrongPassword.body);
+    expect(withoutTimestamp(unknownPhone.body)).toEqual(
+      withoutTimestamp(wrongPassword.body),
+    );
     expect(wrongPassword.body.code).toBe('INVALID_PHONE_NUMBER_OR_PASSWORD');
+    expect(wrongPassword.body.message).toBe(
+      'El celular o la contraseña no son correctos.',
+    );
     expect(wrongPassword.headers['set-cookie']).toBeUndefined();
     expect(await app.prisma.session.count()).toBe(0);
   });

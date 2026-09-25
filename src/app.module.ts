@@ -5,21 +5,27 @@ import type { Env } from '@/config/env.js';
 import { EnvModule } from '@/config/env.module.js';
 import { ENV } from '@/config/env.token.js';
 import { AuthModule } from '@/modules/auth/auth.module.js';
+import { ApiErrorsModule } from '@/shared/infrastructure/filters/api-errors.module.js';
 import { AuthGuard } from '@/shared/infrastructure/http/auth.guard.js';
+import { I18nModule } from '@/shared/infrastructure/i18n/i18n.module.js';
 import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js';
 
 /**
- * Módulo raíz. Registra la configuración, un rate limit global por IP y por ruta
- * (`ThrottlerGuard`) y la autenticación (`AuthGuard`): toda ruta exige sesión salvo las marcadas
- * con `@Public()`. Una ruta ajusta el rate limit con `@Throttle()` o lo omite con `@SkipThrottle()`.
+ * Módulo raíz. Registra la configuración, los textos traducidos (`I18nModule`), el filtro global
+ * de errores (`ApiErrorsModule`), un rate limit global por IP y por ruta (`ThrottlerGuard`) y la
+ * autenticación (`AuthGuard`): toda ruta exige sesión salvo las marcadas con `@Public()`. Una ruta
+ * ajusta el rate limit con `@Throttle()` o lo omite con `@SkipThrottle()`.
  *
  * @remarks
  * El orden de los guards importa: el rate limit corre primero, para que las peticiones
- * sobrantes se rechacen sin consultar la base de datos.
+ * sobrantes se rechacen sin consultar la base de datos. Ninguno escribe el mensaje de su
+ * rechazo: el filtro global lo toma del catálogo según el `code`.
  */
 @Module({
   imports: [
     EnvModule,
+    I18nModule,
+    ApiErrorsModule,
     RuntimeModule,
     AuthModule,
     ThrottlerModule.forRootAsync({
@@ -28,8 +34,6 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
       inject: [ENV],
       useFactory: (env: Env) => ({
         throttlers: [{ ttl: env.throttle.ttlMs, limit: env.throttle.limit }],
-        errorMessage:
-          'Demasiadas solicitudes. Intenta de nuevo en unos segundos.',
       }),
     }),
   ],

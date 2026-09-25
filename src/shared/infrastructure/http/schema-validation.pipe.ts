@@ -1,10 +1,12 @@
-import { ErrorCodeSchema, type ValidationIssue } from '@fiaro-app/contracts';
+import { ErrorCodeSchema } from '@fiaro-app/contracts';
 import {
   BadRequestException,
   StandardSchemaValidationPipe,
   type ArgumentMetadata,
 } from '@nestjs/common';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
+import type { ApiExceptionPayload } from '@/shared/infrastructure/filters/api-exception-payload.js';
+import { zodIssueParams } from '@/shared/infrastructure/i18n/zod-messages.js';
 
 function toPathSegment(
   segment: PropertyKey | StandardSchemaV1.PathSegment,
@@ -15,21 +17,27 @@ function toPathSegment(
 
 /**
  * Traduce los errores de un schema al `400 VALIDATION_FAILED` del contrato de errores.
- * Solo copia `path` y `message`: el resto de los datos de cada error no sale en la respuesta.
+ *
+ * @remarks
+ * No escribe ningún texto: cada error lleva su `message` (una clave del catálogo, si el schema
+ * no puso el suyo) y los `params` de la falla de Zod (`minimum`, `keys`...), y el filtro global
+ * los traduce al idioma de la petición. El resto de los datos de cada error no sale en la
+ * respuesta.
  *
  * @param issues - Errores que devolvió el schema.
  */
 export function toValidationException(
   issues: readonly StandardSchemaV1.Issue[],
 ): BadRequestException {
-  return new BadRequestException({
+  const payload: ApiExceptionPayload = {
     code: ErrorCodeSchema.enum.VALIDATION_FAILED,
-    message: 'Los datos enviados no son válidos.',
-    issues: issues.map((issue): ValidationIssue => ({
+    issues: issues.map((issue) => ({
       path: (issue.path ?? []).map(toPathSegment),
       message: issue.message,
+      params: zodIssueParams(issue),
     })),
-  });
+  };
+  return new BadRequestException(payload);
 }
 
 /**

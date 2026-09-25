@@ -1,15 +1,26 @@
 import type { Response } from 'express';
 
 /**
- * Lo mínimo de `Response` de Express que usan las pruebas unitarias del controller y del escritor
- * de respuestas, guardando lo que reciben para poder inspeccionarlo.
+ * Lo mínimo de `Response` de Express que usan las pruebas unitarias del controller, del escritor
+ * de respuestas y del filtro de excepciones, guardando lo que reciben para poder inspeccionarlo.
  */
 export class FakeExpressResponse {
   statusCode = 200;
+  headersSent = false;
   readonly headers = new Map<string, string>();
   readonly cookies: string[] = [];
-  varyValue: string | undefined;
+  readonly varyValues: string[] = [];
+  /** La petición de la que sale la respuesta (`res.req` en Express). */
+  req: { originalUrl: string } = { originalUrl: '/probe' };
   body: string | undefined;
+  /** Lo que se escribió con `json()`. */
+  jsonBody: unknown;
+  ended = false;
+
+  /** Todo lo que se pidió en `Vary`, o `undefined` si nada. */
+  get varyValue(): string | undefined {
+    return this.varyValues.length > 0 ? this.varyValues.join(', ') : undefined;
+  }
 
   status(code: number) {
     this.statusCode = code;
@@ -29,7 +40,7 @@ export class FakeExpressResponse {
   }
 
   vary(value: string) {
-    this.varyValue = value;
+    this.varyValues.push(value);
     return this;
   }
 
@@ -38,8 +49,15 @@ export class FakeExpressResponse {
     return this;
   }
 
-  end(body: string) {
+  json(body: unknown) {
+    this.jsonBody = body;
+    this.ended = true;
+    return this;
+  }
+
+  end(body?: string) {
     this.body = body;
+    this.ended = true;
   }
 
   /** La respuesta con el tipo que espera el código que se prueba. */

@@ -24,8 +24,11 @@ response:
     type: json
     content: |-
       {
+        "statusCode": 400,
         "code": "VALIDATION_FAILED",
         "message": "Los datos enviados no son válidos.",
+        "path": "/auth/sign-in/phone-number",
+        "timestamp": "2026-09-25T04:00:00.000Z",
         "issues": [
           {
             "path": [

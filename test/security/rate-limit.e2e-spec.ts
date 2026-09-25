@@ -21,7 +21,11 @@ describe('rate limit', () => {
     const blocked = await api.get('/probe/ping').expect(429);
 
     expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
-    expect(blocked.body.message).toContain('Demasiadas solicitudes');
+    expect(blocked.body).toMatchObject({
+      statusCode: 429,
+      code: 'RATE_LIMITED',
+      message: 'Demasiadas solicitudes. Intenta de nuevo en unos segundos.',
+    });
   });
 
   it('informa el límite y lo que queda en cada respuesta', async () => {

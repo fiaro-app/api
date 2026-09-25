@@ -5,6 +5,9 @@ method: POST
 headers:
   - key: Content-Type
     value: application/json
+  - key: Accept-Language
+    value: es
+    description: Idioma de los mensajes de error. Hoy solo hay español, y sin la cabecera (o con un idioma que la API no habla) también se responde en español.
   - key: Origin
     value: "{{baseUrl}}"
     description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
@@ -18,6 +21,15 @@ body:
     }
 scripts:
   - type: afterResponse
-    code: pm.test('responde 404', () => pm.response.to.have.status(404));
+    code: |-
+      pm.test('responde 404', () => pm.response.to.have.status(404));
+      pm.test('el error lleva su código, el mensaje en español y la ruta pedida', () => {
+        const body = pm.response.json();
+        pm.expect(body.statusCode).to.eql(404);
+        pm.expect(body.code).to.eql('NOT_FOUND');
+        pm.expect(body.message).to.eql('No encontramos lo que buscas.');
+        pm.expect(body.path).to.eql('/auth/sign-up/email');
+      });
+      pm.test('dice en qué idioma salió el texto', () => pm.response.to.have.header('Content-Language', 'es'));
     language: text/javascript
 order: 10000

@@ -1,6 +1,11 @@
 import { ErrorCodeSchema } from '@fiaro-app/contracts';
 import type { Response } from 'express';
+import { z } from 'zod';
 import { withoutSessionToken } from '@/modules/auth/infrastructure/better-auth/auth-response-body.js';
+import type { ApiErrorFactory } from '@/shared/infrastructure/filters/api-error.factory.js';
+import { codeForStatus } from '@/shared/infrastructure/filters/exception-details.js';
+import { markLocalized } from '@/shared/infrastructure/i18n/localized-response.js';
+import { requestPath } from '@/shared/infrastructure/logging/http-log-fields.js';
 
 /** Cabeceras de la respuesta de better-auth que Express calcula por su cuenta o maneja aparte. */
 const OWN_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
@@ -11,11 +16,11 @@ const OWN_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
   'vary',
 ]);
 
-const RATE_LIMITED_MESSAGE =
-  'Demasiadas solicitudes. Intenta de nuevo en unos segundos.';
-
 /** Segundos de espera que se anuncian si better-auth no dice cuántos. */
 const DEFAULT_RETRY_AFTER_SECONDS = '60';
+
+/** Lo único que se toma del error de better-auth: su código; el texto lo escribe la API. */
+const UpstreamErrorSchema = z.object({ code: z.string() });
 
 function copyHeaders(res: Response, response: globalThis.Response): void {
   res.setHeader('Cache-Control', 'no-store');
@@ -31,20 +36,6 @@ function copyHeaders(res: Response, response: globalThis.Response): void {
   if (vary) {
     res.vary(vary);
   }
-}
-
-/** Traduce el 429 de better-auth al contrato de errores de la API, con `Retry-After` estándar. */
-function writeRateLimited(res: Response, response: globalThis.Response): void {
-  res.setHeader(
-    'Retry-After',
-    response.headers.get('x-retry-after') ?? DEFAULT_RETRY_AFTER_SECONDS,
-  );
-  res.type('application/json').end(
-    JSON.stringify({
-      code: ErrorCodeSchema.enum.RATE_LIMITED,
-      message: RATE_LIMITED_MESSAGE,
-    }),
-  );
 }
 
 /**
@@ -67,6 +58,48 @@ async function bodyWithoutToken(
 }
 
 /**
+ * El código de un error de better-auth (`INVALID_PHONE_NUMBER_OR_PASSWORD`), o el que corresponde
+ * a su estado cuando el cuerpo no lo trae. El rate limit de better-auth siempre es `RATE_LIMITED`.
+ */
+async function errorCodeOf(response: globalThis.Response): Promise<string> {
+  if (response.status === 429) {
+    return ErrorCodeSchema.enum.RATE_LIMITED;
+  }
+  try {
+    const body: unknown = await response.json();
+    const code = UpstreamErrorSchema.safeParse(body).data?.code;
+    return code ?? codeForStatus(response.status);
+  } catch {
+    return codeForStatus(response.status);
+  }
+}
+
+/**
+ * Escribe un error de better-auth con la forma de error de la API y el mensaje en el idioma de
+ * la petición. El 429 lleva `Retry-After` estándar.
+ */
+async function writeError(
+  res: Response,
+  response: globalThis.Response,
+  errors: ApiErrorFactory,
+): Promise<void> {
+  if (response.status === 429) {
+    res.setHeader(
+      'Retry-After',
+      response.headers.get('x-retry-after') ?? DEFAULT_RETRY_AFTER_SECONDS,
+    );
+  }
+  const details = {
+    statusCode: response.status,
+    code: await errorCodeOf(response),
+  };
+  markLocalized(res, errors.language);
+  res
+    .type('application/json')
+    .end(JSON.stringify(errors.create(details, requestPath(res.req))));
+}
+
+/**
  * Escribe en la respuesta de Express lo que respondió better-auth.
  *
  * @remarks
@@ -74,20 +107,23 @@ async function bodyWithoutToken(
  * sesión se quita del cuerpo: solo viaja en la cookie `HttpOnly`. La respuesta lleva siempre
  * `Cache-Control: no-store` (trae la cookie de sesión y datos personales) y se escribe con
  * `end()`, no con `send()`: Express agregaría un ETag y un cliente podría recibir un 304 sin
- * cuerpo en lugar de la sesión. El 429 de better-auth se reemplaza por el error estándar
- * `RATE_LIMITED` con `Retry-After`.
+ * cuerpo en lugar de la sesión. Un error (4xx o 5xx) no pasa tal cual: better-auth escribe sus
+ * mensajes en inglés, así que solo se toma su `code` y el mensaje sale del catálogo, con la forma
+ * de error de la API. El 429 se reemplaza por `RATE_LIMITED` con `Retry-After`.
  *
  * @param res - Respuesta de Express.
  * @param response - Respuesta de better-auth.
+ * @param errors - Fábrica del cuerpo de error, con el idioma de la petición.
  */
 export async function writeAuthResponse(
   res: Response,
   response: globalThis.Response,
+  errors: ApiErrorFactory,
 ): Promise<void> {
   res.status(response.status);
   copyHeaders(res, response);
-  if (response.status === 429) {
-    writeRateLimited(res, response);
+  if (response.status >= 400) {
+    await writeError(res, response, errors);
     return;
   }
   res.end(await bodyWithoutToken(response));

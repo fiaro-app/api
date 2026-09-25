@@ -35,24 +35,22 @@ export const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
  * datos vacía y de una aplicación nueva.
  */
 export async function createAppWithUser(
-  options: {
-    mustChangePassword?: boolean;
-    env?: NodeJS.ProcessEnv;
-    overrides?: TestAppOptions['overrides'];
-    logDestination?: TestAppOptions['logDestination'];
-  } = {},
+  options: { mustChangePassword?: boolean } & Omit<
+    TestAppOptions,
+    'controllers'
+  > = {},
 ): Promise<TestApp> {
+  const { mustChangePassword, env, ...rest } = options;
   const app = await startTestApp({
+    ...rest,
     controllers: [ProbeController],
-    env: { CORS_ORIGINS: APP_ORIGIN, ...options.env },
-    overrides: options.overrides,
-    logDestination: options.logDestination,
+    env: { CORS_ORIGINS: APP_ORIGIN, ...env },
   });
   await app.createUser({
     phone: PHONE,
     fullName: 'Ana Pérez',
     password: PASSWORD,
-    mustChangePassword: options.mustChangePassword,
+    mustChangePassword,
   });
   return app;
 }
@@ -71,15 +69,23 @@ export function nextIp(): string {
 
 export function signIn(
   app: TestApp,
-  credentials: { phone?: string; password?: string; ip?: string } = {},
+  credentials: {
+    phone?: string;
+    password?: string;
+    ip?: string;
+    language?: string;
+  } = {},
 ) {
-  return app.http
+  const request = app.http
     .post('/auth/sign-in/phone-number')
-    .set('X-Forwarded-For', credentials.ip ?? nextIp())
-    .send({
-      phoneNumber: credentials.phone ?? PHONE,
-      password: credentials.password ?? PASSWORD,
-    });
+    .set('X-Forwarded-For', credentials.ip ?? nextIp());
+  if (credentials.language !== undefined) {
+    request.set('Accept-Language', credentials.language);
+  }
+  return request.send({
+    phoneNumber: credentials.phone ?? PHONE,
+    password: credentials.password ?? PASSWORD,
+  });
 }
 
 /** El valor de la cabecera `Cookie` que enviaría la app con lo que respondió el servidor. */

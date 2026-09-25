@@ -23,6 +23,8 @@ import { IS_PUBLIC_KEY } from '@/shared/infrastructure/http/public.decorator.js'
  * responde 403 `PASSWORD_CHANGE_REQUIRED` hasta que la persona la cambie por `/auth/change-password`.
  * Así quien conozca la contraseña temporal (por ejemplo, quien la envió por WhatsApp) no puede usarla.
  * Corre después del rate limit, así que un ataque de fuerza bruta no llega a consultar la base de datos.
+ * Las excepciones solo llevan el `code`: el filtro global escribe el mensaje en el idioma de la
+ * petición.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -51,13 +53,11 @@ export class AuthGuard implements CanActivate {
     if (!session) {
       throw new UnauthorizedException({
         code: ErrorCodeSchema.enum.UNAUTHENTICATED,
-        message: 'Inicia sesión para continuar.',
       });
     }
     if (session.user.mustChangePassword) {
       throw new ForbiddenException({
         code: ErrorCodeSchema.enum.PASSWORD_CHANGE_REQUIRED,
-        message: 'Debes cambiar tu contraseña temporal antes de continuar.',
       });
     }
 

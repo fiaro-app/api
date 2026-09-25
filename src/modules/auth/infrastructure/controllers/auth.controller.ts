@@ -36,6 +36,7 @@ import {
   ChangePasswordRequestSchema,
   SignInRequestSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/auth-requests.schema.js';
+import { ApiErrorFactory } from '@/shared/infrastructure/filters/api-error.factory.js';
 import { Public } from '@/shared/infrastructure/http/public.decorator.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 
@@ -56,6 +57,7 @@ export class AuthController {
   constructor(
     @Inject(BETTER_AUTH) private readonly auth: Auth,
     @Inject(ENV) private readonly env: Env,
+    private readonly errors: ApiErrorFactory,
   ) {}
 
   /**
@@ -132,6 +134,6 @@ export class AuthController {
       pathname: `${AUTH_BASE_PATH}${path}`,
       body,
     });
-    await writeAuthResponse(res, await this.auth.handler(request));
+    await writeAuthResponse(res, await this.auth.handler(request), this.errors);
   }
 }

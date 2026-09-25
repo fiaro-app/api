@@ -1,0 +1,41 @@
+{
+  "invalid": "El dato no es válido.",
+  "invalid_type": {
+    "missing": "Este dato es obligatorio.",
+    "string": "Debe ser un texto.",
+    "number": "Debe ser un número.",
+    "int": "Debe ser un número entero.",
+    "boolean": "Debe ser verdadero o falso.",
+    "array": "Debe ser una lista.",
+    "object": "Debe ser un objeto.",
+    "other": "El dato no tiene el tipo esperado."
+  },
+  "too_small": {
+    "string": "La longitud mínima es {minimum}.",
+    "number": "Debe ser mayor o igual a {minimum}.",
+    "number_exclusive": "Debe ser mayor que {minimum}.",
+    "array": "La cantidad mínima de elementos es {minimum}.",
+    "other": "El valor es menor que el mínimo permitido."
+  },
+  "too_big": {
+    "string": "La longitud máxima es {maximum}.",
+    "number": "Debe ser menor o igual a {maximum}.",
+    "number_exclusive": "Debe ser menor que {maximum}.",
+    "array": "La cantidad máxima de elementos es {maximum}.",
+    "other": "El valor supera el máximo permitido."
+  },
+  "invalid_format": {
+    "regex": "El dato no tiene el formato esperado.",
+    "email": "Ingresa un correo válido.",
+    "uuid": "El identificador no es válido.",
+    "url": "Ingresa una dirección web válida.",
+    "date": "La fecha no es válida.",
+    "datetime": "La fecha y hora no son válidas.",
+    "other": "El dato no tiene el formato esperado."
+  },
+  "invalid_value": "Debe ser uno de los valores permitidos: {values}.",
+  "unrecognized_keys": "Dato no esperado: {keys}.",
+  "not_multiple_of": "Debe ser múltiplo de {divisor}.",
+  "invalid_union": "El dato no cumple ninguna de las opciones permitidas.",
+  "custom": "El dato no es válido."
+}

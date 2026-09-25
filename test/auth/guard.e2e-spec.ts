@@ -16,7 +16,11 @@ describe('el guard global', () => {
     const response = await whoami(app);
 
     expect(response.status).toBe(401);
-    expect(response.body.code).toBe('UNAUTHENTICATED');
+    expect(response.body).toMatchObject({
+      statusCode: 401,
+      code: 'UNAUTHENTICATED',
+      message: 'Inicia sesión para continuar.',
+    });
   });
 
   it('con la cookie de sesión deja pasar y entrega el usuario a @CurrentUser()', async () => {

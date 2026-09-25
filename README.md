@@ -143,6 +143,8 @@ El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typech
 
 Los imports usan el alias `@/` (`src/`) y `@test/` (`test/`), nunca rutas relativas; todo símbolo exportado lleva TSDoc; los archivos y las funciones son cortos, y ESLint lo exige. Los porqués están en [ARCHITECTURE.md §2](./ARCHITECTURE.md#2-estructura-de-carpetas).
 
+Ningún texto de una respuesta está en el código: los mensajes viven en catálogos por idioma en `src/i18n/` (hoy solo español) y `Accept-Language` elige el idioma de la respuesta. Agregar un idioma es agregar una carpeta de textos: [ARCHITECTURE.md §5](./ARCHITECTURE.md#5-convenciones-http).
+
 ## Hooks de git
 
 `pnpm install` instala los hooks con Husky:
