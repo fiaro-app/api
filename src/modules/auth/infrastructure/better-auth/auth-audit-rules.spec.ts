@@ -5,6 +5,7 @@ import {
   newSessionOf,
   originOf,
   phoneOf,
+  ownerOf,
   requesterOf,
 } from '@/modules/auth/infrastructure/better-auth/auth-audit-rules.js';
 
@@ -146,5 +147,34 @@ describe('requesterOf', () => {
     ['una sesión sin persona', { context: { session: {} } }],
   ])('%s no da persona', (_caso, ctx) => {
     expect(requesterOf(ctx)).toBeUndefined();
+  });
+});
+
+describe('ownerOf', () => {
+  it('lee el celular y la cédula de la persona de la sesión', () => {
+    const session = {
+      session: { id: 's1' },
+      user: {
+        id: 'u1',
+        phoneNumber: '+573001234567',
+        nationalId: '1032456789',
+      },
+    };
+
+    expect(ownerOf(session)).toEqual({
+      phone: '+573001234567',
+      nationalId: '1032456789',
+    });
+  });
+
+  it.each([
+    ['sin sesión', null],
+    ['una sesión sin persona', { session: { id: 's1' } }],
+    ['algo que no es una sesión', 'texto'],
+  ])('con %s no tiene datos que comparar', (_caso, session) => {
+    expect(ownerOf(session)).toEqual({
+      phone: undefined,
+      nationalId: undefined,
+    });
   });
 });

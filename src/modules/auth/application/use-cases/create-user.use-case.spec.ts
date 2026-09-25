@@ -6,6 +6,7 @@ import type { User } from '@/modules/auth/domain/entities/user.entity.js';
 import { InvalidPasswordError } from '@/modules/auth/domain/errors/invalid-password.error.js';
 import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
 import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
+import { WeakPasswordError } from '@/modules/auth/domain/errors/weak-password.error.js';
 import type { UserRepository } from '@/modules/auth/domain/repositories/user.repository.js';
 import type { PasswordHasher } from '@/modules/auth/application/ports/password-hasher.port.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
@@ -134,6 +135,27 @@ describe('CreateUserUseCase', () => {
         useCase.execute({ ...VALID, password }),
       ).rejects.toBeInstanceOf(InvalidPasswordError);
       expect(hash).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['una de las más usadas', { password: 'password123' }],
+    ['un patrón', { password: 'abcdefghij' }],
+    ['una que lleva el celular', { password: 'ana-3001234567-x' }],
+    [
+      'una que lleva la cédula',
+      { password: 'mi-cedula-1020304050', nationalId: '1020304050' },
+    ],
+  ])(
+    'rechaza una contraseña demasiado fácil de adivinar (%s) antes de calcular el hash',
+    async (_caso, change) => {
+      const { useCase, create, hash } = setup();
+
+      await expect(
+        useCase.execute({ ...VALID, ...change }),
+      ).rejects.toBeInstanceOf(WeakPasswordError);
+      expect(hash).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
     },
   );
 

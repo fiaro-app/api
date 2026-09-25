@@ -1,4 +1,5 @@
 import { APIError } from 'better-auth/api';
+import type { PasswordOwner } from '@/modules/auth/domain/policies/password-strength.policy.js';
 import type {
   AuditedPerson,
   RequestOrigin,
@@ -97,4 +98,18 @@ export function newSessionOf(
 export function requesterOf(ctx: AuthHookContext): AuditedPerson | undefined {
   const session = isRecord(ctx.context) ? ctx.context.session : undefined;
   return personOf(isRecord(session) ? session.user : undefined);
+}
+
+/**
+ * El celular y la cédula de la persona de una sesión: lo que su contraseña nueva no puede llevar
+ * dentro.
+ *
+ * @param session - La sesión de better-auth (`{ session, user }`), o lo que devuelva al no haberla.
+ */
+export function ownerOf(session: unknown): PasswordOwner {
+  const user = isRecord(session) ? session.user : undefined;
+  return {
+    phone: stringField(user, 'phoneNumber'),
+    nationalId: stringField(user, 'nationalId'),
+  };
 }

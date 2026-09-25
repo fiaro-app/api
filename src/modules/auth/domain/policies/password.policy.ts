@@ -6,6 +6,18 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 
 /**
+ * Si la contraseña tiene la longitud permitida.
+ *
+ * @param password - Contraseña en claro.
+ */
+export function isPasswordLengthAllowed(password: string): boolean {
+  return (
+    password.length >= PASSWORD_MIN_LENGTH &&
+    password.length <= PASSWORD_MAX_LENGTH
+  );
+}
+
+/**
  * Longitud permitida de una contraseña. Es la misma que aplica el motor de autenticación al
  * cambiarla, para que una contraseña creada aquí nunca sea rechazada allá.
  *
@@ -13,10 +25,7 @@ export const PASSWORD_MAX_LENGTH = 128;
  * @throws {@link InvalidPasswordError} Si tiene menos de {@link PASSWORD_MIN_LENGTH} o más de {@link PASSWORD_MAX_LENGTH} caracteres.
  */
 export function assertPasswordAllowed(password: string): void {
-  if (
-    password.length < PASSWORD_MIN_LENGTH ||
-    password.length > PASSWORD_MAX_LENGTH
-  ) {
+  if (!isPasswordLengthAllowed(password)) {
     throw new InvalidPasswordError(PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH);
   }
 }

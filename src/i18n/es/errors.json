@@ -19,7 +19,9 @@
 
   "INVALID_PHONE": "El celular debe ser colombiano y estar en formato internacional, por ejemplo +573001234567.",
   "INVALID_PASSWORD_LENGTH": "La contraseña debe tener entre {minLength} y {maxLength} caracteres.",
+  "PASSWORD_TOO_WEAK": "La contraseña es demasiado fácil de adivinar. Evita las más usadas, los números seguidos o repetidos, y tu celular o tu cédula.",
   "PHONE_ALREADY_REGISTERED": "Ya existe una cuenta con ese celular.",
+  "SIGN_IN_LOCKED": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",
 
   "INVALID_PHONE_NUMBER_OR_PASSWORD": "El celular o la contraseña no son correctos.",
   "INVALID_PASSWORD": "La contraseña no es correcta.",
