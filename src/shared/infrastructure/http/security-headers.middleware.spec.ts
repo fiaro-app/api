@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createSecurityHeaders } from '@/shared/infrastructure/http/security-headers.middleware.js';
+import { listenOnLoopback } from '@test/support/loopback.js';
 
 @Controller()
 class ProbeController {
@@ -40,6 +41,7 @@ describe('createSecurityHeaders', () => {
     app = moduleRef.createNestApplication({ logger: false });
     app.use(createSecurityHeaders('docs'));
     await app.init();
+    await listenOnLoopback(app);
   });
 
   afterAll(async () => {

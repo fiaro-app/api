@@ -19,6 +19,7 @@ import { createLanguageMiddleware } from '@/shared/infrastructure/i18n/language.
 import { FLAT_CATALOGS } from '@/shared/infrastructure/i18n/message-catalog.js';
 import { TranslationService } from '@/shared/infrastructure/i18n/translation.service.js';
 import { configureZodMessages } from '@/shared/infrastructure/i18n/zod-messages.js';
+import { listenOnLoopback } from '@test/support/loopback.js';
 
 const NoteSchema = z.strictObject({ name: z.string().min(3) });
 
@@ -78,6 +79,7 @@ describe('una API con dos idiomas', () => {
     configureZodMessages();
     app.useGlobalPipes(new SchemaValidationPipe());
     await app.init();
+    await listenOnLoopback(app);
   });
 
   afterAll(async () => {

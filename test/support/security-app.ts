@@ -6,6 +6,7 @@ import { AppModule } from '@/app.module.js';
 import { configureApp } from '@/app.setup.js';
 import { type Env, loadEnv } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
+import { listenOnLoopback } from '@test/support/loopback.js';
 import {
   ExplicitV1Controller,
   NeutralController,
@@ -66,6 +67,7 @@ export function useSecurityApp() {
     });
     configureApp(running);
     await running.init();
+    await listenOnLoopback(running);
     return request(running.getHttpServer());
   };
 }

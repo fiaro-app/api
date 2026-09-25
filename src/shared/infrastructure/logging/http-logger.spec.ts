@@ -14,6 +14,7 @@ import { createHttpLogger } from '@/shared/infrastructure/logging/http-logger.js
 import { createLogger } from '@/shared/infrastructure/logging/logger.factory.js';
 import { currentRequestContext } from '@/shared/infrastructure/logging/request-context.js';
 import { captureLogs } from '@test/support/log-capture.js';
+import { listenOnLoopback } from '@test/support/loopback.js';
 
 @Controller()
 class ProbeController {
@@ -63,6 +64,7 @@ describe('createHttpLogger', () => {
       ),
     );
     await app.init();
+    await listenOnLoopback(app);
     return {
       http: request(app.getHttpServer()),
       /** Lo que se escribió sobre las peticiones (otros avisos no cuentan). */

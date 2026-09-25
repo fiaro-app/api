@@ -12,6 +12,7 @@ import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-u
 import type { FlatCatalogs } from '@/shared/infrastructure/i18n/message-catalog.js';
 import { TranslationService } from '@/shared/infrastructure/i18n/translation.service.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
+import { listenOnLoopback } from '@test/support/loopback.js';
 import { testEnvSource } from '@test/support/test-env.js';
 
 export interface TestAppOptions {
@@ -70,6 +71,7 @@ export async function startTestApp(
     languages: options.languages,
   });
   await app.init();
+  await listenOnLoopback(app);
 
   const prisma = app.get(PrismaService, { strict: false });
   await prisma.$executeRaw`TRUNCATE TABLE "users", "verifications" CASCADE`;
