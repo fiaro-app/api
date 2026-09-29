@@ -195,6 +195,23 @@ describe('AuthAuditor', () => {
     });
   });
 
+  it('actualizar el perfil guarda quién y qué campos cambiaron, nunca los valores', () => {
+    const { auditor, events } = setup();
+
+    auditor.profileUpdated(
+      'u1',
+      { fullName: true, contactEmail: false },
+      origin,
+    );
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.profile.updated',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+      details: { fullNameChanged: true, contactEmailChanged: false },
+    });
+  });
+
   it('agrega el id de la petición en curso, para unir el evento con su línea del log', () => {
     const { auditor, events } = setup();
 

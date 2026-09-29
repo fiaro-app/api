@@ -33,6 +33,7 @@ function setup(user: User | null) {
     findById: vi.fn(() => Promise.resolve(user)),
     updatePassword: vi.fn(),
     markContactEmailVerified: vi.fn(),
+    updateProfile: vi.fn(),
   };
   const replace = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {

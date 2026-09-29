@@ -5,7 +5,10 @@ import { Prisma } from '@/shared/infrastructure/persistence/generated/client.js'
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import type { User } from '@/modules/auth/domain/entities/user.entity.js';
 import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
-import type { UserRepository } from '@/modules/auth/domain/repositories/user.repository.js';
+import type {
+  ProfileUpdate,
+  UserRepository,
+} from '@/modules/auth/domain/repositories/user.repository.js';
 import {
   CREDENTIAL_PROVIDER,
   toUser,
@@ -82,6 +85,21 @@ export class PrismaUserRepository implements UserRepository {
     await this.prisma.user.update({
       where: { id: userId },
       data: { contactEmailVerified: true },
+    });
+  }
+
+  /**
+   * @param userId - La persona.
+   * @param update - Los datos nuevos.
+   */
+  async updateProfile(userId: string, update: ProfileUpdate): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: update.fullName,
+        contactEmail: update.contactEmail,
+        contactEmailVerified: update.contactEmailVerified,
+      },
     });
   }
 }

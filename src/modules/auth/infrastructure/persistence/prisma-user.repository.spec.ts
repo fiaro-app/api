@@ -169,3 +169,25 @@ describe('PrismaUserRepository.markContactEmailVerified', () => {
     });
   });
 });
+
+describe('PrismaUserRepository.updateProfile', () => {
+  it('reemplaza el nombre y el correo de contacto de la persona', async () => {
+    const { repository, userUpdate } = setup(() => Promise.resolve({}));
+    userUpdate.mockResolvedValueOnce({});
+
+    await repository.updateProfile('user-1', {
+      fullName: 'Ana Pérez Gómez',
+      contactEmail: 'ana@example.com',
+      contactEmailVerified: false,
+    });
+
+    expect(userUpdate).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'user-1' },
+      data: {
+        fullName: 'Ana Pérez Gómez',
+        contactEmail: 'ana@example.com',
+        contactEmailVerified: false,
+      },
+    });
+  });
+});

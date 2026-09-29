@@ -1,5 +1,15 @@
 import type { User } from '@/modules/auth/domain/entities/user.entity.js';
 
+/** Los datos del perfil que se pueden reemplazar. */
+export interface ProfileUpdate {
+  /** Nombre completo, ya normalizado. */
+  readonly fullName: string;
+  /** Correo real de la persona, o `null` si se quita. */
+  readonly contactEmail: string | null;
+  /** Si sigue siendo el mismo correo verificado: `false` cuando cambia o se quita. */
+  readonly contactEmailVerified: boolean;
+}
+
 /** Puerto de persistencia de las personas que inician sesión. */
 export interface UserRepository {
   /**
@@ -38,4 +48,12 @@ export interface UserRepository {
    * @param userId - La persona.
    */
   markContactEmailVerified(userId: string): Promise<void>;
+
+  /**
+   * Reemplaza el nombre y el correo de contacto de la persona.
+   *
+   * @param userId - La persona.
+   * @param update - Los datos nuevos, ya validados.
+   */
+  updateProfile(userId: string, update: ProfileUpdate): Promise<void>;
 }

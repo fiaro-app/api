@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -10,14 +11,20 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { z } from 'zod';
 import { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
+import { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import type { RequestOrigin } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import {
   ApiRequestContactEmailVerification,
+  ApiUpdateProfile,
   ApiVerifyContactEmail,
 } from '@/modules/auth/infrastructure/controllers/docs/account-routes.docs.js';
-import { VerifyContactEmailRequestSchema } from '@/modules/auth/infrastructure/controllers/schemas/account-requests.schema.js';
+import {
+  UpdateProfileRequestSchema,
+  VerifyContactEmailRequestSchema,
+} from '@/modules/auth/infrastructure/controllers/schemas/account-requests.schema.js';
+import type { UpdateProfileResponseSchema } from '@/modules/auth/infrastructure/controllers/schemas/account-responses.schema.js';
 import type { StatusResponseSchema } from '@/modules/auth/infrastructure/controllers/schemas/auth-responses.schema.js';
 import { ContactEmailVerificationGuard } from '@/modules/auth/infrastructure/contact-email-verification/contact-email-verification-guard.js';
 import { CurrentUser } from '@/shared/infrastructure/http/current-user.decorator.js';
@@ -36,6 +43,7 @@ export class AccountController {
     private readonly contactEmailVerificationGuard: ContactEmailVerificationGuard,
     private readonly requestContactEmailVerificationUseCase: RequestContactEmailVerificationUseCase,
     private readonly verifyContactEmailUseCase: VerifyContactEmailUseCase,
+    private readonly updateProfileUseCase: UpdateProfileUseCase,
   ) {}
 
   /**
@@ -82,6 +90,37 @@ export class AccountController {
     await this.contactEmailVerificationGuard.forgiveVerification(user.id);
     this.auditor.contactEmailVerified(user.id, this.originOf(req));
     return { status: true };
+  }
+
+  /**
+   * Actualiza el nombre o el correo de contacto de la persona autenticada.
+   *
+   * @param body - Los campos que cambian, ya validados.
+   * @param user - La persona autenticada.
+   * @param req - Petición de Express.
+   */
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateProfile()
+  async updateProfile(
+    @Body({ schema: UpdateProfileRequestSchema })
+    body: z.output<typeof UpdateProfileRequestSchema>,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ): Promise<z.output<typeof UpdateProfileResponseSchema>> {
+    const profile = await this.updateProfileUseCase.execute({
+      userId: user.id,
+      ...body,
+    });
+    this.auditor.profileUpdated(
+      user.id,
+      {
+        fullName: body.fullName !== undefined,
+        contactEmail: body.contactEmail !== undefined,
+      },
+      this.originOf(req),
+    );
+    return profile;
   }
 
   /** @param req - Petición de Express. */
