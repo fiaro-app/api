@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthenticatedUser } from '@/shared/application/ports/session-resolver.port.js';
 import type { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
+import type { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import type { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { AccountController } from '@/modules/auth/infrastructure/controllers/account.controller.js';
@@ -23,6 +24,7 @@ function setup() {
   const auditor = {
     contactEmailVerificationRequested: vi.fn(),
     contactEmailVerified: vi.fn(),
+    profileUpdated: vi.fn(),
   };
   const contactEmailVerificationGuard = {
     admitVerification: vi.fn(() => Promise.resolve()),
@@ -32,11 +34,21 @@ function setup() {
     execute: vi.fn(() => Promise.resolve()),
   };
   const verifyContactEmailUseCase = { execute: vi.fn(() => Promise.resolve()) };
+  const updateProfileUseCase = {
+    execute: vi.fn(() =>
+      Promise.resolve({
+        fullName: 'Ana Pérez Gómez',
+        contactEmail: 'ana@example.com',
+        contactEmailVerified: false,
+      }),
+    ),
+  };
   const controller = new AccountController(
     auditor as unknown as AuthAuditor,
     contactEmailVerificationGuard as unknown as ContactEmailVerificationGuard,
     requestContactEmailVerificationUseCase as unknown as RequestContactEmailVerificationUseCase,
     verifyContactEmailUseCase as unknown as VerifyContactEmailUseCase,
+    updateProfileUseCase as unknown as UpdateProfileUseCase,
   );
   return {
     controller,
@@ -44,11 +56,12 @@ function setup() {
     contactEmailVerificationGuard,
     requestContactEmailVerificationUseCase,
     verifyContactEmailUseCase,
+    updateProfileUseCase,
   };
 }
 
 describe('AccountController', () => {
-  it('publica solo las dos rutas de verificar el correo de contacto', () => {
+  it('publica solo las rutas de verificar el correo de contacto y actualizar el perfil', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       AccountController.prototype,
     )
@@ -68,6 +81,7 @@ describe('AccountController', () => {
       .sort();
 
     expect(publishedRoutes).toEqual([
+      'PATCH profile',
       'POST contact-email/request-verification',
       'POST contact-email/verify',
     ]);
@@ -131,6 +145,50 @@ describe('AccountController', () => {
         { ip: '203.0.113.7', userAgent: undefined },
       );
       expect(response).toEqual({ status: true });
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('ejecuta el caso de uso, audita qué campos vinieron en el pedido y devuelve el perfil', async () => {
+      const { controller, updateProfileUseCase, auditor } = setup();
+
+      const response = await controller.updateProfile(
+        { fullName: 'Ana Pérez Gómez', contactEmail: 'ana@example.com' },
+        USER,
+        requestOf(),
+      );
+
+      expect(updateProfileUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        userId: USER.id,
+        fullName: 'Ana Pérez Gómez',
+        contactEmail: 'ana@example.com',
+      });
+      expect(auditor.profileUpdated).toHaveBeenCalledExactlyOnceWith(
+        USER.id,
+        { fullName: true, contactEmail: true },
+        { ip: '203.0.113.7', userAgent: undefined },
+      );
+      expect(response).toEqual({
+        fullName: 'Ana Pérez Gómez',
+        contactEmail: 'ana@example.com',
+        contactEmailVerified: false,
+      });
+    });
+
+    it('con un solo campo, audita que el otro no vino', async () => {
+      const { controller, auditor } = setup();
+
+      await controller.updateProfile(
+        { fullName: 'Ana Pérez Gómez' },
+        USER,
+        requestOf(),
+      );
+
+      expect(auditor.profileUpdated).toHaveBeenCalledExactlyOnceWith(
+        USER.id,
+        { fullName: true, contactEmail: false },
+        expect.anything(),
+      );
     });
   });
 });

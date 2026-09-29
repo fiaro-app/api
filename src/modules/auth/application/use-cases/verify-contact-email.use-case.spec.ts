@@ -50,6 +50,7 @@ function setup(
     findById: vi.fn(() => Promise.resolve(user)),
     updatePassword: vi.fn(),
     markContactEmailVerified,
+    updateProfile: vi.fn(),
   };
   const deleteCode = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {

@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = [
   'auth.email.verification_requested',
   /** Se verificó el correo de contacto de la persona. */
   'auth.email.verified',
+  /** Se actualizó el nombre o el correo de contacto de la persona. */
+  'auth.profile.updated',
 ] as const;
 
 /** Lo que pasó: uno de {@link AUDIT_ACTIONS}. */

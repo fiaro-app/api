@@ -16,6 +16,7 @@ import {
   ContactEmailVerificationCodeExpiredSchema,
   ContactEmailVerificationCodeInvalidSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/account-errors.schema.js';
+import { UpdateProfileResponseSchema } from '@/modules/auth/infrastructure/controllers/schemas/account-responses.schema.js';
 
 /** Documenta `POST /account/contact-email/request-verification`. */
 export const ApiRequestContactEmailVerification = () =>
@@ -45,6 +46,31 @@ export const ApiRequestContactEmailVerification = () =>
         ContactEmailNotSetSchema,
         ContactEmailAlreadyVerifiedSchema,
       ]),
+    }),
+    ApiOriginRejectedResponse(),
+    ApiRateLimitedResponse(),
+  );
+
+/** Documenta `PATCH /account/profile`. */
+export const ApiUpdateProfile = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Actualizar el nombre o el correo de contacto',
+      description:
+        'Un campo ausente no se toca; `contactEmail: null` lo quita. Cambiarlo o quitarlo reinicia la verificación (D-69) y, si queda uno, manda un código nuevo.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiOriginHeaders(),
+    ApiResponse({
+      status: 200,
+      description: 'Perfil actualizado.',
+      standardSchema: UpdateProfileResponseSchema,
+    }),
+    ApiValidationFailedResponse(),
+    ApiResponse({
+      status: 401,
+      description: 'No hay sesión vigente (`UNAUTHORIZED`).',
+      standardSchema: AuthErrorSchema,
     }),
     ApiOriginRejectedResponse(),
     ApiRateLimitedResponse(),

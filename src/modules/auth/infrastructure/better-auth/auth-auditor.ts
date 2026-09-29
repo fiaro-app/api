@@ -248,6 +248,33 @@ export class AuthAuditor {
     );
   }
 
+  /**
+   * Se actualizó el nombre o el correo de contacto de la persona. Nunca lleva los valores nuevos:
+   * solo si cada uno cambió.
+   *
+   * @param userId - Quién actualizó su perfil.
+   * @param changed - Qué campos cambiaron.
+   * @param origin - Desde dónde.
+   */
+  profileUpdated(
+    userId: string,
+    changed: { fullName: boolean; contactEmail: boolean },
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      {
+        action: 'auth.profile.updated',
+        outcome: 'SUCCESS',
+        details: {
+          fullNameChanged: changed.fullName,
+          contactEmailChanged: changed.contactEmail,
+        },
+      },
+      { id: userId },
+      origin,
+    );
+  }
+
   private record(
     fact: Pick<AuditEvent, 'action' | 'outcome' | 'reason' | 'details'>,
     person: { readonly id?: string; readonly phone?: string } | undefined,
