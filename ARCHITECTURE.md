@@ -63,7 +63,7 @@ src/
       errors/                    #   DomainError base: code, kind, params e issues
       audit/                     #   AuditEvent: qué se registra (acciones, resultado, celular enmascarado)
     application/
-      ports/                     #   clock, id-generator, session-resolver (ya existen); email-sender
+      ports/                     #   clock, id-generator, session-resolver (ya existen)
       security/                  #   Reglas de autorización: qué rol puede hacer qué sobre qué recurso
       audit/                     #   AuditLog: el puerto donde se registra la auditoría; nunca falla ni espera
       validation/                #   zodIssueParams: los valores de una falla de Zod que llenan los marcadores del texto (ya existe)
@@ -74,7 +74,6 @@ src/
       logging/                   #   Logs JSON con Pino: logger, log de cada petición, id de petición, adaptador del logger de Nest y el LogBatcher que copia las líneas a MongoDB en lotes
       filters/                   #   Filtro global de excepciones y ApiErrorFactory: todo error sale como ApiError de contracts, con el mensaje del catálogo
       crypto/                    #   Hashing y cifrado
-      notifications/             #   Email (Resend), WhatsApp (Twilio)
       messaging/                 #   La tubería de registros (RecordsPipeline: cola de BullMQ, consumidor y conexiones), avisos sin repetir (repeatedWarnings) y withTimeout
       store/                     #   Cache y almacenamiento clave-valor (Redis)
       audit/                     #   Auditoría: PinoAuditLog, QueueAuditLog (encola en la tubería), el almacén de MongoDB de los eventos y PersonalDataMasker
@@ -285,13 +284,14 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `REDIS_URL` | opcional; **obligatoria en producción** | URL de Redis (`redis://` o `rediss://`, la de Upstash) donde vive la cola de registros (auditoría durable y líneas de log por lotes). Sin ella, lo que se registra solo sale por el log |
 | `MONGODB_URI` | opcional; **obligatoria en producción** | URI de MongoDB (`mongodb://` o `mongodb+srv://`) **con el nombre de la base de datos** (`mongodb://usuario:clave@host/base`): ahí se guardan los eventos de auditoría y las líneas de log. Sin ella, solo salen por el log |
 | `QUEUE_PREFIX` | `fiaro` | Prefijo de las llaves de las colas en Redis (letras, números, guiones; máximo 40): separa entornos que comparten una instancia, por ejemplo staging y producción en un mismo Upstash |
+| `RESEND_API_KEY` | opcional; **obligatoria en producción** | API key de [Resend](https://resend.com) para enviar correos (`ResendEmailSender`, módulo `notifications`). Sin ella, en desarrollo el correo solo se escribe en el log (`LoggingEmailSender`): no hace falta cuenta de Resend ni dominio verificado para trabajar en local |
+| `RESEND_FROM_EMAIL` | opcional; **obligatoria en producción** | Dirección remitente verificada en Resend (por ejemplo `Fiaro <no-reply@tu-dominio.com>`). Sin ella pasa lo mismo que sin `RESEND_API_KEY` |
 
 **Pendientes** (cada una se agrega con su pieza):
 
 | Variable | Para qué | Se agrega con |
 |---|---|---|
 | `S3_ENDPOINT` / `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Storage de archivos por API S3: Cloudflare R2 en producción, SeaweedFS en local. Nombres sin el del proveedor: el mismo código sirve para los dos | Logo del prestamista |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Correo saliente (Mailpit en local) | Recuperación de acceso y reportes |
 | `SENTRY_DSN` | Errores en producción | Primer despliegue |
 
 En el entorno local con Docker (sección 12) Compose define `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` y `MOBILE_APP_SCHEMES` con valores de desarrollo, y la API recibe además `REDIS_URL`, `MONGODB_URI`, `S3_*` y `SMTP_*` apuntando a los servicios de Compose; `S3_*` y `SMTP_*` se declaran en `src/config/env.ts` cuando el primer módulo las use.

@@ -22,6 +22,10 @@ describe('loadEnv', () => {
         baseUrl: REQUIRED_ENV.BETTER_AUTH_URL,
         mobileOrigins: [],
       },
+      email: {
+        resendApiKey: undefined,
+        fromAddress: undefined,
+      },
     });
   });
 
@@ -56,6 +60,10 @@ describe('loadEnv', () => {
         secret: REQUIRED_ENV.BETTER_AUTH_SECRET,
         baseUrl: REQUIRED_ENV.BETTER_AUTH_URL,
         mobileOrigins: ['fiaro://'],
+      },
+      email: {
+        resendApiKey: PRODUCTION_ENV.RESEND_API_KEY,
+        fromAddress: PRODUCTION_ENV.RESEND_FROM_EMAIL,
       },
     });
   });

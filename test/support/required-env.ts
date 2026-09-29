@@ -5,8 +5,13 @@ export const REQUIRED_ENV = {
   BETTER_AUTH_URL: 'http://localhost:3040',
 };
 
-/** Lo que además exige la configuración en producción: la auditoría durable (Redis y MongoDB). */
+/**
+ * Lo que además exige la configuración en producción: la auditoría durable (Redis y MongoDB) y
+ * el envío de correos (Resend).
+ */
 export const PRODUCTION_ENV = {
   REDIS_URL: 'redis://localhost:6390',
   MONGODB_URI: 'mongodb://fiaro:fiaro@localhost:27040/fiaro?authSource=admin',
+  RESEND_API_KEY: 're_test_00000000000000000000000000',
+  RESEND_FROM_EMAIL: 'Fiaro <no-reply@fiaro.example>',
 };
