@@ -58,6 +58,8 @@ function setup(
     updatePassword,
     markContactEmailVerified: vi.fn(() => Promise.resolve()),
     updateProfile: vi.fn(() => Promise.resolve()),
+    findPasswordHash: vi.fn(() => Promise.resolve(null)),
+    deactivate: vi.fn(() => Promise.resolve()),
   };
   const deleteCode = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {
@@ -71,7 +73,7 @@ function setup(
   const hash = vi.fn((password: string) =>
     Promise.resolve(`hash(${password})`),
   );
-  const passwordHasher: PasswordHasher = { hash };
+  const passwordHasher: PasswordHasher = { hash, verify: vi.fn() };
   const revokeAllForUser = vi.fn(() => Promise.resolve(2));
   const sessions: SessionRepository = { revokeAllForUser };
   const clock: Clock = { now: () => NOW };

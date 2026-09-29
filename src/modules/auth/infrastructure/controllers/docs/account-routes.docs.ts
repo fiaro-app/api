@@ -76,6 +76,36 @@ export const ApiUpdateProfile = () =>
     ApiRateLimitedResponse(),
   );
 
+/** Documenta `POST /account/deactivate`. */
+export const ApiDeactivateAccount = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Desactivar la cuenta',
+      description:
+        'Baja lógica: no borra nada. Pide la contraseña actual como confirmación, cierra todas las sesiones de la persona (la actual incluida) y bloquea los inicios de sesión nuevos de ese celular.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiOriginHeaders(),
+    ApiResponse({
+      status: 200,
+      description: 'Cuenta desactivada. Todas las sesiones quedaron cerradas.',
+      standardSchema: StatusResponseSchema,
+    }),
+    ApiValidationFailedResponse(),
+    ApiResponse({
+      status: 400,
+      description: 'La contraseña no es correcta (`INVALID_PASSWORD`).',
+      standardSchema: AuthErrorSchema,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No hay sesión vigente (`UNAUTHORIZED`).',
+      standardSchema: AuthErrorSchema,
+    }),
+    ApiOriginRejectedResponse(),
+    ApiRateLimitedResponse(),
+  );
+
 /** Documenta `POST /account/contact-email/verify`. */
 export const ApiVerifyContactEmail = () =>
   applyDecorators(
