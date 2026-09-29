@@ -19,10 +19,23 @@ export interface UserRepository {
   findByPhone(phone: string): Promise<User | null>;
 
   /**
+   * @param id - Identificador de la persona.
+   * @returns La persona, o `null` si no existe.
+   */
+  findById(id: string): Promise<User | null>;
+
+  /**
    * Reemplaza el hash de la contraseña de la credencial de la persona.
    *
    * @param userId - La persona.
    * @param passwordHash - Hash de la contraseña nueva; la contraseña en claro nunca llega aquí.
    */
   updatePassword(userId: string, passwordHash: string): Promise<void>;
+
+  /**
+   * Marca el correo de contacto de la persona como verificado.
+   *
+   * @param userId - La persona.
+   */
+  markContactEmailVerified(userId: string): Promise<void>;
 }

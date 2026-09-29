@@ -171,6 +171,30 @@ describe('AuthAuditor', () => {
     });
   });
 
+  it('pedir verificar el correo de contacto guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.contactEmailVerificationRequested('u1', origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.email.verification_requested',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
+  it('verificar el correo de contacto guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.contactEmailVerified('u1', origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.email.verified',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
   it('agrega el id de la petición en curso, para unir el evento con su línea del log', () => {
     const { auditor, events } = setup();
 

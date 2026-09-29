@@ -55,6 +55,12 @@ export class PrismaUserRepository implements UserRepository {
     return row === null ? null : toUser(row);
   }
 
+  /** @param id - Identificador de la persona. */
+  async findById(id: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { id } });
+    return row === null ? null : toUser(row);
+  }
+
   /**
    * @param userId - La persona.
    * @param passwordHash - Hash de la contraseña nueva.
@@ -68,6 +74,14 @@ export class PrismaUserRepository implements UserRepository {
         },
       },
       data: { password: passwordHash },
+    });
+  }
+
+  /** @param userId - La persona. */
+  async markContactEmailVerified(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { contactEmailVerified: true },
     });
   }
 }

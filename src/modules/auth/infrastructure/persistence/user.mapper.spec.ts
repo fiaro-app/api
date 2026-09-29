@@ -14,6 +14,7 @@ const user = User.create({
   phone: MobilePhone.parse('+573001234567'),
   fullName: 'Ana Pérez',
   contactEmail: 'ana@example.com',
+  contactEmailVerified: false,
   nationalId: '1020304050',
   mustChangePassword: true,
   createdAt: CREATED_AT,
@@ -27,6 +28,7 @@ describe('toUserCreateInput', () => {
       phone: '+573001234567',
       loginEmail: '573001234567@phone.fiaro.invalid',
       contactEmail: 'ana@example.com',
+      contactEmailVerified: false,
       nationalId: '1020304050',
       mustChangePassword: true,
       createdAt: CREATED_AT,
@@ -54,6 +56,7 @@ describe('toUser', () => {
       fullName: 'Ana Pérez',
       phone: '+573001234567',
       contactEmail: 'ana@example.com',
+      contactEmailVerified: true,
       nationalId: '1020304050',
       mustChangePassword: true,
       createdAt: CREATED_AT,
@@ -65,6 +68,7 @@ describe('toUser', () => {
     expect(found.phone.value).toBe('+573001234567');
     expect(found.fullName).toBe('Ana Pérez');
     expect(found.contactEmail).toBe('ana@example.com');
+    expect(found.contactEmailVerified).toBe(true);
     expect(found.nationalId).toBe('1020304050');
     expect(found.mustChangePassword).toBe(true);
     expect(found.createdAt).toBe(CREATED_AT);

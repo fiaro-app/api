@@ -18,4 +18,9 @@ export const API_TAGS = {
     name: 'Autenticación',
     description: `Inicio de sesión con celular y contraseña. La sesión viaja en la cookie \`${SESSION_COOKIE_NAME}\` (\`HttpOnly\`, \`SameSite=Lax\`, 30 días) y cada día de uso la renueva. Las apps móviles usan el cliente de better-auth con su plugin de Expo, que guarda la cookie cifrada en el dispositivo. Un cobrador con contraseña temporal solo puede ver su sesión, cambiar la contraseña y cerrar sesión.`,
   },
+  account: {
+    name: 'Cuenta',
+    description:
+      'Gestión de la propia cuenta con sesión abierta: verificar el correo de contacto, actualizar el perfil y desactivar la cuenta.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

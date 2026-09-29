@@ -39,6 +39,12 @@ export const userOptions = {
   fields: { name: 'fullName', email: 'loginEmail' },
   additionalFields: {
     contactEmail: { type: 'string', required: false, input: false },
+    contactEmailVerified: {
+      type: 'boolean',
+      required: false,
+      defaultValue: false,
+      input: false,
+    },
     nationalId: { type: 'string', required: false, input: false },
     mustChangePassword: {
       type: 'boolean',

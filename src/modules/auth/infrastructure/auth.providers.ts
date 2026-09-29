@@ -8,6 +8,7 @@ import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 import { SESSION_RESOLVER } from '@/shared/application/ports/session-resolver.token.js';
 import { PersonalDataMasker } from '@/shared/infrastructure/audit/personal-data-masker.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
+import { CONTACT_EMAIL_VERIFICATION_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/contact-email-verification-verify-attempts.token.js';
 import { PASSWORD_HASHER } from '@/modules/auth/application/ports/password-hasher.token.js';
 import { PASSWORD_RESET_REQUEST_ATTEMPTS } from '@/modules/auth/application/ports/password-reset-request-attempts.token.js';
 import { PASSWORD_RESET_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/password-reset-verify-attempts.token.js';
@@ -15,8 +16,10 @@ import type { SignInAttempts } from '@/modules/auth/application/ports/sign-in-at
 import { SIGN_IN_ATTEMPTS } from '@/modules/auth/application/ports/sign-in-attempts.token.js';
 import { VERIFICATION_CODE_GENERATOR } from '@/modules/auth/application/ports/verification-code-generator.token.js';
 import { VERIFICATION_CODE_HASHER } from '@/modules/auth/application/ports/verification-code-hasher.token.js';
+import { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import { RequestPasswordResetUseCase } from '@/modules/auth/application/use-cases/request-password-reset.use-case.js';
 import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case.js';
+import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
 import { SESSION_REPOSITORY } from '@/modules/auth/domain/tokens/session-repository.token.js';
 import { USER_REPOSITORY } from '@/modules/auth/domain/tokens/user-repository.token.js';
@@ -37,6 +40,11 @@ import {
   PASSWORD_RESET_VERIFY_MAX_ATTEMPTS,
   PASSWORD_RESET_VERIFY_WINDOW_SECONDS,
 } from '@/modules/auth/domain/policies/password-reset.policy.js';
+import {
+  CONTACT_EMAIL_VERIFICATION_VERIFY_MAX_ATTEMPTS,
+  CONTACT_EMAIL_VERIFICATION_VERIFY_WINDOW_SECONDS,
+} from '@/modules/auth/domain/policies/contact-email-verification.policy.js';
+import { ContactEmailVerificationGuard } from '@/modules/auth/infrastructure/contact-email-verification/contact-email-verification-guard.js';
 import { PasswordResetGuard } from '@/modules/auth/infrastructure/password-reset/password-reset-guard.js';
 import { PrismaSessionRepository } from '@/modules/auth/infrastructure/persistence/prisma-session.repository.js';
 import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/prisma-user.repository.js';
@@ -77,6 +85,18 @@ export const authProviders: Provider[] = [
       ),
   },
   {
+    provide: CONTACT_EMAIL_VERIFICATION_VERIFY_ATTEMPTS,
+    inject: [ENV],
+    useFactory: (env: Env): SignInAttempts =>
+      createAttemptCounter(
+        env,
+        'contact-email-verification-verify',
+        CONTACT_EMAIL_VERIFICATION_VERIFY_MAX_ATTEMPTS,
+        CONTACT_EMAIL_VERIFICATION_VERIFY_WINDOW_SECONDS,
+        'ContactEmailVerificationVerifyAttempts',
+      ),
+  },
+  {
     provide: AuthAuditor,
     inject: [AUDIT_LOG, PersonalDataMasker],
     useFactory: (audit: AuditLog, masker: PersonalDataMasker) =>
@@ -94,6 +114,12 @@ export const authProviders: Provider[] = [
       verifyAttempts: SignInAttempts,
       masker: PersonalDataMasker,
     ) => new PasswordResetGuard(requestAttempts, verifyAttempts, masker),
+  },
+  {
+    provide: ContactEmailVerificationGuard,
+    inject: [CONTACT_EMAIL_VERIFICATION_VERIFY_ATTEMPTS],
+    useFactory: (verifyAttempts: SignInAttempts) =>
+      new ContactEmailVerificationGuard(verifyAttempts),
   },
   {
     provide: BETTER_AUTH,
@@ -138,6 +164,8 @@ export const authProviders: Provider[] = [
   CreateUserUseCase,
   RequestPasswordResetUseCase,
   ResetPasswordUseCase,
+  RequestContactEmailVerificationUseCase,
+  VerifyContactEmailUseCase,
 ];
 
 /** Lo que el módulo ofrece a los demás: el resolvedor de sesión del guard global y el alta de personas. */

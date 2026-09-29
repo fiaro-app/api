@@ -29,6 +29,7 @@ const user = User.create({
   phone: MobilePhone.parse(PHONE),
   fullName: 'Ana Pérez',
   contactEmail: 'ana@example.com',
+  contactEmailVerified: false,
   nationalId: null,
   mustChangePassword: false,
   createdAt: NOW,
@@ -53,7 +54,9 @@ function setup(
   const users: UserRepository = {
     create: vi.fn(),
     findByPhone: vi.fn(() => Promise.resolve(found)),
+    findById: vi.fn(() => Promise.resolve(found)),
     updatePassword,
+    markContactEmailVerified: vi.fn(() => Promise.resolve()),
   };
   const deleteCode = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {

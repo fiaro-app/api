@@ -11,6 +11,7 @@ const user = User.create({
   phone: MobilePhone.parse('+573001234567'),
   fullName: 'Ana Pérez',
   contactEmail: null,
+  contactEmailVerified: false,
   nationalId: null,
   mustChangePassword: false,
   createdAt: new Date('2026-09-23T17:00:00Z'),
@@ -20,14 +21,15 @@ function setup(behavior: () => Promise<unknown>) {
   const create = vi.fn<(args: unknown) => Promise<unknown>>(() => behavior());
   const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
   const update = vi.fn<(args: unknown) => Promise<unknown>>();
+  const userUpdate = vi.fn<(args: unknown) => Promise<unknown>>();
   const repository = new PrismaUserRepository(
     {
-      user: { create, findUnique },
+      user: { create, findUnique, update: userUpdate },
       account: { update },
     } as unknown as PrismaService,
     { next: () => 'account-1' },
   );
-  return { repository, create, findUnique, update };
+  return { repository, create, findUnique, update, userUpdate };
 }
 
 const prismaError = (code: string) =>
@@ -85,6 +87,7 @@ describe('PrismaUserRepository.findByPhone', () => {
       fullName: 'Ana Pérez',
       phone: '+573001234567',
       contactEmail: 'ana@example.com',
+      contactEmailVerified: false,
       nationalId: '1020304050',
       mustChangePassword: false,
       createdAt: new Date('2026-09-23T17:00:00Z'),
@@ -119,6 +122,50 @@ describe('PrismaUserRepository.updatePassword', () => {
         providerId_accountId: { providerId: 'credential', accountId: 'user-1' },
       },
       data: { password: 'hash-nuevo' },
+    });
+  });
+});
+
+describe('PrismaUserRepository.findById', () => {
+  it('busca por el id y convierte la fila en la entidad', async () => {
+    const { repository, findUnique } = setup(() => Promise.resolve({}));
+    findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      fullName: 'Ana Pérez',
+      phone: '+573001234567',
+      contactEmail: 'ana@example.com',
+      contactEmailVerified: false,
+      nationalId: '1020304050',
+      mustChangePassword: false,
+      createdAt: new Date('2026-09-23T17:00:00Z'),
+    });
+
+    const found = await repository.findById('user-1');
+
+    expect(findUnique).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'user-1' },
+    });
+    expect(found?.id).toBe('user-1');
+  });
+
+  it('sin una fila con ese id, devuelve null', async () => {
+    const { repository, findUnique } = setup(() => Promise.resolve({}));
+    findUnique.mockResolvedValueOnce(null);
+
+    await expect(repository.findById('user-1')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaUserRepository.markContactEmailVerified', () => {
+  it('marca el correo de contacto de la persona como verificado', async () => {
+    const { repository, userUpdate } = setup(() => Promise.resolve({}));
+    userUpdate.mockResolvedValueOnce({});
+
+    await repository.markContactEmailVerified('user-1');
+
+    expect(userUpdate).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'user-1' },
+      data: { contactEmailVerified: true },
     });
   });
 });
