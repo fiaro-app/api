@@ -19,6 +19,7 @@ function userWith(contactEmail: string | null): User {
     phone: MobilePhone.parse(PHONE),
     fullName: 'Ana Pérez',
     contactEmail,
+    contactEmailVerified: false,
     nationalId: null,
     mustChangePassword: false,
     createdAt: NOW,
@@ -29,7 +30,9 @@ function setup(user: User | null) {
   const users: UserRepository = {
     create: vi.fn(),
     findByPhone: vi.fn(() => Promise.resolve(user)),
+    findById: vi.fn(() => Promise.resolve(user)),
     updatePassword: vi.fn(),
+    markContactEmailVerified: vi.fn(),
   };
   const replace = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {

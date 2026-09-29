@@ -13,6 +13,7 @@ export function toCreatedUser(user: User): CreatedUser {
     phone: user.phone.value,
     fullName: user.fullName,
     contactEmail: user.contactEmail,
+    contactEmailVerified: user.contactEmailVerified,
     nationalId: user.nationalId,
     mustChangePassword: user.mustChangePassword,
     createdAt: user.createdAt,

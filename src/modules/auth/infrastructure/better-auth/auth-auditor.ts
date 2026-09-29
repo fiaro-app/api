@@ -217,6 +217,37 @@ export class AuthAuditor {
     );
   }
 
+  /**
+   * Se pidió verificar el correo de contacto de la persona.
+   *
+   * @param userId - Quién lo pidió.
+   * @param origin - Desde dónde.
+   */
+  contactEmailVerificationRequested(
+    userId: string,
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      { action: 'auth.email.verification_requested', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
+  /**
+   * Se verificó el correo de contacto de la persona.
+   *
+   * @param userId - Quién lo verificó.
+   * @param origin - Desde dónde.
+   */
+  contactEmailVerified(userId: string, origin: RequestOrigin): void {
+    this.record(
+      { action: 'auth.email.verified', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
   private record(
     fact: Pick<AuditEvent, 'action' | 'outcome' | 'reason' | 'details'>,
     person: { readonly id?: string; readonly phone?: string } | undefined,

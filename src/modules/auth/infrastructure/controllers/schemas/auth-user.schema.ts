@@ -22,6 +22,10 @@ export const AuthUserSchema = z
     contactEmail: z.email().nullable().meta({
       description: 'Correo real de la persona; es opcional (D-07).',
     }),
+    contactEmailVerified: z.boolean().meta({
+      description:
+        'Si `contactEmail` se verificó con el código que se le mandó.',
+    }),
     nationalId: NationalIdSchema.nullable().meta({
       description:
         'Cédula de ciudadanía; obligatoria solo para los cobradores.',

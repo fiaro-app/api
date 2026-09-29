@@ -12,7 +12,7 @@ describe('AUDIT_ACTIONS', () => {
     expect(new Set(AUDIT_ACTIONS).size).toBe(AUDIT_ACTIONS.length);
   });
 
-  it('incluye los nueve hechos de la autenticación', () => {
+  it('incluye los once hechos de la autenticación', () => {
     expect(AUDIT_ACTIONS).toEqual([
       'auth.sign_in.succeeded',
       'auth.sign_in.failed',
@@ -23,6 +23,8 @@ describe('AUDIT_ACTIONS', () => {
       'auth.password.change_failed',
       'auth.password.reset_requested',
       'auth.password.reset_completed',
+      'auth.email.verification_requested',
+      'auth.email.verified',
     ]);
   });
 });
