@@ -62,7 +62,6 @@ describe('lo que better-auth trae y la API no publica', () => {
     ['POST', '/auth/update-user'],
     ['POST', '/auth/change-email'],
     ['POST', '/auth/delete-user'],
-    ['POST', '/auth/request-password-reset'],
     ['POST', '/auth/phone-number/send-otp'],
     ['POST', '/auth/phone-number/verify'],
     ['POST', '/auth/phone-number/reset-password'],

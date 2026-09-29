@@ -6,7 +6,11 @@ import { PrismaService } from '@/shared/infrastructure/persistence/prisma.servic
 import type { User } from '@/modules/auth/domain/entities/user.entity.js';
 import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
 import type { UserRepository } from '@/modules/auth/domain/repositories/user.repository.js';
-import { toUserCreateInput } from '@/modules/auth/infrastructure/persistence/user.mapper.js';
+import {
+  CREDENTIAL_PROVIDER,
+  toUser,
+  toUserCreateInput,
+} from '@/modules/auth/infrastructure/persistence/user.mapper.js';
 
 /** Código de Prisma para una restricción de unicidad violada. */
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
@@ -43,5 +47,27 @@ export class PrismaUserRepository implements UserRepository {
       }
       throw error;
     }
+  }
+
+  /** @param phone - Celular en formato E.164. */
+  async findByPhone(phone: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({ where: { phone } });
+    return row === null ? null : toUser(row);
+  }
+
+  /**
+   * @param userId - La persona.
+   * @param passwordHash - Hash de la contraseña nueva.
+   */
+  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    await this.prisma.account.update({
+      where: {
+        providerId_accountId: {
+          providerId: CREDENTIAL_PROVIDER,
+          accountId: userId,
+        },
+      },
+      data: { password: passwordHash },
+    });
   }
 }

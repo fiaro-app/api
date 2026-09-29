@@ -17,6 +17,10 @@ export const AUDIT_ACTIONS = [
   'auth.password.changed',
   /** Un intento de cambiar la contraseña fue rechazado (la actual no era correcta). */
   'auth.password.change_failed',
+  /** Se pidió recuperar la contraseña de un celular por correo. */
+  'auth.password.reset_requested',
+  /** Se restableció la contraseña de un celular con un código de recuperación. */
+  'auth.password.reset_completed',
 ] as const;
 
 /** Lo que pasó: uno de {@link AUDIT_ACTIONS}. */

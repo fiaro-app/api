@@ -11,4 +11,18 @@ export interface UserRepository {
    * @throws {@link PhoneAlreadyRegisteredError} Si el celular ya tiene cuenta.
    */
   create(user: User, passwordHash: string): Promise<void>;
+
+  /**
+   * @param phone - Celular en formato E.164.
+   * @returns La persona con ese celular, o `null` si no tiene cuenta.
+   */
+  findByPhone(phone: string): Promise<User | null>;
+
+  /**
+   * Reemplaza el hash de la contraseña de la credencial de la persona.
+   *
+   * @param userId - La persona.
+   * @param passwordHash - Hash de la contraseña nueva; la contraseña en claro nunca llega aquí.
+   */
+  updatePassword(userId: string, passwordHash: string): Promise<void>;
 }

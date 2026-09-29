@@ -6,6 +6,7 @@ import {
   authProviders,
 } from '@/modules/auth/infrastructure/auth.providers.js';
 import { AuthController } from '@/modules/auth/infrastructure/controllers/auth.controller.js';
+import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 
 /**
  * Autenticación con celular y contraseña (better-auth). Publica `/auth/*` y ofrece a los demás
@@ -13,7 +14,7 @@ import { AuthController } from '@/modules/auth/infrastructure/controllers/auth.c
  * El dominio no conoce better-auth: solo este módulo lo usa.
  */
 @Module({
-  imports: [PersistenceModule, ApiErrorsModule],
+  imports: [PersistenceModule, ApiErrorsModule, NotificationsModule],
   controllers: [AuthController],
   providers: authProviders,
   exports: authExports,

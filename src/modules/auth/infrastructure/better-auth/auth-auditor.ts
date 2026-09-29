@@ -180,6 +180,43 @@ export class AuthAuditor {
     );
   }
 
+  /**
+   * Se pidió recuperar la contraseña de un celular por correo.
+   *
+   * @param phone - El celular con el que se pidió.
+   * @param sent - Si el celular tiene cuenta con correo de contacto y se mandó el código.
+   * @param origin - Desde dónde se pidió.
+   */
+  passwordResetRequested(
+    phone: string,
+    sent: boolean,
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      {
+        action: 'auth.password.reset_requested',
+        outcome: 'SUCCESS',
+        details: { sent },
+      },
+      { phone },
+      origin,
+    );
+  }
+
+  /**
+   * Se restableció la contraseña de un celular con un código de recuperación.
+   *
+   * @param person - Quién es.
+   * @param origin - Desde dónde.
+   */
+  passwordResetCompleted(person: AuditedPerson, origin: RequestOrigin): void {
+    this.record(
+      { action: 'auth.password.reset_completed', outcome: 'SUCCESS' },
+      person,
+      origin,
+    );
+  }
+
   private record(
     fact: Pick<AuditEvent, 'action' | 'outcome' | 'reason' | 'details'>,
     person: { readonly id?: string; readonly phone?: string } | undefined,

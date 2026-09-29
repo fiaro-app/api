@@ -30,7 +30,11 @@ function setup(options: { repositoryError?: Error } = {}) {
   const hash = vi.fn((password: string) =>
     Promise.resolve(`hash(${password})`),
   );
-  const users: UserRepository = { create };
+  const users: UserRepository = {
+    create,
+    findByPhone: vi.fn(() => Promise.resolve(null)),
+    updatePassword: vi.fn(() => Promise.resolve()),
+  };
   const passwordHasher: PasswordHasher = { hash };
   const ids: IdGenerator = { next: () => 'id-1' };
   const clock: Clock = { now: () => NOW };
