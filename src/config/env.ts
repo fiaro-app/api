@@ -32,6 +32,8 @@ const EnvSchema = z
     BETTER_AUTH_SECRET: AuthSecretSchema,
     BETTER_AUTH_URL: OriginSchema,
     MOBILE_APP_SCHEMES: commaSeparated(MobileSchemeSchema),
+    RESEND_API_KEY: z.string().optional(),
+    RESEND_FROM_EMAIL: z.string().optional(),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -48,6 +50,16 @@ const EnvSchema = z
   .refine((env) => env.NODE_ENV !== 'production' || env.MONGODB_URI, {
     path: ['MONGODB_URI'],
     message: 'es obligatoria en producción: la auditoría durable la necesita',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.RESEND_API_KEY, {
+    path: ['RESEND_API_KEY'],
+    message:
+      'es obligatoria en producción para poder enviar correos; en desarrollo, sin ella se usa un envío que solo registra el correo en los logs',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.RESEND_FROM_EMAIL, {
+    path: ['RESEND_FROM_EMAIL'],
+    message:
+      'es obligatoria en producción para poder enviar correos; en desarrollo, sin ella se usa un envío que solo registra el correo en los logs',
   })
   .transform((env) => ({
     nodeEnv: env.NODE_ENV,
@@ -67,6 +79,10 @@ const EnvSchema = z
       mobileOrigins: [...new Set(env.MOBILE_APP_SCHEMES)].map(
         (scheme) => `${scheme}://`,
       ),
+    },
+    email: {
+      resendApiKey: env.RESEND_API_KEY,
+      fromAddress: env.RESEND_FROM_EMAIL,
     },
   }));
 
