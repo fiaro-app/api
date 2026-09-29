@@ -145,6 +145,32 @@ describe('AuthAuditor', () => {
     expect(events[0]?.phone).toBeUndefined();
   });
 
+  it('pedir recuperar la contraseña guarda el celular enmascarado y si se mandó el código', () => {
+    const { auditor, events, masker } = setup();
+
+    auditor.passwordResetRequested(PHONE, true, origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.password.reset_requested',
+      outcome: 'SUCCESS',
+      details: { sent: true },
+      phone: masker.mask(PHONE),
+    });
+    expect(events[0]?.userId).toBeUndefined();
+  });
+
+  it('restablecer la contraseña guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.passwordResetCompleted({ id: 'u1', phone: PHONE }, origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.password.reset_completed',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
   it('agrega el id de la petición en curso, para unir el evento con su línea del log', () => {
     const { auditor, events } = setup();
 

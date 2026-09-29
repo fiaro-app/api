@@ -30,3 +30,13 @@ export const RateLimitedSchema = ApiErrorSchema.extend({
 export const SignInLockedSchema = ApiErrorSchema.extend({
   code: z.literal('SIGN_IN_LOCKED'),
 }).meta({ id: 'SignInLocked' });
+
+/** `400 PASSWORD_RESET_CODE_INVALID`: el código no es correcto, ya se usó o se agotaron los intentos. */
+export const PasswordResetCodeInvalidSchema = ApiErrorSchema.extend({
+  code: z.literal('PASSWORD_RESET_CODE_INVALID'),
+}).meta({ id: 'PasswordResetCodeInvalid' });
+
+/** `400 PASSWORD_RESET_CODE_EXPIRED`: el código venció. */
+export const PasswordResetCodeExpiredSchema = ApiErrorSchema.extend({
+  code: z.literal('PASSWORD_RESET_CODE_EXPIRED'),
+}).meta({ id: 'PasswordResetCodeExpired' });

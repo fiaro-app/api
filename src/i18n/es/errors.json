@@ -22,6 +22,13 @@
   "PASSWORD_TOO_WEAK": "La contraseña es demasiado fácil de adivinar. Evita las más usadas, los números seguidos o repetidos, y tu celular o tu cédula.",
   "PHONE_ALREADY_REGISTERED": "Ya existe una cuenta con ese celular.",
   "SIGN_IN_LOCKED": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",
+  "PASSWORD_RESET_CODE_INVALID": "El código no es correcto. Revísalo o pide uno nuevo.",
+  "PASSWORD_RESET_CODE_EXPIRED": "El código venció. Pide uno nuevo.",
+  "CONTACT_EMAIL_NOT_SET": "Esta cuenta no tiene un correo de contacto registrado.",
+  "CONTACT_EMAIL_ALREADY_VERIFIED": "El correo de contacto ya está verificado.",
+  "CONTACT_EMAIL_VERIFICATION_CODE_INVALID": "El código no es correcto. Revísalo o pide uno nuevo.",
+  "CONTACT_EMAIL_VERIFICATION_CODE_EXPIRED": "El código venció. Pide uno nuevo.",
+  "ACCOUNT_DEACTIVATED": "Esta cuenta está desactivada.",
 
   "INVALID_PHONE_NUMBER_OR_PASSWORD": "El celular o la contraseña no son correctos.",
   "INVALID_PASSWORD": "La contraseña no es correcta.",

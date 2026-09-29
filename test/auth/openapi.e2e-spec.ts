@@ -5,7 +5,7 @@ import { operation, useOpenApi } from '@test/support/openapi.js';
 const openApi = useOpenApi();
 
 describe('la documentación de las rutas de autenticación', () => {
-  it('describe exactamente las seis rutas publicadas y ninguna más', async () => {
+  it('describe exactamente las ocho rutas publicadas y ninguna más', async () => {
     const doc = await openApi();
 
     const authOperations = Object.entries(doc.paths)
@@ -18,6 +18,8 @@ describe('la documentación de las rutas de autenticación', () => {
     expect(authOperations).toEqual([
       'GET /auth/get-session',
       'POST /auth/change-password',
+      'POST /auth/request-password-reset',
+      'POST /auth/reset-password',
       'POST /auth/revoke-other-sessions',
       'POST /auth/revoke-sessions',
       'POST /auth/sign-in/phone-number',

@@ -4,6 +4,7 @@ import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
 } from '@/modules/auth/domain/policies/password.policy.js';
+import { VERIFICATION_CODE_LENGTH } from '@/modules/auth/domain/policies/verification-code.policy.js';
 
 /**
  * Cuerpo de `POST /auth/sign-in/phone-number`.
@@ -45,4 +46,42 @@ export const ChangePasswordRequestSchema = z.strictObject({
     description:
       'Se acepta por compatibilidad con el cliente de better-auth, pero no cambia nada: las demás sesiones siempre se revocan.',
   }),
+});
+
+/**
+ * Cuerpo de `POST /auth/request-password-reset`.
+ *
+ * @remarks
+ * Solo pide el celular: la respuesta es la misma exista o no la cuenta, así que no hace falta
+ * saber si tiene correo de contacto para llamarla.
+ */
+export const RequestPasswordResetRequestSchema = z.strictObject({
+  phoneNumber: MobilePhoneSchema.meta({
+    description: 'Celular colombiano en formato internacional E.164.',
+    example: '+573001234567',
+  }),
+});
+
+/** Cuerpo de `POST /auth/reset-password`. */
+export const ResetPasswordRequestSchema = z.strictObject({
+  phoneNumber: MobilePhoneSchema.meta({
+    description: 'Celular colombiano en formato internacional E.164.',
+    example: '+573001234567',
+  }),
+  code: z
+    .string()
+    .length(VERIFICATION_CODE_LENGTH)
+    .regex(/^\d+$/)
+    .meta({
+      description: `Código de ${String(VERIFICATION_CODE_LENGTH)} dígitos recibido por correo.`,
+      example: '048213',
+    }),
+  newPassword: z
+    .string()
+    .min(PASSWORD_MIN_LENGTH)
+    .max(PASSWORD_MAX_LENGTH)
+    .meta({
+      description: `Contraseña nueva, de ${String(PASSWORD_MIN_LENGTH)} a ${String(PASSWORD_MAX_LENGTH)} caracteres.`,
+      example: 'la-contraseña-nueva-2',
+    }),
 });

@@ -18,11 +18,16 @@ const user = User.create({
 
 function setup(behavior: () => Promise<unknown>) {
   const create = vi.fn<(args: unknown) => Promise<unknown>>(() => behavior());
+  const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
+  const update = vi.fn<(args: unknown) => Promise<unknown>>();
   const repository = new PrismaUserRepository(
-    { user: { create } } as unknown as PrismaService,
+    {
+      user: { create, findUnique },
+      account: { update },
+    } as unknown as PrismaService,
     { next: () => 'account-1' },
   );
-  return { repository, create };
+  return { repository, create, findUnique, update };
 }
 
 const prismaError = (code: string) =>
@@ -69,5 +74,51 @@ describe('PrismaUserRepository.create', () => {
     const { repository } = setup(() => Promise.reject(failure));
 
     await expect(repository.create(user, 'hash')).rejects.toBe(failure);
+  });
+});
+
+describe('PrismaUserRepository.findByPhone', () => {
+  it('busca por el celular tal cual y convierte la fila en la entidad', async () => {
+    const { repository, findUnique } = setup(() => Promise.resolve({}));
+    findUnique.mockResolvedValueOnce({
+      id: 'user-1',
+      fullName: 'Ana Pérez',
+      phone: '+573001234567',
+      contactEmail: 'ana@example.com',
+      nationalId: '1020304050',
+      mustChangePassword: false,
+      createdAt: new Date('2026-09-23T17:00:00Z'),
+    });
+
+    const found = await repository.findByPhone('+573001234567');
+
+    expect(findUnique).toHaveBeenCalledExactlyOnceWith({
+      where: { phone: '+573001234567' },
+    });
+    expect(found?.id).toBe('user-1');
+    expect(found?.phone.value).toBe('+573001234567');
+  });
+
+  it('sin una fila con ese celular, devuelve null', async () => {
+    const { repository, findUnique } = setup(() => Promise.resolve({}));
+    findUnique.mockResolvedValueOnce(null);
+
+    await expect(repository.findByPhone('+573001234567')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaUserRepository.updatePassword', () => {
+  it('reemplaza el hash de la cuenta de credencial de la persona', async () => {
+    const { repository, update } = setup(() => Promise.resolve({}));
+    update.mockResolvedValueOnce({});
+
+    await repository.updatePassword('user-1', 'hash-nuevo');
+
+    expect(update).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        providerId_accountId: { providerId: 'credential', accountId: 'user-1' },
+      },
+      data: { password: 'hash-nuevo' },
+    });
   });
 });
