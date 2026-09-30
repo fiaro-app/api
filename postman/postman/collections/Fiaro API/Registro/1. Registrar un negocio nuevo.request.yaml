@@ -1,0 +1,33 @@
+$kind: http-request
+description: "Público, sin sesión: da de alta a la persona y su negocio (Tenant + Lender + membresía de dueño con los tres roles). El script previo genera un celular y una cédula al azar, para poder repetir la carpeta sin chocar con una corrida anterior."
+url: "{{baseUrl}}/register"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "phone": "{{registerPhone}}",
+      "fullName": "Beatriz Londoño (cuenta de prueba de registro)",
+      "password": "{{registerPassword}}",
+      "nationalId": "{{registerNationalId}}",
+      "businessName": "Créditos Beatriz (prueba de registro)"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      const phoneSuffix = Math.floor(100000000 + Math.random() * 900000000);
+      pm.collectionVariables.set('registerPhone', `+573${phoneSuffix}`);
+      const nationalId = Math.floor(10000000 + Math.random() * 90000000);
+      pm.collectionVariables.set('registerNationalId', `${nationalId}`);
+      pm.collectionVariables.set('registerPassword', 'Colombia-Fiaro-2026-prueba');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('nace con los tres roles', () => pm.expect(body.membership.roles.sort()).to.eql(['COLLECTOR', 'LENDER', 'OWNER']));
+    language: text/javascript
+order: 1000

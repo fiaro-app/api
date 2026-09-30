@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '@/modules/auth/auth.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
+import { RegistrationController } from '@/modules/tenants/infrastructure/controllers/registration.controller.js';
 import {
   tenantsExports,
   tenantsProviders,
@@ -8,13 +10,15 @@ import {
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
 
 /**
- * Tenants. Todavía no publica rutas: no hay registro público (`tenant-lender-membership-scope`),
- * así que `CreateTenantUseCase` lo usa el seed de desarrollo por ahora. Importa `LendersModule`
- * porque crear un Tenant siempre crea su primer prestamista, y `MembershipsModule` porque quien
- * lo registra recibe la membresía de dueño (D-73).
+ * Tenants. Publica `POST /register` (D-78): el registro público de un negocio, antes solo
+ * alcanzable por el seed de desarrollo. Importa `LendersModule` porque crear un Tenant siempre
+ * crea su primer prestamista, `MembershipsModule` porque quien lo registra recibe la membresía
+ * de dueño (D-73), y `AuthModule` porque registrarse también da de alta a la persona
+ * (`CreateUserUseCase`, D-78).
  */
 @Module({
-  imports: [PersistenceModule, LendersModule, MembershipsModule],
+  imports: [PersistenceModule, LendersModule, MembershipsModule, AuthModule],
+  controllers: [RegistrationController],
   providers: tenantsProviders,
   exports: tenantsExports,
 })

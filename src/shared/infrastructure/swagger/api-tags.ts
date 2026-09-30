@@ -14,6 +14,11 @@ export interface ApiTagDefinition {
  * nombre con `@ApiTags(API_TAGS.<grupo>.name)`.
  */
 export const API_TAGS = {
+  registration: {
+    name: 'Registro',
+    description:
+      'Registro público de un negocio nuevo (`POST /register`), sin sesión: da de alta a la persona y su Tenant, prestamista y membresía de dueño con los tres roles. No abre sesión: llama después a `POST /auth/sign-in/phone-number`.',
+  },
   auth: {
     name: 'Autenticación',
     description: `Inicio de sesión con celular y contraseña. La sesión viaja en la cookie \`${SESSION_COOKIE_NAME}\` (\`HttpOnly\`, \`SameSite=Lax\`, 30 días) y cada día de uso la renueva. Las apps móviles usan el cliente de better-auth con su plugin de Expo, que guarda la cookie cifrada en el dispositivo. Un cobrador con contraseña temporal solo puede ver su sesión, cambiar la contraseña y cerrar sesión.`,
