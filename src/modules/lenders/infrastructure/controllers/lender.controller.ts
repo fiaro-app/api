@@ -22,9 +22,10 @@ import {
   toLenderResponse,
   type LenderResponseSchema,
 } from '@/modules/lenders/infrastructure/controllers/schemas/lender-responses.schema.js';
+import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
-import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 
 /** Roles que pueden editar la configuración del prestamista (PRODUCT.md §5). */
@@ -74,7 +75,7 @@ export class LenderController {
     body: z.output<typeof UpdateLenderRequestSchema>,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof LenderResponseSchema>> {
-    if (!scope.roles.some((role) => EDITOR_ROLES.includes(role))) {
+    if (!hasAnyRole(scope.roles, EDITOR_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
     return toLenderResponse(
