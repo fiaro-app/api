@@ -1,0 +1,9 @@
+$kind: collection
+description: |-
+  Rutas de `/account/*` (D-69, D-70, D-71): a diferencia de `/auth/*`, exigen sesión. Autocontenida:
+  empieza con su propio inicio de sesión. Los pasos 2 y 3 (verificar el correo) necesitan el
+  código que llega al log de la API en desarrollo — cópialo a `contactEmailVerificationCode`
+  antes de correr el paso 3. Los pasos 6 a 8 prueban desactivar la cuenta (D-71): usan a Carla
+  Ruiz, no a Ana, porque no hay ruta para revertir una desactivación — después de correrlos una
+  vez, Carla queda desactivada hasta que se reinicie la base de datos.
+order: 1600

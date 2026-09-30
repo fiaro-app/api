@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Cambia el nombre completo. Un campo ausente en el cuerpo no se toca (por eso `contactEmail` no viaja aquí: cambiarlo reiniciaría la verificación del paso anterior)."
+url: "{{baseUrl}}/account/profile"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Ana Pérez (probando)"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('el nombre cambió', () => pm.expect(body.fullName).to.eql('Ana Pérez (probando)'));
+      pm.test('el correo de contacto sigue verificado: no lo tocó', () => pm.expect(body.contactEmailVerified).to.be.true);
+    language: text/javascript
+order: 4000

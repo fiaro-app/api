@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Recuperar la contraseña por correo (D-68), sin sesión. El paso 2 necesita el código que llega
+  al correo de contacto: en desarrollo no se envía de verdad, solo se escribe en el log de la
+  API — cópialo a la variable `resetCode` antes de correrlo. Los pasos 3 y 4 dejan la contraseña
+  de Ana como estaba, para poder repetir la carpeta.
+order: 1300

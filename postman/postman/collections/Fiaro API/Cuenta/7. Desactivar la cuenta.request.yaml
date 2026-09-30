@@ -1,0 +1,23 @@
+$kind: http-request
+description: "Cuidado: irreversible. Confirma con la contraseña actual, marca la baja lógica y cierra todas las sesiones de la persona. No hay ruta para revertirla (D-71): después de esta petición, Carla Ruiz queda desactivada hasta que se reinicie la base de datos."
+url: "{{baseUrl}}/account/deactivate"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "password": "{{deactivationPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('confirma la desactivación', () => pm.expect(pm.response.json().status).to.be.true);
+    language: text/javascript
+order: 7000

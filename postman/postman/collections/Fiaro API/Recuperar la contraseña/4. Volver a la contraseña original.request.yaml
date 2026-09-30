@@ -1,0 +1,24 @@
+$kind: http-request
+description: Deja la cuenta como estaba, para poder repetir la carpeta.
+url: "{{baseUrl}}/auth/change-password"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "currentPassword": "{{newPassword}}",
+      "newPassword": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+    language: text/javascript
+order: 4000

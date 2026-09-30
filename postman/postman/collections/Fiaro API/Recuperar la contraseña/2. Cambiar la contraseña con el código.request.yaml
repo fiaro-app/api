@@ -1,0 +1,25 @@
+$kind: http-request
+description: Canjea el código del paso anterior por una contraseña nueva y cierra todas las sesiones de la persona, la actual incluida. Copia el código del log de la API a la variable `resetCode` antes de correr esta petición.
+url: "{{baseUrl}}/auth/reset-password"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{phone}}",
+      "code": "{{resetCode}}",
+      "newPassword": "{{newPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('confirma el cambio', () => pm.expect(pm.response.json().status).to.be.true);
+    language: text/javascript
+order: 2000
