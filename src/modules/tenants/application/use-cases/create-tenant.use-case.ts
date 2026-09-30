@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateLenderUseCase } from '@/modules/lenders/application/use-cases/create-lender.use-case.js';
+import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import type {
   CreateTenantInput,
   CreatedTenant,
@@ -15,17 +16,19 @@ import type { IdGenerator } from '@/shared/application/ports/id-generator.port.j
 import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 
 /**
- * Da de alta a un Tenant con su primer prestamista. Es el único camino para crear uno: no hay
- * registro público todavía (`tenant-lender-membership-scope`), así que lo usa el seed de
- * desarrollo y, más adelante, el registro del Owner.
+ * Da de alta a un Tenant con su primer prestamista y la membresía de dueño de quien lo registra
+ * (D-73). Es el único camino para crear uno: no hay registro público todavía
+ * (`tenant-lender-membership-scope`), así que lo usa el seed de desarrollo y, más adelante, el
+ * registro del Owner.
  *
  * @remarks
- * El Tenant y el Lender se crean en dos escrituras seguidas, no en una transacción atómica: son
- * agregados de módulos distintos (`tenants` y `lenders`), y la regla de fronteras del proyecto
- * prohíbe que uno importe el dominio del otro — se componen por la capa de aplicación
- * (`CreateLenderUseCase`), nunca por una escritura de Prisma compartida. Riesgo asumido: si el
- * proceso se cae justo entre las dos, queda un Tenant sin Lender; es una operación de alta rara,
- * no de todos los días, y un Tenant con cero Lenders es fácil de detectar después.
+ * El Tenant, el Lender y la membresía se crean en tres escrituras seguidas, no en una
+ * transacción atómica: son agregados de módulos distintos (`tenants`, `lenders`,
+ * `memberships`), y la regla de fronteras del proyecto prohíbe que uno importe el dominio del
+ * otro — se componen por la capa de aplicación (`CreateLenderUseCase`, `CreateMembershipUseCase`),
+ * nunca por una escritura de Prisma compartida. Riesgo asumido: si el proceso se cae a mitad de
+ * camino, queda un Tenant sin Lender o sin membresía de dueño; es una operación de alta rara, no
+ * de todos los días, y fácil de detectar después.
  */
 @Injectable()
 export class CreateTenantUseCase {
@@ -34,11 +37,12 @@ export class CreateTenantUseCase {
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly createLender: CreateLenderUseCase,
+    private readonly createMembership: CreateMembershipUseCase,
   ) {}
 
   /**
-   * @param input - Nombre del negocio.
-   * @returns El Tenant creado, junto con su primer prestamista.
+   * @param input - Nombre del negocio y quién lo registra.
+   * @returns El Tenant creado, junto con su primer prestamista y la membresía de dueño.
    * @throws {@link InvalidTenantDataError} Si el nombre del Tenant no cumple el contrato.
    * @throws {@link InvalidLenderDataError} Si el nombre del Lender no cumple el contrato.
    */
@@ -54,6 +58,12 @@ export class CreateTenantUseCase {
       tenantId: tenant.id,
       name: input.businessName,
     });
-    return toCreatedTenant(tenant, lender);
+    const ownerMembership = await this.createMembership.execute({
+      userId: input.ownerUserId,
+      lenderId: lender.id,
+      roles: ['OWNER', 'LENDER', 'COLLECTOR'],
+      portfolioId: lender.defaultPortfolioId,
+    });
+    return toCreatedTenant(tenant, lender, ownerMembership);
   }
 }

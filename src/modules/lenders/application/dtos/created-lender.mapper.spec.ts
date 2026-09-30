@@ -15,13 +15,14 @@ describe('toCreatedLender', () => {
       createdAt,
     });
 
-    expect(toCreatedLender(lender)).toEqual({
+    expect(toCreatedLender(lender, 'portfolio-1')).toEqual({
       id: 'lender-1',
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
+      defaultPortfolioId: 'portfolio-1',
       createdAt,
     });
   });

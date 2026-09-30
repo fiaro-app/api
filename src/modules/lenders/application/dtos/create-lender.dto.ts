@@ -22,6 +22,8 @@ export interface CreatedLender {
   readonly nonWorkingWeekdays: readonly Weekday[];
   /** Si los festivos nacionales de Colombia tampoco cuentan como días de cobro. */
   readonly skipNationalHolidays: boolean;
+  /** Identificador de la cartera "General" con la que nace todo prestamista (PRODUCT.md §5). */
+  readonly defaultPortfolioId: string;
   /** Cuándo se dio de alta. */
   readonly createdAt: Date;
 }
