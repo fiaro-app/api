@@ -1,0 +1,47 @@
+/**
+ * Crea los Tenants de desarrollo con el mismo caso de uso que usará el registro
+ * (`CreateTenantUseCase`), para tener con qué probar lo que se aísla por `lenderId`. Es
+ * idempotente por nombre (`Tenant.name` no tiene una restricción única en la base, a diferencia
+ * del celular de `User`, así que este script consulta antes de crear).
+ *
+ * Necesita el código compilado (`pnpm build`, o el contenedor de desarrollo, que lo compila) y las
+ * variables de entorno de la API (`.env`).
+ */
+import { existsSync } from 'node:fs';
+import { NestFactory } from '@nestjs/core';
+
+if (existsSync('.env')) {
+  process.loadEnvFile('.env');
+}
+if (process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'El seed es solo para desarrollo: no se ejecuta en producción.',
+  );
+}
+
+const { AppModule } = await import('../dist/app.module.js');
+const { CreateTenantUseCase } =
+  await import('../dist/modules/tenants/application/use-cases/create-tenant.use-case.js');
+const { TENANT_REPOSITORY } =
+  await import('../dist/modules/tenants/domain/tokens/tenant-repository.token.js');
+
+const DEV_TENANTS = [{ businessName: 'Préstamos Ana Pérez' }];
+
+const app = await NestFactory.createApplicationContext(AppModule, {
+  logger: false,
+});
+const createTenant = app.get(CreateTenantUseCase, { strict: false });
+const tenants = app.get(TENANT_REPOSITORY, { strict: false });
+
+for (const dev of DEV_TENANTS) {
+  const existing = await tenants.findByName(dev.businessName);
+  if (existing !== null) {
+    console.log(`ya existe ${dev.businessName}`);
+    continue;
+  }
+  const created = await createTenant.execute(dev);
+  console.log(
+    `creado    ${dev.businessName}  tenant: ${created.tenant.id}  lender: ${created.lender.id}`,
+  );
+}
+await app.close();

@@ -1,0 +1,12 @@
+/// Dueño del negocio como cliente de Fiaro: raíz de la facturación. Puede tener uno o varios
+/// prestamistas (`Lender`). En el MVP el registro crea el Tenant y su primer Lender juntos (1:1).
+model Tenant {
+  id        String   @id @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lenders Lender[]
+
+  @@map("tenants")
+}

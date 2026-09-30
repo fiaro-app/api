@@ -1,0 +1,70 @@
+import { describe, expect, it, vi } from 'vitest';
+import { CreateLenderUseCase } from '@/modules/lenders/application/use-cases/create-lender.use-case.js';
+import type { Lender } from '@/modules/lenders/domain/entities/lender.entity.js';
+import { InvalidLenderDataError } from '@/modules/lenders/domain/errors/invalid-lender-data.error.js';
+import type { LenderRepository } from '@/modules/lenders/domain/repositories/lender.repository.js';
+import type { Clock } from '@/shared/application/ports/clock.port.js';
+import type { IdGenerator } from '@/shared/application/ports/id-generator.port.js';
+
+const NOW = new Date('2026-09-30T00:00:00Z');
+
+function setup() {
+  const saved: Lender[] = [];
+  const create = vi.fn((lender: Lender) => {
+    saved.push(lender);
+    return Promise.resolve();
+  });
+  const lenders: LenderRepository = {
+    create,
+    findById: vi.fn(() => Promise.resolve(null)),
+  };
+  const ids: IdGenerator = { next: () => 'lender-1' };
+  const clock: Clock = { now: () => NOW };
+  return {
+    useCase: new CreateLenderUseCase(lenders, ids, clock),
+    create,
+    saved,
+  };
+}
+
+describe('CreateLenderUseCase', () => {
+  it('crea al prestamista sin logo y con los días sin cobro por defecto', async () => {
+    const { useCase, saved } = setup();
+
+    const created = await useCase.execute({
+      tenantId: 'tenant-1',
+      name: 'Préstamos Ana',
+    });
+
+    expect(created).toEqual({
+      id: 'lender-1',
+      tenantId: 'tenant-1',
+      name: 'Préstamos Ana',
+      logoUrl: null,
+      nonWorkingWeekdays: ['SUNDAY'],
+      skipNationalHolidays: false,
+      createdAt: NOW,
+    });
+    expect(saved).toHaveLength(1);
+  });
+
+  it('recorta el nombre', async () => {
+    const { useCase } = setup();
+
+    const created = await useCase.execute({
+      tenantId: 'tenant-1',
+      name: '  Préstamos Ana  ',
+    });
+
+    expect(created.name).toBe('Préstamos Ana');
+  });
+
+  it('rechaza un nombre demasiado corto sin guardar nada', async () => {
+    const { useCase, create } = setup();
+
+    await expect(
+      useCase.execute({ tenantId: 'tenant-1', name: 'A' }),
+    ).rejects.toBeInstanceOf(InvalidLenderDataError);
+    expect(create).not.toHaveBeenCalled();
+  });
+});

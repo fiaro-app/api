@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  toIssuePath,
-  validateUserData,
-} from '@/modules/auth/application/services/user-data.validator.js';
+import { validateUserData } from '@/modules/auth/application/services/user-data.validator.js';
 import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
 
 describe('validateUserData', () => {
@@ -76,22 +73,5 @@ describe('validateUserData', () => {
     expect(
       (error as InvalidUserDataError).issues.map((issue) => issue.path[0]),
     ).toEqual(['fullName', 'email', 'nationalId']);
-  });
-});
-
-describe('toIssuePath', () => {
-  it('conserva los textos y los números de la ruta', () => {
-    expect(toIssuePath(['items', 0, 'name'])).toEqual(['items', 0, 'name']);
-  });
-
-  it('pasa los símbolos a texto: en JSON desaparecerían', () => {
-    expect(toIssuePath(['data', Symbol('clave')])).toEqual([
-      'data',
-      'Symbol(clave)',
-    ]);
-  });
-
-  it('una ruta vacía sigue vacía', () => {
-    expect(toIssuePath([])).toEqual([]);
   });
 });
