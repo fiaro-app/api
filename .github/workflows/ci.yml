@@ -140,7 +140,8 @@ jobs:
 
       # Valores de mentira: la API se conecta a la base de datos con la primera consulta, y a Redis y
       # MongoDB en segundo plano (si no responden reintenta y lo avisa en el log), así que arrancar y
-      # quedar sana no las necesita. Redis y MongoDB se pasan porque en producción son obligatorias.
+      # quedar sana no las necesita. Redis, MongoDB y Resend se pasan porque en producción son
+      # obligatorias (el envío de correos no se ejercita en este smoke test).
       - name: Smoke test production image
         run: |
           docker run -d --name api \
@@ -150,6 +151,8 @@ jobs:
             -e MONGODB_URI=mongodb://localhost:27017/fiaro \
             -e BETTER_AUTH_SECRET=secreto-solo-para-la-prueba-de-humo-0123456789 \
             -e BETTER_AUTH_URL=https://api.example.com \
+            -e RESEND_API_KEY=re_solo-para-la-prueba-de-humo \
+            -e RESEND_FROM_EMAIL="Fiaro <no-reply@fiaro.example>" \
             fiaro-api:ci
           for _ in $(seq 1 30); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0

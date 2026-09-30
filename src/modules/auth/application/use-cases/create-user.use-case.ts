@@ -56,6 +56,7 @@ export class CreateUserUseCase {
       id: this.ids.next(),
       phone,
       ...data,
+      contactEmailVerified: false,
       mustChangePassword: input.mustChangePassword ?? false,
       createdAt: this.clock.now(),
     });

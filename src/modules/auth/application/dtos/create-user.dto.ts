@@ -24,6 +24,8 @@ export interface CreatedUser {
   readonly fullName: string;
   /** Correo real de la persona, o `null` si no lo dio. */
   readonly contactEmail: string | null;
+  /** Siempre `false`: una cuenta recién creada no tiene el correo de contacto verificado. */
+  readonly contactEmailVerified: boolean;
   /** Cédula de ciudadanía, o `null` si no la dio. */
   readonly nationalId: string | null;
   /** `true` cuando la contraseña es temporal y debe cambiarse al entrar. */

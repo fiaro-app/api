@@ -1,6 +1,8 @@
 import type { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
-import type { User } from '@/modules/auth/domain/entities/user.entity.js';
+import type { UserModel } from '@/shared/infrastructure/persistence/generated/models.js';
+import { User } from '@/modules/auth/domain/entities/user.entity.js';
 import { technicalEmailFor } from '@/modules/auth/infrastructure/better-auth/technical-email.js';
+import { MobilePhone } from '@/shared/domain/value-objects/mobile-phone.value-object.js';
 
 /** Proveedor de la cuenta que guarda el hash de la contraseña (el nombre lo fija better-auth). */
 export const CREDENTIAL_PROVIDER = 'credential';
@@ -24,6 +26,7 @@ export function toUserCreateInput(
     phone: user.phone.value,
     loginEmail: technicalEmailFor(user.phone.value),
     contactEmail: user.contactEmail,
+    contactEmailVerified: user.contactEmailVerified,
     nationalId: user.nationalId,
     mustChangePassword: user.mustChangePassword,
     createdAt: user.createdAt,
@@ -37,4 +40,23 @@ export function toUserCreateInput(
       },
     },
   };
+}
+
+/**
+ * La fila de `users` como la entidad de dominio. El celular ya se validó al guardarlo, así que
+ * `MobilePhone.parse` siempre lo acepta.
+ *
+ * @param row - Fila de `users`.
+ */
+export function toUser(row: UserModel): User {
+  return User.create({
+    id: row.id,
+    phone: MobilePhone.parse(row.phone),
+    fullName: row.fullName,
+    contactEmail: row.contactEmail,
+    contactEmailVerified: row.contactEmailVerified,
+    nationalId: row.nationalId,
+    mustChangePassword: row.mustChangePassword,
+    createdAt: row.createdAt,
+  });
 }

@@ -2,19 +2,23 @@
 /// No tiene rol propio; los roles viven en la membresía con cada prestamista (D-02).
 /// better-auth exige un email único por usuario, así que `loginEmail` guarda una dirección técnica
 /// derivada del celular; el email real y opcional de la persona es `contactEmail` (D-07).
+/// `contactEmailVerified` es propio de Fiaro, no de better-auth: `emailVerified` solo cubre
+/// `loginEmail`. `deactivatedAt` marca una baja lógica; nulo significa cuenta activa.
 model User {
-  id                 String   @id @db.Uuid
-  fullName           String   @map("full_name")
-  phone              String   @unique
-  phoneVerified      Boolean  @default(false) @map("phone_verified")
-  loginEmail         String   @unique @map("login_email")
-  emailVerified      Boolean  @default(false) @map("email_verified")
-  contactEmail       String?  @map("contact_email")
-  nationalId         String?  @map("national_id")
-  mustChangePassword Boolean  @default(false) @map("must_change_password")
-  image              String?
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                   String    @id @db.Uuid
+  fullName             String    @map("full_name")
+  phone                String    @unique
+  phoneVerified        Boolean   @default(false) @map("phone_verified")
+  loginEmail           String    @unique @map("login_email")
+  emailVerified        Boolean   @default(false) @map("email_verified")
+  contactEmail         String?   @map("contact_email")
+  contactEmailVerified Boolean   @default(false) @map("contact_email_verified")
+  nationalId           String?   @map("national_id")
+  mustChangePassword   Boolean   @default(false) @map("must_change_password")
+  deactivatedAt        DateTime? @map("deactivated_at") @db.Timestamptz(3)
+  image                String?
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   sessions Session[]
   accounts Account[]

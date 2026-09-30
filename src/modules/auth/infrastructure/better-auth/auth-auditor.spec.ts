@@ -145,6 +145,85 @@ describe('AuthAuditor', () => {
     expect(events[0]?.phone).toBeUndefined();
   });
 
+  it('pedir recuperar la contraseña guarda el celular enmascarado y si se mandó el código', () => {
+    const { auditor, events, masker } = setup();
+
+    auditor.passwordResetRequested(PHONE, true, origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.password.reset_requested',
+      outcome: 'SUCCESS',
+      details: { sent: true },
+      phone: masker.mask(PHONE),
+    });
+    expect(events[0]?.userId).toBeUndefined();
+  });
+
+  it('restablecer la contraseña guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.passwordResetCompleted({ id: 'u1', phone: PHONE }, origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.password.reset_completed',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
+  it('pedir verificar el correo de contacto guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.contactEmailVerificationRequested('u1', origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.email.verification_requested',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
+  it('verificar el correo de contacto guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.contactEmailVerified('u1', origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.email.verified',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
+  it('actualizar el perfil guarda quién y qué campos cambiaron, nunca los valores', () => {
+    const { auditor, events } = setup();
+
+    auditor.profileUpdated(
+      'u1',
+      { fullName: true, contactEmail: false },
+      origin,
+    );
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.profile.updated',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+      details: { fullNameChanged: true, contactEmailChanged: false },
+    });
+  });
+
+  it('desactivar la cuenta guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.accountDeactivated('u1', origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.account.deactivated',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
   it('agrega el id de la petición en curso, para unir el evento con su línea del log', () => {
     const { auditor, events } = setup();
 

@@ -180,6 +180,115 @@ export class AuthAuditor {
     );
   }
 
+  /**
+   * Se pidió recuperar la contraseña de un celular por correo.
+   *
+   * @param phone - El celular con el que se pidió.
+   * @param sent - Si el celular tiene cuenta con correo de contacto y se mandó el código.
+   * @param origin - Desde dónde se pidió.
+   */
+  passwordResetRequested(
+    phone: string,
+    sent: boolean,
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      {
+        action: 'auth.password.reset_requested',
+        outcome: 'SUCCESS',
+        details: { sent },
+      },
+      { phone },
+      origin,
+    );
+  }
+
+  /**
+   * Se restableció la contraseña de un celular con un código de recuperación.
+   *
+   * @param person - Quién es.
+   * @param origin - Desde dónde.
+   */
+  passwordResetCompleted(person: AuditedPerson, origin: RequestOrigin): void {
+    this.record(
+      { action: 'auth.password.reset_completed', outcome: 'SUCCESS' },
+      person,
+      origin,
+    );
+  }
+
+  /**
+   * Se pidió verificar el correo de contacto de la persona.
+   *
+   * @param userId - Quién lo pidió.
+   * @param origin - Desde dónde.
+   */
+  contactEmailVerificationRequested(
+    userId: string,
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      { action: 'auth.email.verification_requested', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
+  /**
+   * Se verificó el correo de contacto de la persona.
+   *
+   * @param userId - Quién lo verificó.
+   * @param origin - Desde dónde.
+   */
+  contactEmailVerified(userId: string, origin: RequestOrigin): void {
+    this.record(
+      { action: 'auth.email.verified', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
+  /**
+   * Se actualizó el nombre o el correo de contacto de la persona. Nunca lleva los valores nuevos:
+   * solo si cada uno cambió.
+   *
+   * @param userId - Quién actualizó su perfil.
+   * @param changed - Qué campos cambiaron.
+   * @param origin - Desde dónde.
+   */
+  profileUpdated(
+    userId: string,
+    changed: { fullName: boolean; contactEmail: boolean },
+    origin: RequestOrigin,
+  ): void {
+    this.record(
+      {
+        action: 'auth.profile.updated',
+        outcome: 'SUCCESS',
+        details: {
+          fullNameChanged: changed.fullName,
+          contactEmailChanged: changed.contactEmail,
+        },
+      },
+      { id: userId },
+      origin,
+    );
+  }
+
+  /**
+   * Se desactivó la cuenta de la persona.
+   *
+   * @param userId - Quién la desactivó.
+   * @param origin - Desde dónde.
+   */
+  accountDeactivated(userId: string, origin: RequestOrigin): void {
+    this.record(
+      { action: 'auth.account.deactivated', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
   private record(
     fact: Pick<AuditEvent, 'action' | 'outcome' | 'reason' | 'details'>,
     person: { readonly id?: string; readonly phone?: string } | undefined,

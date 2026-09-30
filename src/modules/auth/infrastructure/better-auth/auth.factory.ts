@@ -69,7 +69,7 @@ export function createAuth({
     rateLimit: rateLimitOptions(env.throttle),
     plugins: [...authPlugins()],
     disabledPaths: [...DISABLED_PATHS],
-    hooks: createAuthHooks(auditor, guard),
+    hooks: createAuthHooks(auditor, guard, prisma),
     databaseHooks: createAuthDatabaseHooks(auditor),
   });
 }

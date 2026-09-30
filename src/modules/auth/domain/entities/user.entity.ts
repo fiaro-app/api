@@ -10,6 +10,8 @@ export interface UserProps {
   readonly fullName: string;
   /** Correo real de la persona, opcional: el login es por celular (D-07). */
   readonly contactEmail: string | null;
+  /** Si `contactEmail` se verificó con el código que se le mandó. */
+  readonly contactEmailVerified: boolean;
   /** Cédula de ciudadanía; obligatoria para los cobradores, no para quien registra su negocio. */
   readonly nationalId: string | null;
   /** La contraseña actual es temporal y debe reemplazarse en el primer ingreso. */
@@ -28,6 +30,7 @@ export class User {
     public readonly phone: MobilePhone,
     public readonly fullName: string,
     public readonly contactEmail: string | null,
+    public readonly contactEmailVerified: boolean,
     public readonly nationalId: string | null,
     public readonly mustChangePassword: boolean,
     public readonly createdAt: Date,
@@ -44,6 +47,7 @@ export class User {
       props.phone,
       props.fullName,
       props.contactEmail,
+      props.contactEmailVerified,
       props.nationalId,
       props.mustChangePassword,
       props.createdAt,

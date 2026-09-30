@@ -1,5 +1,6 @@
 import { APIError } from 'better-auth/api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { createAuthHooks } from '@/modules/auth/infrastructure/better-auth/auth-hooks.js';
 import {
@@ -23,9 +24,11 @@ const guard = {
   admit: vi.fn<SignInGuard['admit']>(() => Promise.resolve()),
   forgive: vi.fn<SignInGuard['forgive']>(() => Promise.resolve()),
 };
+const prisma = { user: { findUnique: vi.fn(() => Promise.resolve(null)) } };
 const hooks = createAuthHooks(
   auditor as unknown as AuthAuditor,
   guard as unknown as SignInGuard,
+  prisma as unknown as PrismaService,
 );
 
 const run = (hook: unknown, context: object): Promise<unknown> =>

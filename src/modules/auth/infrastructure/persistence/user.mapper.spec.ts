@@ -3,6 +3,7 @@ import { MobilePhone } from '@/shared/domain/value-objects/mobile-phone.value-ob
 import { User } from '@/modules/auth/domain/entities/user.entity.js';
 import {
   CREDENTIAL_PROVIDER,
+  toUser,
   toUserCreateInput,
 } from '@/modules/auth/infrastructure/persistence/user.mapper.js';
 
@@ -13,6 +14,7 @@ const user = User.create({
   phone: MobilePhone.parse('+573001234567'),
   fullName: 'Ana Pérez',
   contactEmail: 'ana@example.com',
+  contactEmailVerified: false,
   nationalId: '1020304050',
   mustChangePassword: true,
   createdAt: CREATED_AT,
@@ -26,6 +28,7 @@ describe('toUserCreateInput', () => {
       phone: '+573001234567',
       loginEmail: '573001234567@phone.fiaro.invalid',
       contactEmail: 'ana@example.com',
+      contactEmailVerified: false,
       nationalId: '1020304050',
       mustChangePassword: true,
       createdAt: CREATED_AT,
@@ -43,5 +46,31 @@ describe('toUserCreateInput', () => {
 
   it('el proveedor de la credencial es el que better-auth espera', () => {
     expect(CREDENTIAL_PROVIDER).toBe('credential');
+  });
+});
+
+describe('toUser', () => {
+  it('convierte la fila de users en la entidad de dominio', () => {
+    const row = {
+      id: 'user-1',
+      fullName: 'Ana Pérez',
+      phone: '+573001234567',
+      contactEmail: 'ana@example.com',
+      contactEmailVerified: true,
+      nationalId: '1020304050',
+      mustChangePassword: true,
+      createdAt: CREATED_AT,
+    };
+
+    const found = toUser(row as unknown as Parameters<typeof toUser>[0]);
+
+    expect(found.id).toBe('user-1');
+    expect(found.phone.value).toBe('+573001234567');
+    expect(found.fullName).toBe('Ana Pérez');
+    expect(found.contactEmail).toBe('ana@example.com');
+    expect(found.contactEmailVerified).toBe(true);
+    expect(found.nationalId).toBe('1020304050');
+    expect(found.mustChangePassword).toBe(true);
+    expect(found.createdAt).toBe(CREATED_AT);
   });
 });

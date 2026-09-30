@@ -12,7 +12,7 @@ describe('AUDIT_ACTIONS', () => {
     expect(new Set(AUDIT_ACTIONS).size).toBe(AUDIT_ACTIONS.length);
   });
 
-  it('incluye los siete hechos de la autenticación', () => {
+  it('incluye los trece hechos de la autenticación', () => {
     expect(AUDIT_ACTIONS).toEqual([
       'auth.sign_in.succeeded',
       'auth.sign_in.failed',
@@ -21,6 +21,12 @@ describe('AUDIT_ACTIONS', () => {
       'auth.session.revoked',
       'auth.password.changed',
       'auth.password.change_failed',
+      'auth.password.reset_requested',
+      'auth.password.reset_completed',
+      'auth.email.verification_requested',
+      'auth.email.verified',
+      'auth.profile.updated',
+      'auth.account.deactivated',
     ]);
   });
 });

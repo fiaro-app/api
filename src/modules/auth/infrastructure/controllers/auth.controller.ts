@@ -15,7 +15,11 @@ import type { Request, Response } from 'express';
 import type { z } from 'zod';
 import type { Env } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
+import { RequestPasswordResetUseCase } from '@/modules/auth/application/use-cases/request-password-reset.use-case.js';
+import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case.js';
 import { toAuthRequest } from '@/modules/auth/infrastructure/better-auth/auth-request.js';
+import type { RequestOrigin } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
+import { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { writeAuthResponse } from '@/modules/auth/infrastructure/better-auth/auth-response.js';
 import {
   AUTH_BASE_PATH,
@@ -31,6 +35,8 @@ import { BETTER_AUTH } from '@/modules/auth/infrastructure/better-auth/auth.toke
 import {
   ApiChangePassword,
   ApiGetSession,
+  ApiRequestPasswordReset,
+  ApiResetPassword,
   ApiRevokeOtherSessions,
   ApiRevokeSessions,
   ApiSignIn,
@@ -38,8 +44,12 @@ import {
 } from '@/modules/auth/infrastructure/controllers/docs/auth-routes.docs.js';
 import {
   ChangePasswordRequestSchema,
+  RequestPasswordResetRequestSchema,
+  ResetPasswordRequestSchema,
   SignInRequestSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/auth-requests.schema.js';
+import type { StatusResponseSchema } from '@/modules/auth/infrastructure/controllers/schemas/auth-responses.schema.js';
+import { PasswordResetGuard } from '@/modules/auth/infrastructure/password-reset/password-reset-guard.js';
 import { ApiErrorFactory } from '@/shared/infrastructure/filters/api-error.factory.js';
 import { Public } from '@/shared/infrastructure/http/public.decorator.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
@@ -62,6 +72,10 @@ export class AuthController {
     @Inject(BETTER_AUTH) private readonly auth: Auth,
     @Inject(ENV) private readonly env: Env,
     private readonly errors: ApiErrorFactory,
+    private readonly auditor: AuthAuditor,
+    private readonly passwordResetGuard: PasswordResetGuard,
+    private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
   ) {}
 
   /**
@@ -106,6 +120,60 @@ export class AuthController {
   @ApiSignOut()
   async signOut(@Req() req: Request, @Res() res: Response): Promise<void> {
     await this.forward(req, res, SIGN_OUT_PATH);
+  }
+
+  /**
+   * Pide recuperar la contraseña de un celular por correo: si tiene cuenta y correo de contacto,
+   * manda un código. Responde lo mismo siempre, para no revelar qué celulares tienen cuenta.
+   *
+   * @param body - Celular, ya validado.
+   * @param req - Petición de Express.
+   */
+  @Post('request-password-reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiRequestPasswordReset()
+  async requestPasswordReset(
+    @Body({ schema: RequestPasswordResetRequestSchema })
+    body: z.output<typeof RequestPasswordResetRequestSchema>,
+    @Req() req: Request,
+  ): Promise<z.output<typeof StatusResponseSchema>> {
+    const allowed = await this.passwordResetGuard.admitRequest(
+      body.phoneNumber,
+    );
+    const sent = allowed
+      ? await this.requestPasswordResetUseCase.execute(body)
+      : false;
+    this.auditor.passwordResetRequested(
+      body.phoneNumber,
+      sent,
+      this.originOf(req),
+    );
+    return { status: true };
+  }
+
+  /**
+   * Canjea el código de recuperación por una contraseña nueva y cierra todas las sesiones de la
+   * persona.
+   *
+   * @param body - Celular, código y contraseña nueva, ya validados.
+   * @param req - Petición de Express.
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiResetPassword()
+  async resetPassword(
+    @Body({ schema: ResetPasswordRequestSchema })
+    body: z.output<typeof ResetPasswordRequestSchema>,
+    @Req() req: Request,
+  ): Promise<z.output<typeof StatusResponseSchema>> {
+    await this.passwordResetGuard.admitVerification(body.phoneNumber);
+    const { userId } = await this.resetPasswordUseCase.execute(body);
+    await this.passwordResetGuard.forgiveVerification(body.phoneNumber);
+    this.auditor.passwordResetCompleted(
+      { id: userId, phone: body.phoneNumber },
+      this.originOf(req),
+    );
+    return { status: true };
   }
 
   /**
@@ -171,5 +239,10 @@ export class AuthController {
       body,
     });
     await writeAuthResponse(res, await this.auth.handler(request), this.errors);
+  }
+
+  /** @param req - Petición de Express: no pasa por better-auth, así que la IP y el navegador se leen directo. */
+  private originOf(req: Request): RequestOrigin {
+    return { ip: req.ip, userAgent: req.headers['user-agent'] };
   }
 }

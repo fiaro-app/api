@@ -30,8 +30,17 @@ function setup(options: { repositoryError?: Error } = {}) {
   const hash = vi.fn((password: string) =>
     Promise.resolve(`hash(${password})`),
   );
-  const users: UserRepository = { create };
-  const passwordHasher: PasswordHasher = { hash };
+  const users: UserRepository = {
+    create,
+    findByPhone: vi.fn(() => Promise.resolve(null)),
+    findById: vi.fn(() => Promise.resolve(null)),
+    updatePassword: vi.fn(() => Promise.resolve()),
+    markContactEmailVerified: vi.fn(() => Promise.resolve()),
+    updateProfile: vi.fn(() => Promise.resolve()),
+    findPasswordHash: vi.fn(() => Promise.resolve(null)),
+    deactivate: vi.fn(() => Promise.resolve()),
+  };
+  const passwordHasher: PasswordHasher = { hash, verify: vi.fn() };
   const ids: IdGenerator = { next: () => 'id-1' };
   const clock: Clock = { now: () => NOW };
   return {
@@ -53,6 +62,7 @@ describe('CreateUserUseCase', () => {
       phone: '+573001234567',
       fullName: 'Ana Pérez',
       contactEmail: null,
+      contactEmailVerified: false,
       nationalId: null,
       mustChangePassword: false,
       createdAt: NOW,
