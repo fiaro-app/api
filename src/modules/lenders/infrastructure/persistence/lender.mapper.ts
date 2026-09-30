@@ -33,6 +33,16 @@ export function toLenderCreateInput(
   };
 }
 
+/** @param lender - El prestamista con sus datos ya actualizados. */
+export function toLenderUpdateInput(lender: Lender): Prisma.LenderUpdateInput {
+  return {
+    name: lender.name,
+    logoUrl: lender.logoUrl,
+    nonWorkingWeekdays: [...lender.nonWorkingWeekdays],
+    skipNationalHolidays: lender.skipNationalHolidays,
+  };
+}
+
 /** @param row - Fila de `lenders`. */
 export function toLender(row: LenderModel): Lender {
   return Lender.create({

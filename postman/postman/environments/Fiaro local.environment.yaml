@@ -65,3 +65,8 @@ values:
     enabled: true
     type: default
     description: 'Contraseña de Carla Ruiz en el seed de desarrollo.'
+  - key: originalLenderName
+    value: ''
+    enabled: true
+    type: default
+    description: 'La carpeta *Prestamista* la llena sola al leer la configuración (paso 2) y la usa para volver al nombre original (paso 4): no hace falta tocarla a mano.'

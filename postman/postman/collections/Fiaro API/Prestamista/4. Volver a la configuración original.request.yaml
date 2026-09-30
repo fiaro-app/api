@@ -1,0 +1,24 @@
+$kind: http-request
+description: Deja el prestamista como estaba, para poder repetir la carpeta.
+url: "{{baseUrl}}/lender"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "name": "{{originalLenderName}}",
+      "nonWorkingWeekdays": ["SUNDAY"]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('el nombre volvió al original', () => pm.expect(pm.response.json().name).to.eql(pm.collectionVariables.get('originalLenderName')));
+    language: text/javascript
+order: 4000

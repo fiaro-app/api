@@ -20,10 +20,13 @@ function setup() {
     Promise.resolve(),
   );
   const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
+  const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve(),
+  );
   const repository = new PrismaLenderRepository({
-    lender: { create, findUnique },
+    lender: { create, findUnique, update },
   } as unknown as PrismaService);
-  return { repository, create, findUnique };
+  return { repository, create, findUnique, update };
 }
 
 describe('PrismaLenderRepository.create', () => {
@@ -80,5 +83,23 @@ describe('PrismaLenderRepository.findById', () => {
     findUnique.mockResolvedValueOnce(null);
 
     await expect(repository.findById('lender-1')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaLenderRepository.update', () => {
+  it('actualiza al prestamista', async () => {
+    const { repository, update } = setup();
+
+    await repository.update(lender);
+
+    expect(update).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'lender-1' },
+      data: {
+        name: 'Préstamos Ana',
+        logoUrl: null,
+        nonWorkingWeekdays: ['SUNDAY'],
+        skipNationalHolidays: false,
+      },
+    });
   });
 });

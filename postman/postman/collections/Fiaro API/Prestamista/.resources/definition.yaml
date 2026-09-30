@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Configuración del prestamista con el que opera la sesión (D-74, D-75): `GET`/`PATCH /lender`,
+  protegidas por `LenderScopeGuard`. Autocontenida: empieza con su propio inicio de sesión. El
+  paso 2 guarda el nombre actual en una variable para que el paso 4 lo restaure, así la carpeta
+  se puede repetir sin dejar el prestamista con el nombre de prueba.
+order: 1800

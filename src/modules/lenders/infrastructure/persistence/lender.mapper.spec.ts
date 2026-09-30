@@ -3,6 +3,7 @@ import { Lender } from '@/modules/lenders/domain/entities/lender.entity.js';
 import {
   toLender,
   toLenderCreateInput,
+  toLenderUpdateInput,
 } from '@/modules/lenders/infrastructure/persistence/lender.mapper.js';
 
 const CREATED_AT = new Date('2026-09-30T00:00:00Z');
@@ -35,6 +36,17 @@ describe('toLenderCreateInput', () => {
           createdAt: CREATED_AT,
         },
       },
+    });
+  });
+});
+
+describe('toLenderUpdateInput', () => {
+  it('convierte al prestamista actualizado en los campos que se guardan', () => {
+    expect(toLenderUpdateInput(lender)).toEqual({
+      name: 'Préstamos Ana',
+      logoUrl: null,
+      nonWorkingWeekdays: ['SUNDAY'],
+      skipNationalHolidays: false,
     });
   });
 });

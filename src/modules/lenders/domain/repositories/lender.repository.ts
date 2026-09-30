@@ -16,4 +16,7 @@ export interface LenderRepository {
    * @returns El prestamista, o `null` si no existe.
    */
   findById(id: string): Promise<Lender | null>;
+
+  /** @param lender - El prestamista con sus datos ya actualizados. */
+  update(lender: Lender): Promise<void>;
 }

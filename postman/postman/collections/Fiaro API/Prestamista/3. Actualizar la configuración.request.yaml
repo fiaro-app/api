@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Un campo ausente no se toca; logoUrl: null lo quita. Exige rol OWNER o LENDER en la membresía activa (Ana los tiene los tres, del registro)."
+url: "{{baseUrl}}/lender"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "name": "Préstamos Ana Pérez (probando)",
+      "nonWorkingWeekdays": ["SUNDAY", "SATURDAY"]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('el nombre cambió', () => pm.expect(body.name).to.eql('Préstamos Ana Pérez (probando)'));
+      pm.test('los días sin cobro cambiaron', () => pm.expect(body.nonWorkingWeekdays).to.eql(['SUNDAY', 'SATURDAY']));
+    language: text/javascript
+order: 3000
