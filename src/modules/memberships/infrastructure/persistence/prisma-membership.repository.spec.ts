@@ -21,10 +21,13 @@ function setup() {
     Promise.resolve(),
   );
   const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
+  const findMany = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve([]),
+  );
   const repository = new PrismaMembershipRepository({
-    membership: { create, findUnique },
+    membership: { create, findUnique, findMany },
   } as unknown as PrismaService);
-  return { repository, create, findUnique };
+  return { repository, create, findUnique, findMany };
 }
 
 describe('PrismaMembershipRepository.create', () => {
@@ -75,5 +78,38 @@ describe('PrismaMembershipRepository.findById', () => {
     findUnique.mockResolvedValueOnce(null);
 
     await expect(repository.findById('membership-1')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaMembershipRepository.findActiveByUserId', () => {
+  it('devuelve las membresías activas, de la más antigua a la más nueva', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([
+      {
+        id: 'membership-1',
+        userId: 'user-1',
+        lenderId: 'lender-1',
+        roles: ['OWNER', 'LENDER', 'COLLECTOR'],
+        status: 'ACTIVE',
+        portfolioId: 'portfolio-1',
+        createdAt: CREATED_AT,
+        deactivatedAt: null,
+      },
+    ]);
+
+    const found = await repository.findActiveByUserId('user-1');
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: { userId: 'user-1', status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]?.id).toBe('membership-1');
+  });
+
+  it('sin membresías activas devuelve una lista vacía', async () => {
+    const { repository } = setup();
+
+    await expect(repository.findActiveByUserId('user-1')).resolves.toEqual([]);
   });
 });

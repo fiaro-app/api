@@ -7,8 +7,10 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
 
 /**
  * Membresías: la relación entre una persona y un prestamista, con sus roles. Todavía no publica
- * rutas: `CreateMembershipUseCase` lo usa `tenants` (la del dueño, al registrar el negocio) y el
- * seed de desarrollo.
+ * rutas propias: `CreateMembershipUseCase` lo usa `tenants` (la del dueño, al registrar el
+ * negocio) y el seed de desarrollo. Sí ofrece, por el puerto `LENDER_SCOPE_RESOLVER`, con qué
+ * Lender opera una sesión (D-74) — cualquier módulo que proteja una ruta con
+ * `LenderScopeGuard` debe importar este módulo.
  */
 @Module({
   imports: [PersistenceModule],
