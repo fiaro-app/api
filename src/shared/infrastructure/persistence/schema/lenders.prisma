@@ -24,6 +24,7 @@ model Lender {
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   portfolios  Portfolio[]
   memberships Membership[]
+  clients     Client[]
 
   @@index([tenantId])
   @@map("lenders")

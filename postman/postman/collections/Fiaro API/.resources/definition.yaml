@@ -65,3 +65,6 @@ variables:
   - key: originalLenderName
     value: ''
     description: 'La carpeta *Prestamista* la llena sola al leer la configuración (paso 2) y la usa para volver al nombre original (paso 4): no hace falta tocarla a mano.'
+  - key: clientId
+    value: ''
+    description: 'La carpeta *Cliente* la llena sola al dar de alta al cliente de prueba (paso 2) y la usa en los pasos siguientes: no hace falta tocarla a mano.'

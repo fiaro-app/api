@@ -1,0 +1,23 @@
+$kind: http-request
+description: "Un campo ausente no se toca. El resultado completo se revalida con el mismo contrato del alta (ClientSchema). Exige rol OWNER o LENDER en la membresía activa."
+url: "{{baseUrl}}/clients/{{clientId}}"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "address": "Carrera 10 # 20-30, Bogotá"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la dirección cambió', () => pm.expect(pm.response.json().address).to.eql('Carrera 10 # 20-30, Bogotá'));
+    language: text/javascript
+order: 5000

@@ -1,0 +1,19 @@
+/// Persona deudora, no es usuario del sistema. Aislada por `lenderId`: su cédula solo es única
+/// dentro de su prestamista, no en todo el sistema (a diferencia de `User.phone`).
+model Client {
+  id         String   @id @db.Uuid
+  lenderId   String   @map("lender_id") @db.Uuid
+  nationalId String   @map("national_id")
+  fullName   String   @map("full_name")
+  occupation String
+  phone      String
+  address    String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+
+  @@unique([lenderId, nationalId])
+  @@index([lenderId])
+  @@map("clients")
+}
