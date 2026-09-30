@@ -1,0 +1,23 @@
+$kind: http-request
+description: "Manda un código de 6 dígitos al correo de contacto de la cuenta, si tiene uno. Responde 200 siempre igual, exista o no la cuenta, tenga o no correo. En desarrollo el correo no se envía: revisa el log de la API para leer el código."
+url: "{{baseUrl}}/auth/request-password-reset"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{phone}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('confirma el pedido, sin decir si mandó el correo', () => pm.expect(pm.response.json().status).to.be.true);
+    language: text/javascript
+order: 1000

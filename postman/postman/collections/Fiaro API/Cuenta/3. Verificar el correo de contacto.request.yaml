@@ -1,0 +1,23 @@
+$kind: http-request
+description: Canjea el código del paso anterior y marca el correo de contacto como verificado. Copia el código del log de la API a la variable `contactEmailVerificationCode` antes de correr esta petición.
+url: "{{baseUrl}}/account/contact-email/verify"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "code": "{{contactEmailVerificationCode}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('confirma la verificación', () => pm.expect(pm.response.json().status).to.be.true);
+    language: text/javascript
+order: 3000

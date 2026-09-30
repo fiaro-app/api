@@ -1,0 +1,23 @@
+$kind: http-request
+description: Deja el perfil como estaba, para poder repetir la carpeta.
+url: "{{baseUrl}}/account/profile"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "{{fullName}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('el nombre volvió al original', () => pm.expect(pm.response.json().fullName).to.eql(pm.variables.get('fullName')));
+    language: text/javascript
+order: 5000
