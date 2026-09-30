@@ -7,8 +7,9 @@ export interface LenderRepository {
    * un Lender sin al menos una cartera (PRODUCT.md §5).
    *
    * @param lender - Prestamista nuevo.
+   * @param defaultPortfolioId - Identificador de la fila de la cartera por defecto.
    */
-  create(lender: Lender): Promise<void>;
+  create(lender: Lender, defaultPortfolioId: string): Promise<void>;
 
   /**
    * @param id - Identificador del prestamista.

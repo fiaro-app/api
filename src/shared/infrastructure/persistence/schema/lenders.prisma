@@ -21,8 +21,9 @@ model Lender {
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  portfolios Portfolio[]
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  portfolios  Portfolio[]
+  memberships Membership[]
 
   @@index([tenantId])
   @@map("lenders")
@@ -38,7 +39,8 @@ model Portfolio {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  lender      Lender       @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  memberships Membership[]
 
   @@unique([lenderId, name])
   @@index([lenderId])

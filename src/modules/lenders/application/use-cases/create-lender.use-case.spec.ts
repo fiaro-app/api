@@ -9,16 +9,17 @@ import type { IdGenerator } from '@/shared/application/ports/id-generator.port.j
 const NOW = new Date('2026-09-30T00:00:00Z');
 
 function setup() {
-  const saved: Lender[] = [];
-  const create = vi.fn((lender: Lender) => {
-    saved.push(lender);
+  const saved: { lender: Lender; defaultPortfolioId: string }[] = [];
+  const create = vi.fn((lender: Lender, defaultPortfolioId: string) => {
+    saved.push({ lender, defaultPortfolioId });
     return Promise.resolve();
   });
   const lenders: LenderRepository = {
     create,
     findById: vi.fn(() => Promise.resolve(null)),
   };
-  const ids: IdGenerator = { next: () => 'lender-1' };
+  let nextId = 0;
+  const ids: IdGenerator = { next: () => `id-${String(++nextId)}` };
   const clock: Clock = { now: () => NOW };
   return {
     useCase: new CreateLenderUseCase(lenders, ids, clock),
@@ -28,7 +29,7 @@ function setup() {
 }
 
 describe('CreateLenderUseCase', () => {
-  it('crea al prestamista sin logo y con los días sin cobro por defecto', async () => {
+  it('crea al prestamista sin logo, con los días sin cobro por defecto y su cartera General', async () => {
     const { useCase, saved } = setup();
 
     const created = await useCase.execute({
@@ -37,15 +38,17 @@ describe('CreateLenderUseCase', () => {
     });
 
     expect(created).toEqual({
-      id: 'lender-1',
+      id: 'id-1',
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
+      defaultPortfolioId: 'id-2',
       createdAt: NOW,
     });
     expect(saved).toHaveLength(1);
+    expect(saved[0]?.defaultPortfolioId).toBe('id-2');
   });
 
   it('recorta el nombre', async () => {

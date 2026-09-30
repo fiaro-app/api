@@ -28,7 +28,7 @@ export class CreateLenderUseCase {
 
   /**
    * @param input - El Tenant dueño y el nombre del negocio.
-   * @returns El prestamista creado.
+   * @returns El prestamista creado, con el id de su cartera "General" por defecto.
    * @throws {@link InvalidLenderDataError} Si el nombre no cumple el contrato.
    */
   async execute(input: CreateLenderInput): Promise<CreatedLender> {
@@ -42,7 +42,8 @@ export class CreateLenderUseCase {
       skipNationalHolidays: false,
       createdAt: this.clock.now(),
     });
-    await this.lenders.create(lender);
-    return toCreatedLender(lender);
+    const defaultPortfolioId = this.ids.next();
+    await this.lenders.create(lender, defaultPortfolioId);
+    return toCreatedLender(lender, defaultPortfolioId);
   }
 }

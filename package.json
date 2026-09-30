@@ -43,7 +43,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "node scripts/seed-dev-tenants.js && node scripts/seed-dev-users.js",
+    "db:seed": "node scripts/seed-dev-users.js && node scripts/seed-dev-tenants.js",
     "docker:infra": "docker compose up -d --wait postgres redis mongo s3 mailpit",
     "docker:dev": "NODE_AUTH_TOKEN=\"${NODE_AUTH_TOKEN:-$(gh auth token)}\" docker compose up -d --build --wait",
     "docker:dev:obs": "NODE_AUTH_TOKEN=\"${NODE_AUTH_TOKEN:-$(gh auth token)}\" docker compose --profile observability up -d --build --wait",
