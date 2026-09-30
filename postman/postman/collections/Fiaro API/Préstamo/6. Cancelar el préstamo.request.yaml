@@ -1,0 +1,15 @@
+$kind: http-request
+description: "Lo anula por un error de registro. Exige rol OWNER o LENDER en la membresía activa. Cancelarlo dos veces responde 422 LOAN_NOT_CANCELABLE."
+url: "{{baseUrl}}/loans/{{loanId}}/cancel"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('queda CANCELED', () => pm.expect(pm.response.json().status).to.eql('CANCELED'));
+    language: text/javascript
+order: 6000

@@ -26,6 +26,7 @@ function setup() {
     create: vi.fn(() => Promise.resolve()),
     findById,
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
+    update: vi.fn(() => Promise.resolve()),
   };
   return { useCase: new GetLoanUseCase(loans), findById };
 }

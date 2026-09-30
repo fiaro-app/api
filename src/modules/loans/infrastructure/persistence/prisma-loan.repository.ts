@@ -52,4 +52,12 @@ export class PrismaLoanRepository implements LoanRepository {
     ]);
     return { items: rows.map(toLoan), total };
   }
+
+  /** @param loan - Préstamo con sus datos ya actualizados. */
+  async update(loan: Loan): Promise<void> {
+    await this.prisma.loan.update({
+      where: { id: loan.id, lenderId: loan.lenderId },
+      data: toLoanCreateInput(loan),
+    });
+  }
 }

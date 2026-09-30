@@ -15,3 +15,8 @@ export const LoanForbiddenSchema = ApiErrorSchema.extend({
 export const LoanNotFoundSchema = ApiErrorSchema.extend({
   code: z.literal('NOT_FOUND'),
 }).meta({ id: 'LoanNotFound' });
+
+/** `422 LOAN_NOT_CANCELABLE`: el préstamo ya no está `ACTIVE`. */
+export const LoanNotCancelableSchema = ApiErrorSchema.extend({
+  code: z.literal('LOAN_NOT_CANCELABLE'),
+}).meta({ id: 'LoanNotCancelable' });
