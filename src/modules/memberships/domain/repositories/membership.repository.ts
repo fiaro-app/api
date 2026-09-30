@@ -10,4 +10,10 @@ export interface MembershipRepository {
    * @returns La membresía, o `null` si no existe.
    */
   findById(id: string): Promise<Membership | null>;
+
+  /**
+   * @param userId - La persona.
+   * @returns Sus membresías `ACTIVE`, de la más antigua a la más nueva.
+   */
+  findActiveByUserId(userId: string): Promise<readonly Membership[]>;
 }

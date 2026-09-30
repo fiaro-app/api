@@ -24,4 +24,13 @@ export class PrismaMembershipRepository implements MembershipRepository {
     const row = await this.prisma.membership.findUnique({ where: { id } });
     return row === null ? null : toMembership(row);
   }
+
+  /** @param userId - La persona. */
+  async findActiveByUserId(userId: string): Promise<readonly Membership[]> {
+    const rows = await this.prisma.membership.findMany({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map(toMembership);
+  }
 }

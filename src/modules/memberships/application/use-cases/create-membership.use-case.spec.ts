@@ -16,6 +16,7 @@ function setup() {
   const memberships: MembershipRepository = {
     create,
     findById: vi.fn(() => Promise.resolve(null)),
+    findActiveByUserId: vi.fn(() => Promise.resolve([])),
   };
   const ids: IdGenerator = { next: () => 'membership-1' };
   const clock: Clock = { now: () => NOW };
