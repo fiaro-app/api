@@ -68,3 +68,9 @@ variables:
   - key: clientId
     value: ''
     description: 'La carpeta *Cliente* la llena sola al dar de alta al cliente de prueba (paso 2) y la usa en los pasos siguientes: no hace falta tocarla a mano.'
+  - key: loanClientId
+    value: ''
+    description: 'La carpeta *Préstamo* la llena sola al dar de alta su propio cliente de prueba (paso 2): no hace falta tocarla a mano.'
+  - key: loanId
+    value: ''
+    description: 'La carpeta *Préstamo* la llena sola al dar de alta el préstamo de prueba (paso 3) y la usa en los pasos siguientes: no hace falta tocarla a mano.'

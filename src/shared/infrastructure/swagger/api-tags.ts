@@ -33,4 +33,9 @@ export const API_TAGS = {
     description:
       'Personas deudoras del prestamista con el que opera la sesión (`LenderScopeGuard`), aisladas por `lenderId` y con `nationalId` único por prestamista. Verlas no pide un rol específico; darlas de alta o editarlas exige `OWNER` o `LENDER`.',
   },
+  loan: {
+    name: 'Préstamos',
+    description:
+      'Acuerdos de pago de un cliente del prestamista con el que opera la sesión (`LenderScopeGuard`). Verlos no pide un rol específico; darlos de alta exige `OWNER` o `LENDER`. Todavía no se pueden cancelar ni editar.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

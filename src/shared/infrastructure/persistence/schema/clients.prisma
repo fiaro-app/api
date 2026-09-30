@@ -12,6 +12,7 @@ model Client {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  loans  Loan[]
 
   @@unique([lenderId, nationalId])
   @@index([lenderId])

@@ -1,0 +1,31 @@
+$kind: http-request
+description: "Acuerdo de pago para el cliente de prueba. Exige rol OWNER o LENDER en la membresía activa (Ana los tiene los tres, del registro). Nace ACTIVE."
+url: "{{baseUrl}}/loans"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "clientId": "{{loanClientId}}",
+      "principalAmount": 500000,
+      "installmentCount": 20,
+      "installmentValue": 30000,
+      "totalPayable": 600000,
+      "frequency": "DAILY",
+      "startDate": "2026-10-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('nace ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));
+      pm.collectionVariables.set('loanId', body.id);
+    language: text/javascript
+order: 3000

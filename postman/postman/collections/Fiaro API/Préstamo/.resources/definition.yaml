@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Préstamos (acuerdos de pago) de un cliente del prestamista con el que opera la sesión:
+  `POST`/`GET`/`QUERY /loans`, protegidas por `LenderScopeGuard`. Autocontenida: empieza con su
+  propia sesión y su propio cliente de prueba (no depende de la carpeta *Cliente*). Sin
+  cancelar préstamos todavía: es un caso de uso aparte, pendiente.
+order: 1900
