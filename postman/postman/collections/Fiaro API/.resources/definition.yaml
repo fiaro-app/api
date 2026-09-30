@@ -74,3 +74,12 @@ variables:
   - key: loanId
     value: ''
     description: 'La carpeta *Préstamo* la llena sola al dar de alta el préstamo de prueba (paso 3) y la usa en los pasos siguientes: no hace falta tocarla a mano.'
+  - key: registerPhone
+    value: ''
+    description: 'La carpeta *Registro* la llena sola en un script previo al paso 1 (celular al azar, para poder repetir la carpeta): no hace falta tocarla a mano.'
+  - key: registerNationalId
+    value: ''
+    description: 'La carpeta *Registro* la llena sola en un script previo al paso 1 (cédula al azar): no hace falta tocarla a mano.'
+  - key: registerPassword
+    value: ''
+    description: 'La carpeta *Registro* la llena sola en un script previo al paso 1: no hace falta tocarla a mano.'

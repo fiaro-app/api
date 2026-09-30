@@ -1,0 +1,15 @@
+$kind: http-request
+description: Confirma que LenderScopeGuard resuelve, de punta a punta, el prestamista recién creado a partir de la sesión nueva.
+url: "{{baseUrl}}/lender"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('es el negocio recién registrado', () => pm.expect(pm.response.json().name).to.eql('Créditos Beatriz (prueba de registro)'));
+    language: text/javascript
+order: 3000

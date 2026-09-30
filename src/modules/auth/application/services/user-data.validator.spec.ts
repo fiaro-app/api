@@ -25,11 +25,18 @@ describe('validateUserData', () => {
     });
   });
 
+  it('quita los puntos de la cédula antes de validar', () => {
+    expect(
+      validateUserData({ fullName: 'Ana Pérez', nationalId: '1.020.304' })
+        .nationalId,
+    ).toBe('1020304');
+  });
+
   it.each([
     ['un nombre demasiado corto', { fullName: 'A' }, 'fullName'],
     [
-      'una cédula con puntos',
-      { fullName: 'Ana', nationalId: '1.020.304' },
+      'una cédula con letras',
+      { fullName: 'Ana', nationalId: 'abc123' },
       'nationalId',
     ],
     [

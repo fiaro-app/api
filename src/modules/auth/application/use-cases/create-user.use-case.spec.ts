@@ -119,7 +119,7 @@ describe('CreateUserUseCase', () => {
 
   it.each([
     ['un nombre demasiado corto', { fullName: 'A' }, 'fullName'],
-    ['una cédula con puntos', { nationalId: '1.020.304.050' }, 'nationalId'],
+    ['una cédula con letras', { nationalId: 'abc123' }, 'nationalId'],
     ['un email mal escrito', { contactEmail: 'ana@' }, 'email'],
   ])('rechaza %s e indica el campo', async (_caso, change, field) => {
     const { useCase, create } = setup();
