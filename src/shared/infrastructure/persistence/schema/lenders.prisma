@@ -25,6 +25,7 @@ model Lender {
   portfolios  Portfolio[]
   memberships Membership[]
   clients     Client[]
+  loans       Loan[]
 
   @@index([tenantId])
   @@map("lenders")

@@ -7,6 +7,7 @@ import { ENV } from '@/config/env.token.js';
 import { AuthModule } from '@/modules/auth/auth.module.js';
 import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
+import { LoansModule } from '@/modules/loans/loans.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { TenantsModule } from '@/modules/tenants/tenants.module.js';
 import { AuditModule } from '@/shared/infrastructure/audit/audit.module.js';
@@ -40,6 +41,7 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
     TenantsModule,
     LendersModule,
     ClientsModule,
+    LoansModule,
     ThrottlerModule.forRootAsync({
       /** Redundante en runtime (`EnvModule` es global): los tipos de `@nestjs/throttler` 6.7 con Nest 12 lo exigen. */
       imports: [EnvModule],
