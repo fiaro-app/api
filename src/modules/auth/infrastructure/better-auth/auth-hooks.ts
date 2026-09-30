@@ -10,6 +10,7 @@ import {
   CHANGE_PASSWORD_PATH,
   SIGN_IN_PATH,
 } from '@/modules/auth/infrastructure/better-auth/auth.constants.js';
+import type { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import type { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
 import {
@@ -64,6 +65,47 @@ function auditPasswordChange(auditor: AuthAuditor, ctx: AuthHookContext): void {
 }
 
 /**
+ * Rechaza un inicio de sesión con un celular cuya cuenta está desactivada, antes de comprobar la
+ * contraseña.
+ *
+ * @remarks
+ * Consulta Prisma directamente, no `ctx.context.adapter`: ese adaptador solo entrega los campos
+ * que better-auth conoce (los suyos y los `additionalFields`), y `deactivatedAt` no es uno —
+ * a propósito, para no exponerlo en `GET /auth/get-session`. Corre después del bloqueo por
+ * celular (D-66), no antes: así un celular que ya agotó sus intentos sigue bloqueado aunque la
+ * cuenta se desactive. Este rechazo en sí no cuenta como un intento fallido más. Un cuerpo sin
+ * celular no se toca: better-auth lo rechaza como inválido.
+ *
+ * @param auditor - A quien se le avisa del rechazo.
+ * @param prisma - Para leer `deactivatedAt` directo, fuera del esquema de better-auth.
+ * @param ctx - Contexto del hook.
+ * @throws {@link APIError} `ACCOUNT_DEACTIVATED` (403) si la cuenta de ese celular está desactivada.
+ */
+async function rejectDeactivatedAccount(
+  auditor: AuthAuditor,
+  prisma: Pick<PrismaService, 'user'>,
+  ctx: Parameters<typeof getSessionFromCtx>[0],
+): Promise<void> {
+  const phone = phoneOf(ctx);
+  if (phone === undefined) {
+    return;
+  }
+  const user = await prisma.user.findUnique({
+    where: { phone },
+    select: { deactivatedAt: true },
+  });
+  if (user?.deactivatedAt == null) {
+    return;
+  }
+  const code = ErrorCodeSchema.enum.ACCOUNT_DEACTIVATED;
+  auditor.signInFailed(phone, code, originOf(ctx));
+  throw APIError.from('FORBIDDEN', {
+    code,
+    message: 'Esta cuenta está desactivada.',
+  });
+}
+
+/**
  * Rechaza una contraseña nueva demasiado fácil de adivinar antes de que la ruta la cambie.
  *
  * @remarks
@@ -106,10 +148,15 @@ async function rejectWeakNewPassword(
  * Lo que corre antes de la ruta: nivela el tiempo del inicio de sesión y, al cambiar la
  * contraseña, rechaza la débil y fuerza revocar las demás sesiones.
  */
-function createBeforeHook(auditor: AuthAuditor, guard: SignInGuard) {
+function createBeforeHook(
+  auditor: AuthAuditor,
+  guard: SignInGuard,
+  prisma: Pick<PrismaService, 'user'>,
+) {
   return createAuthMiddleware(async (ctx) => {
     if (ctx.path === SIGN_IN_PATH) {
       await guard.admit(phoneOf(ctx), originOf(ctx));
+      await rejectDeactivatedAccount(auditor, prisma, ctx);
       await hashWhenPhoneIsUnknown(
         {
           phoneExists: async (phone) =>
@@ -166,9 +213,11 @@ function createAfterHook(auditor: AuthAuditor, guard: SignInGuard) {
  * Reglas de Fiaro sobre las rutas de better-auth; la lógica de cada una está en
  * `auth-hook-rules.ts` y la de la auditoría en `auth-audit-rules.ts`.
  *
- * - Iniciar sesión: rechaza con `SIGN_IN_LOCKED` al celular que agotó sus intentos (`SignInGuard`),
- *   nivela el tiempo de respuesta entre celulares con y sin cuenta y audita el resultado
- *   (`auth.sign_in.succeeded` o `auth.sign_in.failed`); si sale bien, reinicia los intentos.
+ * - Iniciar sesión: rechaza con `SIGN_IN_LOCKED` al celular que agotó sus intentos (`SignInGuard`,
+ *   primero, para que una cuenta desactivada no se salte su propio bloqueo); rechaza con
+ *   `ACCOUNT_DEACTIVATED` (D-71) al celular de una cuenta desactivada; nivela el tiempo de
+ *   respuesta entre celulares con y sin cuenta y audita el resultado (`auth.sign_in.succeeded` o
+ *   `auth.sign_in.failed`); si sale bien, reinicia los intentos.
  * - Cambiar la contraseña: rechaza la nueva si es demasiado fácil de adivinar (`PASSWORD_TOO_WEAK`),
  *   revoca siempre las demás sesiones (quien conocía la contraseña anterior, por ejemplo la
  *   temporal, pierde el acceso), audita el resultado y, si sale bien, quita la marca de contraseña
@@ -178,10 +227,15 @@ function createAfterHook(auditor: AuthAuditor, guard: SignInGuard) {
  *
  * @param auditor - A quien se le avisa de cada resultado.
  * @param guard - Cuenta los intentos de iniciar sesión de cada celular y bloquea al que se pasa.
+ * @param prisma - Para leer `deactivatedAt` directo, fuera del esquema de better-auth.
  */
-export function createAuthHooks(auditor: AuthAuditor, guard: SignInGuard) {
+export function createAuthHooks(
+  auditor: AuthAuditor,
+  guard: SignInGuard,
+  prisma: Pick<PrismaService, 'user'>,
+) {
   return {
-    before: createBeforeHook(auditor, guard),
+    before: createBeforeHook(auditor, guard, prisma),
     after: createAfterHook(auditor, guard),
   };
 }

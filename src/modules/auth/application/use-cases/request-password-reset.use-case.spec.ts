@@ -34,6 +34,8 @@ function setup(user: User | null) {
     updatePassword: vi.fn(),
     markContactEmailVerified: vi.fn(),
     updateProfile: vi.fn(),
+    findPasswordHash: vi.fn(),
+    deactivate: vi.fn(),
   };
   const replace = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {

@@ -16,4 +16,14 @@ export class BetterAuthPasswordHasher implements PasswordHasher {
     const context = await this.auth.$context;
     return await context.password.hash(password);
   }
+
+  /**
+   * @param password - Contraseña en claro.
+   * @param hash - Hash guardado.
+   * @returns Si la contraseña corresponde al hash.
+   */
+  async verify(password: string, hash: string): Promise<boolean> {
+    const context = await this.auth.$context;
+    return await context.password.verify({ hash, password });
+  }
 }

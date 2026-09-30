@@ -37,8 +37,10 @@ function setup(options: { repositoryError?: Error } = {}) {
     updatePassword: vi.fn(() => Promise.resolve()),
     markContactEmailVerified: vi.fn(() => Promise.resolve()),
     updateProfile: vi.fn(() => Promise.resolve()),
+    findPasswordHash: vi.fn(() => Promise.resolve(null)),
+    deactivate: vi.fn(() => Promise.resolve()),
   };
-  const passwordHasher: PasswordHasher = { hash };
+  const passwordHasher: PasswordHasher = { hash, verify: vi.fn() };
   const ids: IdGenerator = { next: () => 'id-1' };
   const clock: Clock = { now: () => NOW };
   return {

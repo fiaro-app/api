@@ -56,4 +56,18 @@ export interface UserRepository {
    * @param update - Los datos nuevos, ya validados.
    */
   updateProfile(userId: string, update: ProfileUpdate): Promise<void>;
+
+  /**
+   * @param userId - La persona.
+   * @returns El hash de la contraseña de su credencial, o `null` si no tiene una.
+   */
+  findPasswordHash(userId: string): Promise<string | null>;
+
+  /**
+   * Marca la cuenta como desactivada (baja lógica): no borra nada.
+   *
+   * @param userId - La persona.
+   * @param deactivatedAt - Cuándo se desactivó.
+   */
+  deactivate(userId: string, deactivatedAt: Date): Promise<void>;
 }

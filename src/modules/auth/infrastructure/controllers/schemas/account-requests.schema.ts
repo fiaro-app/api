@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PASSWORD_MAX_LENGTH } from '@/modules/auth/domain/policies/password.policy.js';
 import { VERIFICATION_CODE_LENGTH } from '@/modules/auth/domain/policies/verification-code.policy.js';
 
 /** Cuerpo de `POST /account/contact-email/verify`. */
@@ -36,3 +37,16 @@ export const UpdateProfileRequestSchema = z
     (body) => body.fullName !== undefined || body.contactEmail !== undefined,
     { message: 'Debes enviar al menos un campo para actualizar.' },
   );
+
+/**
+ * Cuerpo de `POST /account/deactivate`.
+ *
+ * @remarks
+ * Pide la contraseña actual como confirmación: no se puede exigir una sesión «fresca» (D-67).
+ */
+export const DeactivateAccountRequestSchema = z.strictObject({
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH).meta({
+    description: 'Contraseña actual, como confirmación.',
+    example: 'una-contraseña-larga',
+  }),
+});

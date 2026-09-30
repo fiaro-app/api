@@ -51,6 +51,8 @@ function setup(
     updatePassword: vi.fn(),
     markContactEmailVerified,
     updateProfile: vi.fn(),
+    findPasswordHash: vi.fn(),
+    deactivate: vi.fn(),
   };
   const deleteCode = vi.fn(() => Promise.resolve());
   const verificationCodes: VerificationCodeRepository = {

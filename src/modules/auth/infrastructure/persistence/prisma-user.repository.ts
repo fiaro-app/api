@@ -102,4 +102,28 @@ export class PrismaUserRepository implements UserRepository {
       },
     });
   }
+
+  /** @param userId - La persona. */
+  async findPasswordHash(userId: string): Promise<string | null> {
+    const account = await this.prisma.account.findUnique({
+      where: {
+        providerId_accountId: {
+          providerId: CREDENTIAL_PROVIDER,
+          accountId: userId,
+        },
+      },
+    });
+    return account?.password ?? null;
+  }
+
+  /**
+   * @param userId - La persona.
+   * @param deactivatedAt - Cuándo se desactivó.
+   */
+  async deactivate(userId: string, deactivatedAt: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { deactivatedAt },
+    });
+  }
 }

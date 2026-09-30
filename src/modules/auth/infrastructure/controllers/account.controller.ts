@@ -10,17 +10,20 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { z } from 'zod';
+import { DeactivateAccountUseCase } from '@/modules/auth/application/use-cases/deactivate-account.use-case.js';
 import { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import type { RequestOrigin } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import {
+  ApiDeactivateAccount,
   ApiRequestContactEmailVerification,
   ApiUpdateProfile,
   ApiVerifyContactEmail,
 } from '@/modules/auth/infrastructure/controllers/docs/account-routes.docs.js';
 import {
+  DeactivateAccountRequestSchema,
   UpdateProfileRequestSchema,
   VerifyContactEmailRequestSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/account-requests.schema.js';
@@ -44,6 +47,7 @@ export class AccountController {
     private readonly requestContactEmailVerificationUseCase: RequestContactEmailVerificationUseCase,
     private readonly verifyContactEmailUseCase: VerifyContactEmailUseCase,
     private readonly updateProfileUseCase: UpdateProfileUseCase,
+    private readonly deactivateAccountUseCase: DeactivateAccountUseCase,
   ) {}
 
   /**
@@ -121,6 +125,30 @@ export class AccountController {
       this.originOf(req),
     );
     return profile;
+  }
+
+  /**
+   * Desactiva la cuenta de la persona autenticada y cierra todas sus sesiones.
+   *
+   * @param body - La contraseña actual, como confirmación.
+   * @param user - La persona autenticada.
+   * @param req - Petición de Express.
+   */
+  @Post('deactivate')
+  @HttpCode(HttpStatus.OK)
+  @ApiDeactivateAccount()
+  async deactivateAccount(
+    @Body({ schema: DeactivateAccountRequestSchema })
+    body: z.output<typeof DeactivateAccountRequestSchema>,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ): Promise<z.output<typeof StatusResponseSchema>> {
+    await this.deactivateAccountUseCase.execute({
+      userId: user.id,
+      password: body.password,
+    });
+    this.auditor.accountDeactivated(user.id, this.originOf(req));
+    return { status: true };
   }
 
   /** @param req - Petición de Express. */

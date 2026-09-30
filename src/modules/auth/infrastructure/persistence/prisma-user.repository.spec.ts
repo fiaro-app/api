@@ -22,14 +22,22 @@ function setup(behavior: () => Promise<unknown>) {
   const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
   const update = vi.fn<(args: unknown) => Promise<unknown>>();
   const userUpdate = vi.fn<(args: unknown) => Promise<unknown>>();
+  const accountFindUnique = vi.fn<(args: unknown) => Promise<unknown>>();
   const repository = new PrismaUserRepository(
     {
       user: { create, findUnique, update: userUpdate },
-      account: { update },
+      account: { update, findUnique: accountFindUnique },
     } as unknown as PrismaService,
     { next: () => 'account-1' },
   );
-  return { repository, create, findUnique, update, userUpdate };
+  return {
+    repository,
+    create,
+    findUnique,
+    update,
+    userUpdate,
+    accountFindUnique,
+  };
 }
 
 const prismaError = (code: string) =>
@@ -188,6 +196,44 @@ describe('PrismaUserRepository.updateProfile', () => {
         contactEmail: 'ana@example.com',
         contactEmailVerified: false,
       },
+    });
+  });
+});
+
+describe('PrismaUserRepository.findPasswordHash', () => {
+  it('busca la cuenta de credencial de la persona y devuelve su hash', async () => {
+    const { repository, accountFindUnique } = setup(() => Promise.resolve({}));
+    accountFindUnique.mockResolvedValueOnce({ password: 'hash-guardado' });
+
+    const hash = await repository.findPasswordHash('user-1');
+
+    expect(accountFindUnique).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        providerId_accountId: { providerId: 'credential', accountId: 'user-1' },
+      },
+    });
+    expect(hash).toBe('hash-guardado');
+  });
+
+  it('sin una cuenta de credencial, devuelve null', async () => {
+    const { repository, accountFindUnique } = setup(() => Promise.resolve({}));
+    accountFindUnique.mockResolvedValueOnce(null);
+
+    await expect(repository.findPasswordHash('user-1')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaUserRepository.deactivate', () => {
+  it('marca cuándo se desactivó la cuenta', async () => {
+    const { repository, userUpdate } = setup(() => Promise.resolve({}));
+    userUpdate.mockResolvedValueOnce({});
+    const deactivatedAt = new Date('2026-09-29T18:00:00Z');
+
+    await repository.deactivate('user-1', deactivatedAt);
+
+    expect(userUpdate).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'user-1' },
+      data: { deactivatedAt },
     });
   });
 });

@@ -212,6 +212,18 @@ describe('AuthAuditor', () => {
     });
   });
 
+  it('desactivar la cuenta guarda quién', () => {
+    const { auditor, events } = setup();
+
+    auditor.accountDeactivated('u1', origin);
+
+    expect(events[0]).toMatchObject({
+      action: 'auth.account.deactivated',
+      outcome: 'SUCCESS',
+      userId: 'u1',
+    });
+  });
+
   it('agrega el id de la petición en curso, para unir el evento con su línea del log', () => {
     const { auditor, events } = setup();
 

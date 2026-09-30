@@ -16,6 +16,7 @@ import type { SignInAttempts } from '@/modules/auth/application/ports/sign-in-at
 import { SIGN_IN_ATTEMPTS } from '@/modules/auth/application/ports/sign-in-attempts.token.js';
 import { VERIFICATION_CODE_GENERATOR } from '@/modules/auth/application/ports/verification-code-generator.token.js';
 import { VERIFICATION_CODE_HASHER } from '@/modules/auth/application/ports/verification-code-hasher.token.js';
+import { DeactivateAccountUseCase } from '@/modules/auth/application/use-cases/deactivate-account.use-case.js';
 import { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import { RequestPasswordResetUseCase } from '@/modules/auth/application/use-cases/request-password-reset.use-case.js';
 import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case.js';
@@ -168,6 +169,7 @@ export const authProviders: Provider[] = [
   RequestContactEmailVerificationUseCase,
   VerifyContactEmailUseCase,
   UpdateProfileUseCase,
+  DeactivateAccountUseCase,
 ];
 
 /** Lo que el módulo ofrece a los demás: el resolvedor de sesión del guard global y el alta de personas. */

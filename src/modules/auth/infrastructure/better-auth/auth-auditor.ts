@@ -275,6 +275,20 @@ export class AuthAuditor {
     );
   }
 
+  /**
+   * Se desactivó la cuenta de la persona.
+   *
+   * @param userId - Quién la desactivó.
+   * @param origin - Desde dónde.
+   */
+  accountDeactivated(userId: string, origin: RequestOrigin): void {
+    this.record(
+      { action: 'auth.account.deactivated', outcome: 'SUCCESS' },
+      { id: userId },
+      origin,
+    );
+  }
+
   private record(
     fact: Pick<AuditEvent, 'action' | 'outcome' | 'reason' | 'details'>,
     person: { readonly id?: string; readonly phone?: string } | undefined,

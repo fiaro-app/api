@@ -5,4 +5,13 @@ export interface PasswordHasher {
    * @returns El hash listo para guardar; nunca la contraseña.
    */
   hash(password: string): Promise<string>;
+
+  /**
+   * Comprueba una contraseña contra su hash, con el mismo algoritmo con el que inicia sesión.
+   *
+   * @param password - Contraseña en claro.
+   * @param hash - Hash guardado.
+   * @returns Si la contraseña corresponde al hash.
+   */
+  verify(password: string, hash: string): Promise<boolean>;
 }

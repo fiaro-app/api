@@ -4,6 +4,7 @@ import {
   SIGN_IN_PATH,
 } from '@/modules/auth/infrastructure/better-auth/auth.constants.js';
 import { APIError } from 'better-auth/api';
+import type { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { createAuthHooks } from '@/modules/auth/infrastructure/better-auth/auth-hooks.js';
 import type { SignInGuard } from '@/modules/auth/infrastructure/better-auth/sign-in-guard.js';
@@ -24,9 +25,11 @@ const guard = {
   admit: vi.fn(() => Promise.resolve()),
   forgive: vi.fn(() => Promise.resolve()),
 };
+const prisma = { user: { findUnique: vi.fn(() => Promise.resolve(null)) } };
 const hooks = createAuthHooks(
   auditor as unknown as AuthAuditor,
   guard as unknown as SignInGuard,
+  prisma as unknown as PrismaService,
 );
 
 /**

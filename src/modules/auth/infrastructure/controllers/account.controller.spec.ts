@@ -3,6 +3,7 @@ import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthenticatedUser } from '@/shared/application/ports/session-resolver.port.js';
+import type { DeactivateAccountUseCase } from '@/modules/auth/application/use-cases/deactivate-account.use-case.js';
 import type { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import type { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import type { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
@@ -25,6 +26,7 @@ function setup() {
     contactEmailVerificationRequested: vi.fn(),
     contactEmailVerified: vi.fn(),
     profileUpdated: vi.fn(),
+    accountDeactivated: vi.fn(),
   };
   const contactEmailVerificationGuard = {
     admitVerification: vi.fn(() => Promise.resolve()),
@@ -43,12 +45,14 @@ function setup() {
       }),
     ),
   };
+  const deactivateAccountUseCase = { execute: vi.fn(() => Promise.resolve()) };
   const controller = new AccountController(
     auditor as unknown as AuthAuditor,
     contactEmailVerificationGuard as unknown as ContactEmailVerificationGuard,
     requestContactEmailVerificationUseCase as unknown as RequestContactEmailVerificationUseCase,
     verifyContactEmailUseCase as unknown as VerifyContactEmailUseCase,
     updateProfileUseCase as unknown as UpdateProfileUseCase,
+    deactivateAccountUseCase as unknown as DeactivateAccountUseCase,
   );
   return {
     controller,
@@ -57,11 +61,12 @@ function setup() {
     requestContactEmailVerificationUseCase,
     verifyContactEmailUseCase,
     updateProfileUseCase,
+    deactivateAccountUseCase,
   };
 }
 
 describe('AccountController', () => {
-  it('publica solo las rutas de verificar el correo de contacto y actualizar el perfil', () => {
+  it('publica solo las rutas de verificar el correo de contacto, actualizar el perfil y desactivar la cuenta', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       AccountController.prototype,
     )
@@ -84,6 +89,7 @@ describe('AccountController', () => {
       'PATCH profile',
       'POST contact-email/request-verification',
       'POST contact-email/verify',
+      'POST deactivate',
     ]);
   });
 
@@ -189,6 +195,28 @@ describe('AccountController', () => {
         { fullName: true, contactEmail: false },
         expect.anything(),
       );
+    });
+  });
+
+  describe('deactivateAccount', () => {
+    it('ejecuta el caso de uso con la contraseña y audita', async () => {
+      const { controller, deactivateAccountUseCase, auditor } = setup();
+
+      const response = await controller.deactivateAccount(
+        { password: 'una-contraseña-larga' },
+        USER,
+        requestOf(),
+      );
+
+      expect(deactivateAccountUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        userId: USER.id,
+        password: 'una-contraseña-larga',
+      });
+      expect(auditor.accountDeactivated).toHaveBeenCalledExactlyOnceWith(
+        USER.id,
+        { ip: '203.0.113.7', userAgent: undefined },
+      );
+      expect(response).toEqual({ status: true });
     });
   });
 });
