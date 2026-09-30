@@ -4,6 +4,7 @@ import type { LenderRepository } from '@/modules/lenders/domain/repositories/len
 import {
   toLender,
   toLenderCreateInput,
+  toLenderUpdateInput,
 } from '@/modules/lenders/infrastructure/persistence/lender.mapper.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 
@@ -26,5 +27,13 @@ export class PrismaLenderRepository implements LenderRepository {
   async findById(id: string): Promise<Lender | null> {
     const row = await this.prisma.lender.findUnique({ where: { id } });
     return row === null ? null : toLender(row);
+  }
+
+  /** @param lender - El prestamista con sus datos ya actualizados. */
+  async update(lender: Lender): Promise<void> {
+    await this.prisma.lender.update({
+      where: { id: lender.id },
+      data: toLenderUpdateInput(lender),
+    });
   }
 }

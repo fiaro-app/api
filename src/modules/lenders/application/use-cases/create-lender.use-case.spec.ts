@@ -17,6 +17,7 @@ function setup() {
   const lenders: LenderRepository = {
     create,
     findById: vi.fn(() => Promise.resolve(null)),
+    update: vi.fn(() => Promise.resolve()),
   };
   let nextId = 0;
   const ids: IdGenerator = { next: () => `id-${String(++nextId)}` };

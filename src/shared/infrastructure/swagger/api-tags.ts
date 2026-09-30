@@ -23,4 +23,9 @@ export const API_TAGS = {
     description:
       'Gestión de la propia cuenta con sesión abierta: verificar el correo de contacto, actualizar el perfil y desactivar la cuenta.',
   },
+  lender: {
+    name: 'Prestamista',
+    description:
+      'Configuración del prestamista con el que opera la sesión (`LenderScopeGuard`, D-74): nombre, logo y días sin cobro. Verla no pide un rol específico; editarla exige `OWNER` o `LENDER`.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

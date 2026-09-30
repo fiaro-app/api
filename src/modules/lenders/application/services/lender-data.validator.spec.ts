@@ -2,17 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { validateLenderData } from '@/modules/lenders/application/services/lender-data.validator.js';
 import { InvalidLenderDataError } from '@/modules/lenders/domain/errors/invalid-lender-data.error.js';
 
+const VALID = {
+  name: 'Préstamos Ana',
+  logoUrl: null,
+  nonWorkingWeekdays: ['SUNDAY'] as const,
+  skipNationalHolidays: false,
+};
+
 describe('validateLenderData', () => {
-  it('devuelve el nombre recortado', () => {
-    expect(validateLenderData({ name: '  Préstamos Ana  ' })).toEqual({
-      name: 'Préstamos Ana',
-    });
+  it('devuelve los datos, con el nombre recortado', () => {
+    expect(validateLenderData({ ...VALID, name: '  Préstamos Ana  ' })).toEqual(
+      VALID,
+    );
+  });
+
+  it('acepta un logo', () => {
+    expect(
+      validateLenderData({ ...VALID, logoUrl: 'https://example.com/logo.png' }),
+    ).toMatchObject({ logoUrl: 'https://example.com/logo.png' });
   });
 
   it('rechaza un nombre demasiado corto', () => {
     let error: unknown;
     try {
-      validateLenderData({ name: 'A' });
+      validateLenderData({ ...VALID, name: 'A' });
     } catch (caught) {
       error = caught;
     }
@@ -21,10 +34,24 @@ describe('validateLenderData', () => {
     expect((error as InvalidLenderDataError).issues[0]?.path).toEqual(['name']);
   });
 
+  it('rechaza un logo que no es una URL', () => {
+    let error: unknown;
+    try {
+      validateLenderData({ ...VALID, logoUrl: 'no-es-una-url' });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(InvalidLenderDataError);
+    expect((error as InvalidLenderDataError).issues[0]?.path).toEqual([
+      'logoUrl',
+    ]);
+  });
+
   it('cada issue lleva los valores de su falla para llenar los marcadores del mensaje', () => {
     let error: unknown;
     try {
-      validateLenderData({ name: 'A' });
+      validateLenderData({ ...VALID, name: 'A' });
     } catch (caught) {
       error = caught;
     }

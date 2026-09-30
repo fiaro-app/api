@@ -32,14 +32,16 @@ export class CreateLenderUseCase {
    * @throws {@link InvalidLenderDataError} Si el nombre no cumple el contrato.
    */
   async execute(input: CreateLenderInput): Promise<CreatedLender> {
-    const data = validateLenderData(input);
-    const lender = Lender.create({
-      id: this.ids.next(),
-      tenantId: input.tenantId,
-      name: data.name,
+    const data = validateLenderData({
+      name: input.name,
       logoUrl: null,
       nonWorkingWeekdays: DEFAULT_NON_WORKING_WEEKDAYS,
       skipNationalHolidays: false,
+    });
+    const lender = Lender.create({
+      id: this.ids.next(),
+      tenantId: input.tenantId,
+      ...data,
       createdAt: this.clock.now(),
     });
     const defaultPortfolioId = this.ids.next();
