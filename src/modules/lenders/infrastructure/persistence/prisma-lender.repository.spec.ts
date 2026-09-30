@@ -20,14 +20,15 @@ function setup() {
     Promise.resolve(),
   );
   const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
-  const repository = new PrismaLenderRepository({
-    lender: { create, findUnique },
-  } as unknown as PrismaService);
+  const repository = new PrismaLenderRepository(
+    { lender: { create, findUnique } } as unknown as PrismaService,
+    { next: () => 'portfolio-1' },
+  );
   return { repository, create, findUnique };
 }
 
 describe('PrismaLenderRepository.create', () => {
-  it('guarda al prestamista', async () => {
+  it('guarda al prestamista con su cartera General por defecto', async () => {
     const { repository, create } = setup();
 
     await repository.create(lender);
@@ -41,6 +42,14 @@ describe('PrismaLenderRepository.create', () => {
         nonWorkingWeekdays: ['SUNDAY'],
         skipNationalHolidays: false,
         createdAt: CREATED_AT,
+        portfolios: {
+          create: {
+            id: 'portfolio-1',
+            name: 'General',
+            isDefault: true,
+            createdAt: CREATED_AT,
+          },
+        },
       },
     });
   });

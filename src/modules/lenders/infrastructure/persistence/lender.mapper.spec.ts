@@ -18,8 +18,8 @@ const lender = Lender.create({
 });
 
 describe('toLenderCreateInput', () => {
-  it('convierte al prestamista en la fila de lenders', () => {
-    expect(toLenderCreateInput(lender)).toEqual({
+  it('convierte al prestamista en la fila de lenders, con su cartera General anidada', () => {
+    expect(toLenderCreateInput(lender, 'portfolio-1')).toEqual({
       id: 'lender-1',
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
@@ -27,6 +27,14 @@ describe('toLenderCreateInput', () => {
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       createdAt: CREATED_AT,
+      portfolios: {
+        create: {
+          id: 'portfolio-1',
+          name: 'General',
+          isDefault: true,
+          createdAt: CREATED_AT,
+        },
+      },
     });
   });
 });

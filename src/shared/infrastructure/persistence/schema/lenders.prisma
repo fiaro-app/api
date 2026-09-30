@@ -21,8 +21,26 @@ model Lender {
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  portfolios Portfolio[]
 
   @@index([tenantId])
   @@map("lenders")
+}
+
+/// Cartera o zona ("Zona Norte"): agrupa cobradores y, a través de ellos, clientes y préstamos.
+/// Cada Lender nace con una por defecto (`isDefault`, nombre "General"), que no se puede eliminar.
+model Portfolio {
+  id        String   @id @db.Uuid
+  lenderId  String   @map("lender_id") @db.Uuid
+  name      String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+
+  @@unique([lenderId, name])
+  @@index([lenderId])
+  @@map("portfolios")
 }

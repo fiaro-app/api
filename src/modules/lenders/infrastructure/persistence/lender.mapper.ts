@@ -1,10 +1,18 @@
+import { DEFAULT_PORTFOLIO_NAME } from '@fiaro-app/contracts';
 import type { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
 import type { LenderModel } from '@/shared/infrastructure/persistence/generated/models.js';
 import { Lender } from '@/modules/lenders/domain/entities/lender.entity.js';
 
-/** @param lender - Prestamista nuevo. */
+/**
+ * La fila de `lenders` y su cartera "General" por defecto. Prisma las inserta en una sola
+ * transacción, igual que `toUserCreateInput` inserta a la persona y su credencial juntas.
+ *
+ * @param lender - Prestamista nuevo.
+ * @param defaultPortfolioId - Identificador de la fila de la cartera por defecto.
+ */
 export function toLenderCreateInput(
   lender: Lender,
+  defaultPortfolioId: string,
 ): Prisma.LenderUncheckedCreateInput {
   return {
     id: lender.id,
@@ -14,6 +22,14 @@ export function toLenderCreateInput(
     nonWorkingWeekdays: [...lender.nonWorkingWeekdays],
     skipNationalHolidays: lender.skipNationalHolidays,
     createdAt: lender.createdAt,
+    portfolios: {
+      create: {
+        id: defaultPortfolioId,
+        name: DEFAULT_PORTFOLIO_NAME,
+        isDefault: true,
+        createdAt: lender.createdAt,
+      },
+    },
   };
 }
 
