@@ -1,6 +1,9 @@
 import { UserSchema } from '@fiaro-app/contracts';
 import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
-import { zodIssueParams } from '@/shared/application/validation/zod-issue-params.js';
+import {
+  toIssuePath,
+  zodIssueParams,
+} from '@/shared/application/validation/zod-issue-params.js';
 
 /** Los datos de la persona que valida el contrato compartido (`UserSchema`). */
 const UserDataSchema = UserSchema.pick({
@@ -28,19 +31,6 @@ export interface ValidUserData {
   /** Cédula de ciudadanía, o `null` si no la hay. */
   readonly nationalId: string | null;
 }
-
-/**
- * La ruta de un error de Zod como la lleva `VALIDATION_FAILED`: los símbolos (claves de objetos)
- * no viajan en JSON, así que pasan a texto.
- *
- * @param path - Ruta del error hasta el campo, tal como la entrega Zod.
- */
-export const toIssuePath = (
-  path: readonly PropertyKey[],
-): (string | number)[] =>
-  path.map((segment) =>
-    typeof segment === 'symbol' ? segment.toString() : segment,
-  );
 
 /**
  * Valida el nombre, el email y la cédula con el contrato compartido (`UserSchema`), la misma
