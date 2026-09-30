@@ -1,0 +1,16 @@
+$kind: http-request
+description: "Un cliente del prestamista con el que opera la sesión. Cualquier rol puede verlo (le sirve al Collector en campo)."
+url: "{{baseUrl}}/clients/{{clientId}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('es el cliente de prueba', () => pm.expect(body.fullName).to.eql('Carlos Andrés Gómez (cliente de prueba)'));
+    language: text/javascript
+order: 3000

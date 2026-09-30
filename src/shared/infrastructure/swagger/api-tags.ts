@@ -28,4 +28,9 @@ export const API_TAGS = {
     description:
       'Configuración del prestamista con el que opera la sesión (`LenderScopeGuard`, D-74): nombre, logo y días sin cobro. Verla no pide un rol específico; editarla exige `OWNER` o `LENDER`.',
   },
+  client: {
+    name: 'Clientes',
+    description:
+      'Personas deudoras del prestamista con el que opera la sesión (`LenderScopeGuard`), aisladas por `lenderId` y con `nationalId` único por prestamista. Verlas no pide un rol específico; darlas de alta o editarlas exige `OWNER` o `LENDER`.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

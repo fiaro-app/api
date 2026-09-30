@@ -1,0 +1,8 @@
+$kind: collection
+description: |-
+  Clientes (personas deudoras) del prestamista con el que opera la sesión: `POST`/`GET`/`QUERY`/
+  `PATCH /clients`, protegidas por `LenderScopeGuard`. Autocontenida: empieza con su propio inicio
+  de sesión. El paso 2 da de alta un cliente de prueba con una cédula única por corrida (no hay
+  `DELETE /clients` todavía, así que la carpeta no intenta borrarlo al final: se puede repetir
+  sin chocar con el de la vez anterior).
+order: 1850
