@@ -1,0 +1,28 @@
+$kind: http-request
+description: "Mismo id (D-29): confirma que el resultado es idéntico al original (mismo id de pago), sin duplicar nada."
+url: "{{baseUrl}}/loans/{{visitsLoanId}}/collection-visits"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{visitsPaidVisitId}}",
+      "outcome": "PAID",
+      "occurredAt": "2026-10-01T14:00:00.000Z",
+      "payment": {
+        "amount": 30000
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.test('es el mismo pago, no uno nuevo', () => pm.expect(pm.response.json().payment.id).to.eql(pm.collectionVariables.get('visitsPaidPaymentId')));
+    language: text/javascript
+order: 10000

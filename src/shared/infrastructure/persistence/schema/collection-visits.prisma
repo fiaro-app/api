@@ -1,0 +1,59 @@
+/// Resultado de una visita de cobro. No existe un resultado "parcial": si hubo dinero es PAID, y
+/// parcial o mayor se deduce comparando el monto del pago con expectedAmount.
+enum VisitOutcome {
+  PAID
+  NOT_FOUND
+  REFUSED
+  RESCHEDULED
+}
+
+/// Cada intento de cobro. El id lo genera el dispositivo (UUIDv7) para soportar registro offline
+/// y sirve de llave de idempotencia: reenviar la misma visita devuelve el resultado original sin
+/// duplicar nada (D-29).
+model CollectionVisit {
+  id                    String       @id @db.Uuid
+  loanId                String       @map("loan_id") @db.Uuid
+  collectorMembershipId String       @map("collector_membership_id") @db.Uuid
+  outcome               VisitOutcome
+  /// Cuota que se esperaba cobrar en ese momento; se congela para que los reportes no cambien.
+  expectedAmount        Int          @map("expected_amount")
+  /// Solo con RESCHEDULED: ese día el préstamo vuelve a aparecer en la ruta.
+  promisedDate          String?      @map("promised_date")
+  /// Hora real de la visita según el dispositivo; distinta de createdAt si se registró sin conexión.
+  occurredAt            DateTime     @map("occurred_at") @db.Timestamptz(3)
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  loan       Loan       @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [collectorMembershipId], references: [id], onDelete: Cascade)
+  payment    Payment?
+
+  @@index([loanId])
+  @@index([collectorMembershipId])
+  @@map("collection_visits")
+}
+
+/// Medio con el que el cliente pagó. El cuadre usa CASH para saber cuánto efectivo entrega el cobrador.
+enum PaymentMethod {
+  CASH
+  NEQUI
+  TRANSFER
+}
+
+/// Dinero recibido en una visita. Append-only: nunca se edita ni se borra; un error se corrige
+/// con un PaymentReversal (todavía no existe).
+model Payment {
+  id         String        @id @db.Uuid
+  loanId     String        @map("loan_id") @db.Uuid
+  visitId    String        @unique @map("visit_id") @db.Uuid
+  amount     Int
+  method     PaymentMethod
+  /// Igual al occurredAt de la visita.
+  occurredAt DateTime      @map("occurred_at") @db.Timestamptz(3)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  loan  Loan            @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  visit CollectionVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@map("payments")
+}

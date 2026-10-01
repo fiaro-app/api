@@ -1,0 +1,18 @@
+$kind: http-request
+description: Toma el id de la cartera General, para invitar al cobrador.
+url: "{{baseUrl}}/portfolios"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      const general = body.find((p) => p.name === 'General' && p.isDefault);
+      pm.test('trae la cartera General', () => pm.expect(general).to.exist);
+      pm.collectionVariables.set('visitsPortfolioId', general.id);
+    language: text/javascript
+order: 3000

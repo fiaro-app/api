@@ -58,4 +58,9 @@ export const API_TAGS = {
     description:
       'Quién cobra cada préstamo del prestamista con el que opera la sesión (`LenderScopeGuard`) y durante qué fechas. Nunca se borran: reasignar (sin fecha de fin) cierra la vigente y abre una nueva, así queda el historial. Verlas no pide un rol específico; asignar exige `OWNER` o `LENDER`.',
   },
+  collectionVisit: {
+    name: 'Visitas de cobro',
+    description:
+      'Bitácora de cada intento de cobro de un préstamo del prestamista con el que opera la sesión (`LenderScopeGuard`), con su pago si hubo dinero. El id lo genera el dispositivo y sirve de llave de idempotencia: reenviar la misma visita devuelve el resultado original sin duplicar nada. Verlas no pide un rol específico; registrar una exige el rol `COLLECTOR`.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;
