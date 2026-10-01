@@ -74,7 +74,10 @@ export async function startTestApp(
   await listenOnLoopback(app);
 
   const prisma = app.get(PrismaService, { strict: false });
-  await prisma.$executeRaw`TRUNCATE TABLE "users", "verifications" CASCADE`;
+  // "tenants" arrastra en cascada a lenders/portfolios/clients/loans/memberships/collection_*/
+  // payments (todos cuelgan de él, directa o indirectamente); "verifications" no tiene FK a
+  // "users" (guarda el identificador como texto, D-68), así que hay que nombrarla aparte.
+  await prisma.$executeRaw`TRUNCATE TABLE "users", "verifications", "tenants" CASCADE`;
 
   const createUseCase = app.get(CreateUserUseCase, { strict: false });
   return {

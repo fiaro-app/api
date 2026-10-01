@@ -10,3 +10,17 @@ export function addDays(isoDate: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
+
+/**
+ * Días de calendario entre dos fechas `AAAA-MM-DD`: negativo si `fromIsoDate` es posterior a
+ * `toIsoDate`. Mismo criterio UTC que {@link addDays}.
+ *
+ * @param fromIsoDate - Fecha de partida.
+ * @param toIsoDate - Fecha de llegada.
+ */
+export function daysBetween(fromIsoDate: string, toIsoDate: string): number {
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const from = new Date(`${fromIsoDate}T00:00:00Z`).getTime();
+  const to = new Date(`${toIsoDate}T00:00:00Z`).getTime();
+  return Math.round((to - from) / MS_PER_DAY);
+}

@@ -1,0 +1,21 @@
+$kind: http-request
+description: Saldo y mora del préstamo (D-84), calculados con la fecha de hoy. El saldo es exacto (600.000 pactados menos los 30.000 ya pagados); la mora depende de cuánto tiempo pasó desde que arrancó el préstamo, así que solo se comprueba su forma.
+url: "{{baseUrl}}/loans/{{visitsLoanId}}/balance"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('el saldo es lo pactado menos el pago ya registrado', () => pm.expect(body.balance).to.eql(570000));
+      pm.test('trae la mora y la próxima fecha con la forma esperada', () => {
+        pm.expect(body.overdueAmount).to.be.a('number').and.to.be.at.least(0);
+        pm.expect(body.overdueDays).to.be.a('number').and.to.be.at.least(0);
+        pm.expect(body.totalExpectedToDate).to.be.a('number').and.to.be.at.least(0);
+      });
+    language: text/javascript
+order: 13000
