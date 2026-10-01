@@ -1,0 +1,16 @@
+$kind: http-request
+description: "Las carteras del prestamista con el que opera la sesión, sin paginar. Cualquier rol puede verlas. Antes de crear ninguna, el prestamista ya tiene la cartera General (D-72)."
+url: "{{baseUrl}}/portfolios"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae al menos la cartera General', () => pm.expect(body.some((p) => p.name === 'General' && p.isDefault)).to.be.true);
+    language: text/javascript
+order: 2000

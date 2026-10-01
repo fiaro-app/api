@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Cartera adicional del prestamista con el que opera la sesión. Exige rol OWNER o LENDER en la membresía activa (Ana los tiene los tres, del registro). El nombre usa {{$timestamp}} para que la carpeta se pueda repetir sin chocar con la cartera de la vez anterior."
+url: "{{baseUrl}}/portfolios"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "name": "Zona Norte {{$timestamp}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('no es la cartera por defecto', () => pm.expect(body.isDefault).to.be.false);
+      pm.collectionVariables.set('portfolioId', body.id);
+      pm.collectionVariables.set('portfolioName', body.name);
+    language: text/javascript
+order: 3000
