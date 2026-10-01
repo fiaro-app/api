@@ -1,0 +1,46 @@
+import { Injectable } from '@nestjs/common';
+import type { CollectionAssignment } from '@/modules/collections/domain/entities/collection-assignment.entity.js';
+import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
+import {
+  toCollectionAssignment,
+  toCollectionAssignmentCreateInput,
+} from '@/modules/collections/infrastructure/persistence/collection-assignment.mapper.js';
+import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
+
+/** Guarda a las asignaciones de cobro en PostgreSQL con Prisma. */
+@Injectable()
+export class PrismaCollectionAssignmentRepository implements CollectionAssignmentRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** @param assignment - Asignación nueva. */
+  async create(assignment: CollectionAssignment): Promise<void> {
+    await this.prisma.collectionAssignment.create({
+      data: toCollectionAssignmentCreateInput(assignment),
+    });
+  }
+
+  /** @param loanId - El préstamo. */
+  async findOpenByLoan(loanId: string): Promise<CollectionAssignment | null> {
+    const row = await this.prisma.collectionAssignment.findFirst({
+      where: { loanId, effectiveTo: null },
+    });
+    return row === null ? null : toCollectionAssignment(row);
+  }
+
+  /** @param loanId - El préstamo. */
+  async listByLoan(loanId: string): Promise<readonly CollectionAssignment[]> {
+    const rows = await this.prisma.collectionAssignment.findMany({
+      where: { loanId },
+      orderBy: { effectiveFrom: 'asc' },
+    });
+    return rows.map(toCollectionAssignment);
+  }
+
+  /** @param assignment - La asignación con sus datos ya actualizados. */
+  async update(assignment: CollectionAssignment): Promise<void> {
+    await this.prisma.collectionAssignment.update({
+      where: { id: assignment.id },
+      data: toCollectionAssignmentCreateInput(assignment),
+    });
+  }
+}

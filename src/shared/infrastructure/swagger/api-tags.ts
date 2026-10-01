@@ -53,4 +53,9 @@ export const API_TAGS = {
     description:
       'Quién trabaja en el prestamista con el que opera la sesión (`LenderScopeGuard`) y con qué roles. Invitar crea la cuenta si el celular no tenía una (contraseña temporal, mostrada una sola vez); si ya tenía, solo agrega la membresía. Todas exigen `OWNER` o `LENDER`, y ninguna actúa sobre la propia membresía de la sesión.',
   },
+  collectionAssignment: {
+    name: 'Asignaciones de cobro',
+    description:
+      'Quién cobra cada préstamo del prestamista con el que opera la sesión (`LenderScopeGuard`) y durante qué fechas. Nunca se borran: reasignar (sin fecha de fin) cierra la vigente y abre una nueva, así queda el historial. Verlas no pide un rol específico; asignar exige `OWNER` o `LENDER`.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

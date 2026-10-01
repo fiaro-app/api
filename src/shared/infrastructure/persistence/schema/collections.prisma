@@ -1,0 +1,20 @@
+/// Quién cobra un préstamo y durante qué fechas. Nunca se borra: reasignar cierra la asignación
+/// vigente (effectiveTo) y abre una nueva, así queda el historial de quién cobraba cada día.
+model CollectionAssignment {
+  id                    String   @id @db.Uuid
+  loanId                String   @map("loan_id") @db.Uuid
+  collectorMembershipId String   @map("collector_membership_id") @db.Uuid
+  /// Fecha de calendario en texto (AAAA-MM-DD), mismo criterio que Loan.startDate: así se
+  /// guarda tal como la entrega el contrato, sin que la zona horaria del driver la corra un día.
+  effectiveFrom         String   @map("effective_from")
+  /// null: vigente sin fecha de fin. Igual a effectiveFrom: reemplazo de un solo día.
+  effectiveTo           String?  @map("effective_to")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  loan       Loan       @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [collectorMembershipId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([collectorMembershipId])
+  @@map("collection_assignments")
+}
