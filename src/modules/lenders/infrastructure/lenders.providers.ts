@@ -20,5 +20,12 @@ export const lendersProviders: Provider[] = [
   ListPortfoliosUseCase,
 ];
 
-/** Lo que el módulo ofrece a los demás: el repositorio de prestamistas y su alta. */
-export const lendersExports = [LENDER_REPOSITORY, CreateLenderUseCase];
+/**
+ * Lo que el módulo ofrece a los demás: el repositorio de prestamistas, su alta y su consulta
+ * (`GetLenderUseCase`, que `collections` usa para los días sin cobro del saldo/mora, D-84).
+ */
+export const lendersExports = [
+  LENDER_REPOSITORY,
+  CreateLenderUseCase,
+  GetLenderUseCase,
+];

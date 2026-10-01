@@ -4,5 +4,7 @@ description: |-
   /loans/:loanId/collection-visits`, protegidas por `LenderScopeGuard`. Autocontenida: registra
   su propio negocio, invita a un cobrador, da de alta un cliente y un préstamo, y deja al
   cobrador con su sesión abierta para el resto de la carpeta. El paso de reenvío confirma la
-  idempotencia (D-29): la misma visita nunca duplica el pago.
+  idempotencia (D-29): la misma visita nunca duplica el pago. El último paso consulta
+  `GET /loans/:loanId/balance` (D-84): el saldo y la mora del préstamo, calculados sumando los
+  pagos reales que esta misma carpeta ya registró.
 order: 1995
