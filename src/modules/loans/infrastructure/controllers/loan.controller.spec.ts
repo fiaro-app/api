@@ -1,6 +1,7 @@
 import { ForbiddenException, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
+import type { CancelLoanUseCase } from '@/modules/loans/application/use-cases/cancel-loan.use-case.js';
 import type { CreateLoanUseCase } from '@/modules/loans/application/use-cases/create-loan.use-case.js';
 import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
@@ -28,12 +29,24 @@ function setup() {
   const listLoansUseCase = {
     execute: vi.fn(() => Promise.resolve({ items: [DETAILS], total: 1 })),
   };
+  const cancelLoanUseCase = {
+    execute: vi.fn(() =>
+      Promise.resolve({ ...DETAILS, status: 'CANCELED' as const }),
+    ),
+  };
   const controller = new LoanController(
     createLoanUseCase as unknown as CreateLoanUseCase,
     getLoanUseCase as unknown as GetLoanUseCase,
     listLoansUseCase as unknown as ListLoansUseCase,
+    cancelLoanUseCase as unknown as CancelLoanUseCase,
   );
-  return { controller, createLoanUseCase, getLoanUseCase, listLoansUseCase };
+  return {
+    controller,
+    createLoanUseCase,
+    getLoanUseCase,
+    listLoansUseCase,
+    cancelLoanUseCase,
+  };
 }
 
 const scopeWith = (roles: readonly string[]): LenderScope => ({
@@ -53,7 +66,7 @@ const CREATE_BODY = {
 };
 
 describe('LoanController', () => {
-  it('publica POST, GET y QUERY, todas colgando de /loans', () => {
+  it('publica POST, GET, QUERY y POST /:id/cancel, todas colgando de /loans', () => {
     const publishedRoutes = Object.getOwnPropertyNames(LoanController.prototype)
       .flatMap((name) => {
         const handler = Reflect.get(LoanController.prototype, name) as object;
@@ -63,7 +76,7 @@ describe('LoanController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['GET', 'POST', 'QUERY'].sort());
+    expect(publishedRoutes).toEqual(['GET', 'POST', 'QUERY', 'POST'].sort());
     expect(Reflect.getMetadata(PATH_METADATA, LoanController)).toBe('loans');
   });
 
@@ -151,6 +164,45 @@ describe('LoanController', () => {
       });
       expect(response.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
       expect(response.data).toHaveLength(1);
+    });
+  });
+
+  describe('cancelLoan', () => {
+    it('con rol OWNER cancela el préstamo', async () => {
+      const { controller, cancelLoanUseCase } = setup();
+
+      const response = await controller.cancelLoan(
+        'loan-1',
+        scopeWith(['OWNER']),
+      );
+
+      expect(cancelLoanUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+        'loan-1',
+        'lender-1',
+      );
+      expect(response.status).toBe('CANCELED');
+    });
+
+    it('con rol LENDER también cancela', async () => {
+      const { controller, cancelLoanUseCase } = setup();
+
+      await controller.cancelLoan('loan-1', scopeWith(['LENDER']));
+
+      expect(cancelLoanUseCase.execute).toHaveBeenCalledOnce();
+    });
+
+    it('con solo el rol COLLECTOR responde 403 sin llamar al caso de uso', async () => {
+      const { controller, cancelLoanUseCase } = setup();
+
+      const error = await controller
+        .cancelLoan('loan-1', scopeWith(['COLLECTOR']))
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect((error as ForbiddenException).getResponse()).toEqual({
+        code: 'FORBIDDEN',
+      });
+      expect(cancelLoanUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

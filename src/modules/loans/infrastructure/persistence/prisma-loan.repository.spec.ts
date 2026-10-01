@@ -49,14 +49,17 @@ function setup() {
   const count = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(0),
   );
+  const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve(),
+  );
   const $transaction = vi.fn((operations: Promise<unknown>[]) =>
     Promise.all(operations),
   );
   const repository = new PrismaLoanRepository({
-    loan: { create, findFirst, findMany, count },
+    loan: { create, findFirst, findMany, count, update },
     $transaction,
   } as unknown as PrismaService);
-  return { repository, create, findFirst, findMany, count };
+  return { repository, create, findFirst, findMany, count, update };
 }
 
 describe('PrismaLoanRepository.create', () => {
@@ -150,5 +153,47 @@ describe('PrismaLoanRepository.list', () => {
       expect.objectContaining({ where: expectedWhere }),
     );
     expect(count).toHaveBeenCalledExactlyOnceWith({ where: expectedWhere });
+  });
+});
+
+describe('PrismaLoanRepository.update', () => {
+  it('reemplaza los datos del préstamo, con su lenderId en el where', async () => {
+    const { repository, update } = setup();
+    const canceled = Loan.create({
+      id: 'loan-1',
+      lenderId: 'lender-1',
+      clientId: 'client-1',
+      principalAmount: 500_000,
+      installmentCount: 20,
+      installmentValue: 30_000,
+      totalPayable: 600_000,
+      frequency: 'DAILY',
+      startDate: '2026-10-01',
+      status: 'CANCELED',
+      createdByMembershipId: 'membership-1',
+      createdAt: CREATED_AT,
+      closedAt: CREATED_AT,
+    });
+
+    await repository.update(canceled);
+
+    expect(update).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'loan-1', lenderId: 'lender-1' },
+      data: {
+        id: 'loan-1',
+        lenderId: 'lender-1',
+        clientId: 'client-1',
+        principalAmount: 500_000,
+        installmentCount: 20,
+        installmentValue: 30_000,
+        totalPayable: 600_000,
+        frequency: 'DAILY',
+        startDate: '2026-10-01',
+        status: 'CANCELED',
+        createdByMembershipId: 'membership-1',
+        createdAt: CREATED_AT,
+        closedAt: CREATED_AT,
+      },
+    });
   });
 });

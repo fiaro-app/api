@@ -4,6 +4,7 @@ import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 import {
   LoanForbiddenSchema,
+  LoanNotCancelableSchema,
   LoanNotFoundSchema,
   LoanValidationErrorSchema,
 } from '@/modules/loans/infrastructure/controllers/schemas/loan-errors.schema.js';
@@ -116,4 +117,31 @@ export const ApiListLoans = () =>
     }),
     ApiUnauthenticatedResponse(),
     ApiNoActiveMembershipResponse(),
+  );
+
+/** Documenta `POST /loans/:id/cancel`. */
+export const ApiCancelLoan = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Cancelar un préstamo',
+      description:
+        'Lo anula por un error de registro, antes de recibir pagos. Exige rol `OWNER` o `LENDER` en la membresía activa.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Préstamo cancelado.',
+      standardSchema: LoanResponseSchema,
+    }),
+    ApiValidationFailedResponse(),
+    ApiUnauthenticatedResponse(),
+    ApiWrongRoleResponse(),
+    ApiNotFoundResponse(
+      'El préstamo no existe, o es de otro prestamista (`NOT_FOUND`).',
+    ),
+    ApiResponse({
+      status: 422,
+      description: 'El préstamo ya no está `ACTIVE` (`LOAN_NOT_CANCELABLE`).',
+      standardSchema: LoanNotCancelableSchema,
+    }),
   );

@@ -13,10 +13,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
+import { CancelLoanUseCase } from '@/modules/loans/application/use-cases/cancel-loan.use-case.js';
 import { CreateLoanUseCase } from '@/modules/loans/application/use-cases/create-loan.use-case.js';
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import {
+  ApiCancelLoan,
   ApiCreateLoan,
   ApiGetLoan,
   ApiListLoans,
@@ -48,8 +50,8 @@ const LoanIdParamSchema = z.uuid();
  *
  * @remarks
  * Mismo patrón de guard de rol que `ClientController` (D-76): un `if` directo con `hasAnyRole`,
- * no una regla de autorización general todavía (`PERMISSIONS.md`, pendiente). Sin cancelar
- * préstamos todavía: es un caso de uso aparte, pendiente. Sin auditoría propia todavía.
+ * no una regla de autorización general todavía (`PERMISSIONS.md`, pendiente). Cancelar exige el
+ * mismo rol que dar de alta (D-79). Sin auditoría propia todavía.
  */
 @ApiTags(API_TAGS.loan.name)
 @Controller('loans')
@@ -59,6 +61,7 @@ export class LoanController {
     private readonly createLoanUseCase: CreateLoanUseCase,
     private readonly getLoanUseCase: GetLoanUseCase,
     private readonly listLoansUseCase: ListLoansUseCase,
+    private readonly cancelLoanUseCase: CancelLoanUseCase,
   ) {}
 
   /**
@@ -118,5 +121,24 @@ export class LoanController {
       ...query,
     });
     return toLoansPageResponse(page, query);
+  }
+
+  /**
+   * @param id - El préstamo.
+   * @param scope - El Lender con el que opera la sesión.
+   */
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiCancelLoan()
+  async cancelLoan(
+    @Param('id', { schema: LoanIdParamSchema }) id: string,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<z.output<typeof LoanResponseSchema>> {
+    if (!hasAnyRole(scope.roles, CREATOR_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    return toLoanResponse(
+      await this.cancelLoanUseCase.execute(id, scope.lenderId),
+    );
   }
 }

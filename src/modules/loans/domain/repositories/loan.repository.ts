@@ -40,4 +40,12 @@ export interface LoanRepository {
 
   /** @param criteria - Prestamista, paginación y filtros opcionales. */
   list(criteria: ListLoansCriteria): Promise<LoansPage>;
+
+  /**
+   * Reemplaza los datos del préstamo. Se guarda con su propio `lenderId`, así que no puede mover
+   * un préstamo de un prestamista a otro.
+   *
+   * @param loan - Préstamo con sus datos ya actualizados.
+   */
+  update(loan: Loan): Promise<void>;
 }

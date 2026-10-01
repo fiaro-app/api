@@ -1,4 +1,5 @@
 import type { Provider } from '@nestjs/common';
+import { CancelLoanUseCase } from '@/modules/loans/application/use-cases/cancel-loan.use-case.js';
 import { CreateLoanUseCase } from '@/modules/loans/application/use-cases/create-loan.use-case.js';
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
@@ -11,6 +12,7 @@ export const loansProviders: Provider[] = [
   CreateLoanUseCase,
   GetLoanUseCase,
   ListLoansUseCase,
+  CancelLoanUseCase,
 ];
 
 /** Lo que `loans` expone a otros módulos. */
@@ -18,4 +20,5 @@ export const loansExports = [
   CreateLoanUseCase,
   GetLoanUseCase,
   ListLoansUseCase,
+  CancelLoanUseCase,
 ];

@@ -31,6 +31,7 @@ function setup() {
     create,
     findById: vi.fn(() => Promise.resolve(null)),
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
+    update: vi.fn(() => Promise.resolve()),
   };
   const getClientUseCase = {
     execute: vi.fn(() => Promise.resolve({})),
