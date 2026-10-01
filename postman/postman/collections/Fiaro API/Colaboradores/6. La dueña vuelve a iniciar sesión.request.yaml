@@ -1,0 +1,23 @@
+$kind: http-request
+description: "La cookie de sesión es compartida por dominio: el paso anterior la dejó con la del cobrador. Se abre de nuevo la de la dueña para los pasos que siguen, que exigen OWNER o LENDER."
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{membershipsOwnerPhone}}",
+      "password": "{{membershipsOwnerPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 6000

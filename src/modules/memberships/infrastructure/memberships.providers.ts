@@ -1,9 +1,14 @@
 import type { Provider } from '@nestjs/common';
+import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
+import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
 import { PrismaMembershipRepository } from '@/modules/memberships/infrastructure/persistence/prisma-membership.repository.js';
 import { LENDER_SCOPE_RESOLVER } from '@/shared/application/ports/lender-scope-resolver.token.js';
+import { TEMP_PASSWORD_GENERATOR } from '@/shared/application/ports/temp-password-generator.token.js';
+import { RandomTempPasswordGenerator } from '@/shared/infrastructure/crypto/random-temp-password-generator.js';
 
 /** Qué implementa cada puerto del módulo. Vive en `infrastructure` y no en `memberships.module.ts`. */
 export const membershipsProviders: Provider[] = [
@@ -12,7 +17,11 @@ export const membershipsProviders: Provider[] = [
     provide: LENDER_SCOPE_RESOLVER,
     useClass: MembershipLenderScopeResolver,
   },
+  { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
   CreateMembershipUseCase,
+  InviteMembershipUseCase,
+  DeactivateMembershipUseCase,
+  ChangeMembershipRolesUseCase,
 ];
 
 /**

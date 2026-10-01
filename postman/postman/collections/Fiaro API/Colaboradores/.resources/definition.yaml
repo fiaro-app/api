@@ -1,0 +1,8 @@
+$kind: collection
+description: |-
+  Invitar, cambiar roles y desactivar colaboradores del prestamista con el que opera la sesión
+  (D-81): `POST`/`PATCH`/`POST .../deactivate` de `/memberships`, protegidas por
+  `LenderScopeGuard`. Autocontenida: registra su propio negocio en el paso 1 y a un cobrador
+  nuevo en el paso 4, los dos con celular y cédula al azar, para poder repetir la carpeta sin
+  chocar con una corrida anterior.
+order: 1975

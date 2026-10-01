@@ -1,0 +1,66 @@
+import { RoleSchema } from '@fiaro-app/contracts';
+import { z } from 'zod';
+import type { InvitedMembership } from '@/modules/memberships/application/dtos/invite-membership.dto.js';
+import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
+
+/** Respuesta con los datos públicos de una membresía. */
+export const MembershipResponseSchema = z
+  .object({
+    id: z.uuid().meta({ description: 'Identificador de la membresía.' }),
+    userId: z.uuid().meta({ description: 'La persona.' }),
+    lenderId: z
+      .uuid()
+      .meta({ description: 'El prestamista con el que trabaja.' }),
+    roles: z.array(RoleSchema).meta({ description: 'Sus roles.' }),
+    status: z.enum(['ACTIVE', 'INACTIVE']).meta({
+      description:
+        '`INACTIVE` quita el acceso de inmediato, sin borrar el historial.',
+    }),
+    portfolioId: z.uuid().nullable().meta({
+      description: 'Cartera del cobrador, o `null` si no tiene el rol.',
+    }),
+    createdAt: z.iso.datetime({ offset: true }).meta({
+      description: 'Cuándo se creó.',
+    }),
+    deactivatedAt: z.iso.datetime({ offset: true }).nullable().meta({
+      description: 'Cuándo se desactivó, o `null` si sigue activa.',
+    }),
+  })
+  .meta({ id: 'MembershipResponse' });
+
+/** Respuesta de `POST /memberships`: la membresía creada y, si la persona es nueva, su contraseña temporal. */
+export const InvitedMembershipResponseSchema = z
+  .object({
+    membership: MembershipResponseSchema,
+    tempPassword: z.string().nullable().meta({
+      description:
+        'Contraseña temporal en claro, para pasarla por WhatsApp. Se muestra una sola vez: `null` si el celular ya tenía cuenta.',
+    }),
+  })
+  .meta({ id: 'InvitedMembershipResponse' });
+
+/** @param details - Los datos de la membresía, tal como los devuelve el caso de uso. */
+export function toMembershipResponse(
+  details: MembershipDetails,
+): z.output<typeof MembershipResponseSchema> {
+  return {
+    id: details.id,
+    userId: details.userId,
+    lenderId: details.lenderId,
+    roles: [...details.roles],
+    status: details.status,
+    portfolioId: details.portfolioId,
+    createdAt: details.createdAt.toISOString(),
+    deactivatedAt: details.deactivatedAt?.toISOString() ?? null,
+  };
+}
+
+/** @param invited - Lo que devuelve `InviteMembershipUseCase.execute`. */
+export function toInvitedMembershipResponse(
+  invited: InvitedMembership,
+): z.output<typeof InvitedMembershipResponseSchema> {
+  return {
+    membership: toMembershipResponse(invited.membership),
+    tempPassword: invited.tempPassword,
+  };
+}

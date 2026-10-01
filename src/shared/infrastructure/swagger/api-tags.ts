@@ -48,4 +48,9 @@ export const API_TAGS = {
     description:
       'Zonas que agrupan cobradores y, a través de ellos, clientes y préstamos, del prestamista con el que opera la sesión (`LenderScopeGuard`). Opcionales: si nadie crea otra, todo queda en la cartera "General" que nace con el prestamista. Verlas no pide un rol específico; darlas de alta exige `OWNER` o `LENDER`.',
   },
+  membership: {
+    name: 'Colaboradores',
+    description:
+      'Quién trabaja en el prestamista con el que opera la sesión (`LenderScopeGuard`) y con qué roles. Invitar crea la cuenta si el celular no tenía una (contraseña temporal, mostrada una sola vez); si ya tenía, solo agrega la membresía. Todas exigen `OWNER` o `LENDER`, y ninguna actúa sobre la propia membresía de la sesión.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;
