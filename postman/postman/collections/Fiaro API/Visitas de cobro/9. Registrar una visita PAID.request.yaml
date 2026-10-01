@@ -1,0 +1,34 @@
+$kind: http-request
+description: "El id lo genera el dispositivo (aquí, el script previo con un UUID al azar): también es la llave de idempotencia. Exige rol COLLECTOR."
+url: "{{baseUrl}}/loans/{{visitsLoanId}}/collection-visits"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{visitsPaidVisitId}}",
+      "outcome": "PAID",
+      "occurredAt": "2026-10-01T14:00:00.000Z",
+      "payment": {
+        "amount": 30000
+      }
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      pm.collectionVariables.set('visitsPaidVisitId', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('trae su pago', () => pm.expect(body.payment.amount).to.eql(30000));
+      pm.collectionVariables.set('visitsPaidPaymentId', body.payment.id);
+    language: text/javascript
+order: 9000

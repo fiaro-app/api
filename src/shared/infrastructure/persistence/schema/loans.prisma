@@ -38,6 +38,8 @@ model Loan {
   lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   collectionAssignments CollectionAssignment[]
+  collectionVisits CollectionVisit[]
+  payments Payment[]
 
   @@index([lenderId])
   @@index([clientId])
