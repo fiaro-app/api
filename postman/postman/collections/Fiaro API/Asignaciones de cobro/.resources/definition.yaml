@@ -1,0 +1,8 @@
+$kind: collection
+description: |-
+  Quién cobra cada préstamo del prestamista con el que opera la sesión (D-82): `POST`/`GET
+  /loans/:loanId/collection-assignments`, protegidas por `LenderScopeGuard`. Autocontenida:
+  registra su propio negocio, invita a dos cobradores y da de alta un cliente y un préstamo
+  antes de probar las asignaciones. Reasignar (sin fecha de fin) cierra la vigente; un reemplazo
+  con fecha de fin no la toca.
+order: 1990

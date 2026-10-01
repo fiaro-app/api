@@ -28,6 +28,7 @@ model Membership {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   lender    Lender     @relation(fields: [lenderId], references: [id], onDelete: Cascade)
   portfolio Portfolio? @relation(fields: [portfolioId], references: [id])
+  collectionAssignments CollectionAssignment[]
 
   @@unique([userId, lenderId])
   @@index([lenderId])

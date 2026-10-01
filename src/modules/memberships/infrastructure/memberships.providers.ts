@@ -2,6 +2,7 @@ import type { Provider } from '@nestjs/common';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
@@ -19,17 +20,21 @@ export const membershipsProviders: Provider[] = [
   },
   { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
   CreateMembershipUseCase,
+  GetMembershipUseCase,
   InviteMembershipUseCase,
   DeactivateMembershipUseCase,
   ChangeMembershipRolesUseCase,
 ];
 
 /**
- * Lo que el módulo ofrece a los demás: el alta de membresías y, por el puerto compartido, con qué
- * Lender opera una sesión — lo usa `LenderScopeGuard` (`shared/infrastructure`), así que cualquier
- * módulo que proteja una ruta con ese guard debe importar `MembershipsModule`.
+ * Lo que el módulo ofrece a los demás: el alta y consulta de membresías y, por el puerto
+ * compartido, con qué Lender opera una sesión — lo usa `LenderScopeGuard` (`shared/infrastructure`),
+ * así que cualquier módulo que proteja una ruta con ese guard debe importar `MembershipsModule`.
+ * `GetMembershipUseCase` lo usa `collections` para validar `collectorMembershipId` al asignar un
+ * cobrador a un préstamo.
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
+  GetMembershipUseCase,
   LENDER_SCOPE_RESOLVER,
 ];
