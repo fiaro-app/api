@@ -1,0 +1,16 @@
+$kind: http-request
+description: Confirma que la cartera nueva ya aparece junto a la General.
+url: "{{baseUrl}}/portfolios"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la cartera recién creada', () => pm.expect(body.some((p) => p.id === pm.collectionVariables.get('portfolioId'))).to.be.true);
+    language: text/javascript
+order: 4000

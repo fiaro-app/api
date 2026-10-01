@@ -41,6 +41,11 @@ export const API_TAGS = {
   loan: {
     name: 'Préstamos',
     description:
-      'Acuerdos de pago de un cliente del prestamista con el que opera la sesión (`LenderScopeGuard`). Verlos no pide un rol específico; darlos de alta exige `OWNER` o `LENDER`. Todavía no se pueden cancelar ni editar.',
+      'Acuerdos de pago de un cliente del prestamista con el que opera la sesión (`LenderScopeGuard`). Verlos no pide un rol específico; darlos de alta exige `OWNER` o `LENDER`. Se pueden cancelar, pero no editar.',
+  },
+  portfolio: {
+    name: 'Carteras',
+    description:
+      'Zonas que agrupan cobradores y, a través de ellos, clientes y préstamos, del prestamista con el que opera la sesión (`LenderScopeGuard`). Opcionales: si nadie crea otra, todo queda en la cartera "General" que nace con el prestamista. Verlas no pide un rol específico; darlas de alta exige `OWNER` o `LENDER`.',
   },
 } as const satisfies Record<string, ApiTagDefinition>;
