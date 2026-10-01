@@ -90,5 +90,5 @@ export function colombianHolidays(year: number): readonly string[] {
     shiftToMonday(addDays(easter, EASTER_OFFSET_DAYS.corpusChristi)),
     shiftToMonday(addDays(easter, EASTER_OFFSET_DAYS.sagradoCorazon)),
   ];
-  return dates.map(toIsoDate).sort();
+  return dates.map(toIsoDate).sort((a, b) => a.localeCompare(b));
 }
