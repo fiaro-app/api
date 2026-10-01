@@ -40,32 +40,27 @@ function setup(current: Loan | null) {
 }
 
 describe('ReconcileLoanStatusUseCase', () => {
-  it('cierra a PAID_OFF un préstamo ACTIVE cuyo saldo llegó a cero', async () => {
-    const { useCase, update } = setup(loan('ACTIVE'));
+  it.each([
+    { netTotalPaid: 50_000, expectedStatus: 'PAID_OFF' as const },
+    { netTotalPaid: 60_000, expectedStatus: 'PAID_OFF' as const },
+    { netTotalPaid: 40_000, expectedStatus: null },
+  ])(
+    'con un préstamo ACTIVE y netTotalPaid $netTotalPaid, termina en $expectedStatus',
+    async ({ netTotalPaid, expectedStatus }) => {
+      const { useCase, update } = setup(loan('ACTIVE'));
 
-    await useCase.execute('loan-1', 'lender-1', 50_000);
+      await useCase.execute('loan-1', 'lender-1', netTotalPaid);
 
-    expect(update).toHaveBeenCalledOnce();
-    const [updated] = update.mock.calls[0] as [Loan];
-    expect(updated.status).toBe('PAID_OFF');
-    expect(updated.closedAt).toEqual(NOW);
-  });
-
-  it('cierra a PAID_OFF si lo pagado supera lo pactado', async () => {
-    const { useCase, update } = setup(loan('ACTIVE'));
-
-    await useCase.execute('loan-1', 'lender-1', 60_000);
-
-    expect(update).toHaveBeenCalledOnce();
-  });
-
-  it('no toca un préstamo ACTIVE que todavía tiene saldo', async () => {
-    const { useCase, update } = setup(loan('ACTIVE'));
-
-    await useCase.execute('loan-1', 'lender-1', 40_000);
-
-    expect(update).not.toHaveBeenCalled();
-  });
+      if (expectedStatus === null) {
+        expect(update).not.toHaveBeenCalled();
+        return;
+      }
+      expect(update).toHaveBeenCalledOnce();
+      const [updated] = update.mock.calls[0] as [Loan];
+      expect(updated.status).toBe(expectedStatus);
+      expect(updated.closedAt).toEqual(NOW);
+    },
+  );
 
   it('reabre a ACTIVE un préstamo PAID_OFF si una reversión deja saldo pendiente', async () => {
     const { useCase, update } = setup(loan('PAID_OFF'));

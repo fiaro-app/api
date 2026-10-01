@@ -1,9 +1,30 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Loan } from '@/modules/loans/domain/entities/loan.entity.js';
+import type { LoanStatus } from '@/modules/loans/domain/entities/loan-status.js';
 import type { LoanRepository } from '@/modules/loans/domain/repositories/loan.repository.js';
 import { LOAN_REPOSITORY } from '@/modules/loans/domain/tokens/loan-repository.token.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
+
+/**
+ * El estado al que debería pasar un préstamo `ACTIVE` o `PAID_OFF` dado si ya está pagado del
+ * todo, o `null` si el estado actual ya es el correcto.
+ *
+ * @param status - Estado actual (nunca `CANCELED`: eso ya lo filtra quien llama).
+ * @param isFullyPaid - Si lo pagado de verdad cubre `totalPayable`.
+ */
+function nextLoanStatus(
+  status: LoanStatus,
+  isFullyPaid: boolean,
+): LoanStatus | null {
+  if (status === 'ACTIVE' && isFullyPaid) {
+    return 'PAID_OFF';
+  }
+  if (status === 'PAID_OFF' && !isFullyPaid) {
+    return 'ACTIVE';
+  }
+  return null;
+}
 
 /**
  * Mantiene el estado de un préstamo sincronizado con lo que de verdad se pagó: lo cierra a
@@ -42,12 +63,7 @@ export class ReconcileLoanStatusUseCase {
     }
 
     const isFullyPaid = netTotalPaid >= current.totalPayable;
-    const nextStatus =
-      current.status === 'ACTIVE' && isFullyPaid
-        ? 'PAID_OFF'
-        : current.status === 'PAID_OFF' && !isFullyPaid
-          ? 'ACTIVE'
-          : null;
+    const nextStatus = nextLoanStatus(current.status, isFullyPaid);
     if (nextStatus === null) {
       return;
     }
