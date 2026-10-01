@@ -8,20 +8,35 @@ import {
   toCollectionVisitCreateInput,
   toPayment,
   toPaymentCreateInput,
+  toPaymentReversal,
 } from '@/modules/collections/infrastructure/persistence/collection-visit.mapper.js';
 import type { CollectionVisitModel } from '@/shared/infrastructure/persistence/generated/models.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 
-/** Fila de `collection_visits` con su `payment`, tal como la trae un `include: { payment: true }`. */
+/** A qué nivel de detalle se piden las visitas: su pago, y la reversión de ese pago. */
+const WITH_PAYMENT_AND_REVERSAL = {
+  payment: { include: { reversal: true } },
+} as const;
+
+/**
+ * Fila de `collection_visits` con su `payment` (y la `reversal` de ese pago, si tiene una), tal
+ * como la trae `WITH_PAYMENT_AND_REVERSAL`.
+ */
 type CollectionVisitRowWithPayment = CollectionVisitModel & {
-  payment: Parameters<typeof toPayment>[0] | null;
+  payment:
+    | (Parameters<typeof toPayment>[0] & {
+        reversal: Parameters<typeof toPaymentReversal>[0] | null;
+      })
+    | null;
 };
 
-/** @param row - Fila con su pago, si lo trae. */
+/** @param row - Fila con su pago y la reversión de ese pago, si los trae. */
 function toRecord(row: CollectionVisitRowWithPayment): CollectionVisitRecord {
+  const reversalRow = row.payment?.reversal ?? null;
   return {
     visit: toCollectionVisit(row),
     payment: row.payment === null ? null : toPayment(row.payment),
+    reversal: reversalRow === null ? null : toPaymentReversal(reversalRow),
   };
 }
 
@@ -58,7 +73,7 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
   ): Promise<CollectionVisitRecord | null> {
     const row = await this.prisma.collectionVisit.findFirst({
       where: { id, loanId },
-      include: { payment: true },
+      include: WITH_PAYMENT_AND_REVERSAL,
     });
     return row === null ? null : toRecord(row);
   }
@@ -67,7 +82,7 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
   async listByLoan(loanId: string): Promise<readonly CollectionVisitRecord[]> {
     const rows = await this.prisma.collectionVisit.findMany({
       where: { loanId },
-      include: { payment: true },
+      include: WITH_PAYMENT_AND_REVERSAL,
       orderBy: { occurredAt: 'asc' },
     });
     return rows.map(toRecord);

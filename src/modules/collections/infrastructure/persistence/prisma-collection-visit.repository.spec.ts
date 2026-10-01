@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
+import { PaymentReversal } from '@/modules/collections/domain/entities/payment-reversal.entity.js';
 import { PrismaCollectionVisitRepository } from '@/modules/collections/infrastructure/persistence/prisma-collection-visit.repository.js';
 import type { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 
@@ -28,6 +29,14 @@ const payment = Payment.create({
   createdAt: CREATED_AT,
 });
 
+const reversal = PaymentReversal.create({
+  id: 'reversal-1',
+  paymentId: 'payment-1',
+  reason: 'Monto equivocado.',
+  reversedByMembershipId: 'membership-2',
+  createdAt: CREATED_AT,
+});
+
 const visitRow = {
   id: 'visit-1',
   loanId: 'loan-1',
@@ -46,6 +55,15 @@ const paymentRow = {
   amount: 30_000,
   method: 'CASH' as const,
   occurredAt: OCCURRED_AT,
+  createdAt: CREATED_AT,
+  reversal: null,
+};
+
+const reversalRow = {
+  id: 'reversal-1',
+  paymentId: 'payment-1',
+  reason: 'Monto equivocado.',
+  reversedByMembershipId: 'membership-2',
   createdAt: CREATED_AT,
 };
 
@@ -73,6 +91,8 @@ function setup() {
     $transaction,
   };
 }
+
+const WITH_PAYMENT_AND_REVERSAL = { payment: { include: { reversal: true } } };
 
 describe('PrismaCollectionVisitRepository.create', () => {
   it('guarda la visita y su pago en una sola transacción', async () => {
@@ -120,7 +140,7 @@ describe('PrismaCollectionVisitRepository.create', () => {
 });
 
 describe('PrismaCollectionVisitRepository.findById', () => {
-  it('devuelve la visita con su pago si existe para ese préstamo', async () => {
+  it('devuelve la visita con su pago si existe para ese préstamo, sin reversión', async () => {
     const { repository, findFirst } = setup();
     findFirst.mockResolvedValueOnce({ ...visitRow, payment: paymentRow });
 
@@ -128,10 +148,23 @@ describe('PrismaCollectionVisitRepository.findById', () => {
 
     expect(findFirst).toHaveBeenCalledExactlyOnceWith({
       where: { id: 'visit-1', loanId: 'loan-1' },
-      include: { payment: true },
+      include: WITH_PAYMENT_AND_REVERSAL,
     });
     expect(found?.visit).toEqual(visit);
     expect(found?.payment).toEqual(payment);
+    expect(found?.reversal).toBeNull();
+  });
+
+  it('devuelve también la reversión del pago, si tiene una', async () => {
+    const { repository, findFirst } = setup();
+    findFirst.mockResolvedValueOnce({
+      ...visitRow,
+      payment: { ...paymentRow, reversal: reversalRow },
+    });
+
+    const found = await repository.findById('visit-1', 'loan-1');
+
+    expect(found?.reversal).toEqual(reversal);
   });
 
   it('devuelve la visita con payment en null si no generó pago', async () => {
@@ -145,6 +178,7 @@ describe('PrismaCollectionVisitRepository.findById', () => {
     const found = await repository.findById('visit-1', 'loan-1');
 
     expect(found?.payment).toBeNull();
+    expect(found?.reversal).toBeNull();
   });
 
   it('devuelve null si no existe para ese préstamo', async () => {
@@ -164,7 +198,7 @@ describe('PrismaCollectionVisitRepository.listByLoan', () => {
 
     expect(findMany).toHaveBeenCalledExactlyOnceWith({
       where: { loanId: 'loan-1' },
-      include: { payment: true },
+      include: WITH_PAYMENT_AND_REVERSAL,
       orderBy: { occurredAt: 'asc' },
     });
     expect(found).toHaveLength(1);

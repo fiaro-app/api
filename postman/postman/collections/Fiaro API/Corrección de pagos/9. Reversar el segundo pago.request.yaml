@@ -1,0 +1,25 @@
+$kind: http-request
+description: "El pago queda intacto (append-only): la reversión es lo que deja de contarlo para el saldo. Exige rol OWNER o LENDER (D-16), que la dueña ya tiene."
+url: "{{baseUrl}}/payments/{{reversalSecondPaymentId}}/reversals"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "reason": "El cobrador registró el monto equivocado."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('reversa el pago correcto', () => pm.expect(body.paymentId).to.eql(pm.collectionVariables.get('reversalSecondPaymentId')));
+      pm.test('trae el motivo', () => pm.expect(body.reason).to.eql('El cobrador registró el monto equivocado.'));
+    language: text/javascript
+order: 9000

@@ -1,5 +1,6 @@
 import type { PaymentMethod } from '@/modules/collections/domain/entities/payment-method.js';
 import type { VisitOutcome } from '@/modules/collections/domain/entities/visit-outcome.js';
+import type { PaymentReversalDetails } from '@/modules/collections/application/dtos/payment-reversal-details.dto.js';
 
 /** Los datos públicos de un pago, tal como los describe `PaymentSchema`. */
 export interface PaymentDetails {
@@ -16,6 +17,8 @@ export interface PaymentDetails {
   readonly occurredAt: Date;
   /** Cuándo se registró. */
   readonly createdAt: Date;
+  /** La reversión de este pago (D-85), o `null` si sigue vigente. */
+  readonly reversal: PaymentReversalDetails | null;
 }
 
 /** Los datos públicos de una visita, tal como los describe `CollectionVisitSchema`. */

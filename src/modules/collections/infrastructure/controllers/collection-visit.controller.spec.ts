@@ -23,6 +23,7 @@ const DETAILS = {
     method: 'CASH' as const,
     occurredAt: new Date('2026-10-01T14:00:00Z'),
     createdAt: new Date('2026-10-01T14:05:00Z'),
+    reversal: null,
   },
 };
 

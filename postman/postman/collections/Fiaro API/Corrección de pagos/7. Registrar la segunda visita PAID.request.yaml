@@ -1,0 +1,32 @@
+$kind: http-request
+description: Segunda y última cuota. Con las dos pagadas, el préstamo debería cerrarse solo (D-85).
+url: "{{baseUrl}}/loans/{{reversalLoanId}}/collection-visits"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{reversalSecondVisitId}}",
+      "outcome": "PAID",
+      "occurredAt": "2026-10-02T15:00:00.000Z",
+      "payment": {
+        "amount": 10000
+      }
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      pm.collectionVariables.set('reversalSecondVisitId', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('reversalSecondPaymentId', pm.response.json().payment.id);
+    language: text/javascript
+order: 7000

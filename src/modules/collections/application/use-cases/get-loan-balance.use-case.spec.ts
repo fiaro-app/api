@@ -4,6 +4,7 @@ import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-l
 import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
+import { PaymentReversal } from '@/modules/collections/domain/entities/payment-reversal.entity.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
@@ -46,6 +47,21 @@ function paidVisit(id: string, amount: number): CollectionVisitRecord {
       method: 'CASH',
       occurredAt,
       createdAt: occurredAt,
+    }),
+    reversal: null,
+  };
+}
+
+/** Un `paidVisit` cuyo pago ya fue reversado: no debe sumar al saldo. */
+function reversedVisit(id: string, amount: number): CollectionVisitRecord {
+  return {
+    ...paidVisit(id, amount),
+    reversal: PaymentReversal.create({
+      id: `${id}-reversal`,
+      paymentId: `${id}-payment`,
+      reason: 'Monto equivocado.',
+      reversedByMembershipId: 'membership-2',
+      createdAt: NOW,
     }),
   };
 }
@@ -103,6 +119,7 @@ describe('GetLoanBalanceUseCase', () => {
         createdAt: NOW,
       }),
       payment: null,
+      reversal: null,
     };
     const { useCase } = setup([
       paidVisit('visit-1', 10_000),
@@ -114,6 +131,18 @@ describe('GetLoanBalanceUseCase', () => {
 
     expect(result.balance).toBe(30_000);
     expect(result.overdueAmount).toBe(0); // 20.000 esperado al 27, 20.000 pagado
+  });
+
+  it('un pago reversado no cuenta para el saldo', async () => {
+    const { useCase } = setup([
+      paidVisit('visit-1', 10_000),
+      reversedVisit('visit-2', 10_000),
+    ]);
+
+    const result = await useCase.execute('loan-1', 'lender-1');
+
+    expect(result.balance).toBe(40_000); // 50.000 - 10.000 (el otro quedó reversado)
+    expect(result.overdueAmount).toBe(10_000); // 20.000 esperado - 10.000 neto
   });
 
   it('un préstamo cerrado no tiene mora', async () => {

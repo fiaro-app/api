@@ -3,6 +3,7 @@ import { CancelLoanUseCase } from '@/modules/loans/application/use-cases/cancel-
 import { CreateLoanUseCase } from '@/modules/loans/application/use-cases/create-loan.use-case.js';
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
+import { ReconcileLoanStatusUseCase } from '@/modules/loans/application/use-cases/reconcile-loan-status.use-case.js';
 import { LOAN_REPOSITORY } from '@/modules/loans/domain/tokens/loan-repository.token.js';
 import { PrismaLoanRepository } from '@/modules/loans/infrastructure/persistence/prisma-loan.repository.js';
 
@@ -13,6 +14,7 @@ export const loansProviders: Provider[] = [
   GetLoanUseCase,
   ListLoansUseCase,
   CancelLoanUseCase,
+  ReconcileLoanStatusUseCase,
 ];
 
 /** Lo que `loans` expone a otros módulos. */
@@ -21,4 +23,5 @@ export const loansExports = [
   GetLoanUseCase,
   ListLoansUseCase,
   CancelLoanUseCase,
+  ReconcileLoanStatusUseCase,
 ];

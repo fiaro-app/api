@@ -40,7 +40,7 @@ enum PaymentMethod {
 }
 
 /// Dinero recibido en una visita. Append-only: nunca se edita ni se borra; un error se corrige
-/// con un PaymentReversal (todavía no existe).
+/// con un PaymentReversal.
 model Payment {
   id         String        @id @db.Uuid
   loanId     String        @map("loan_id") @db.Uuid
@@ -51,9 +51,27 @@ model Payment {
   occurredAt DateTime      @map("occurred_at") @db.Timestamptz(3)
   createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  loan  Loan            @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  visit CollectionVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  loan     Loan             @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  visit    CollectionVisit  @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  reversal PaymentReversal?
 
   @@index([loanId])
   @@map("payments")
+}
+
+/// Anulación total de un pago registrado por error (D-16): el pago queda intacto (append-only),
+/// pero deja de contar para el saldo. Un pago se reversa una sola vez (@@unique en paymentId); si
+/// el monto correcto era otro, se registra un pago nuevo en una visita aparte.
+model PaymentReversal {
+  id        String   @id @db.Uuid
+  paymentId String   @unique @map("payment_id") @db.Uuid
+  reason    String
+  /// Quién la hizo (rol LENDER). Sin FK a memberships: es un dato de auditoría, no una relación
+  /// que hoy se consulte, mismo criterio que Loan.createdByMembershipId.
+  reversedByMembershipId String @map("reversed_by_membership_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_reversals")
 }

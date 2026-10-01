@@ -63,4 +63,9 @@ export const API_TAGS = {
     description:
       'Bitácora de cada intento de cobro de un préstamo del prestamista con el que opera la sesión (`LenderScopeGuard`), con su pago si hubo dinero. El id lo genera el dispositivo y sirve de llave de idempotencia: reenviar la misma visita devuelve el resultado original sin duplicar nada. Verlas no pide un rol específico; registrar una exige el rol `COLLECTOR`.',
   },
+  payment: {
+    name: 'Pagos',
+    description:
+      'Corrección de un pago registrado por error, del prestamista con el que opera la sesión (`LenderScopeGuard`). El pago queda intacto (append-only): la reversión es lo que deja de contarlo para el saldo. Un pago se reversa una sola vez; exige `OWNER` o `LENDER` en la membresía activa.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;
