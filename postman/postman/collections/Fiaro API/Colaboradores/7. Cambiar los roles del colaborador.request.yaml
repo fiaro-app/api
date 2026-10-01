@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Quita COLLECTOR y deja solo LENDER: como los roles nuevos no incluyen COLLECTOR, la cartera se limpia (queda en null). Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/memberships/{{membershipsCollectorMembershipId}}/roles"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "roles": ["LENDER"]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('ya no es cobrador', () => pm.expect(body.roles).to.eql(['LENDER']));
+      pm.test('la cartera se limpió', () => pm.expect(body.portfolioId).to.be.null);
+    language: text/javascript
+order: 7000

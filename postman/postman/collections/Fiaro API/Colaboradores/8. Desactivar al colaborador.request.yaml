@@ -1,0 +1,17 @@
+$kind: http-request
+description: "Baja lógica: quita el acceso de inmediato, sin borrar el historial. Idempotente: se puede repetir sin fallar. Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/memberships/{{membershipsCollectorMembershipId}}/deactivate"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('queda INACTIVE', () => pm.expect(body.status).to.eql('INACTIVE'));
+      pm.test('trae cuándo se desactivó', () => pm.expect(body.deactivatedAt).to.be.a('string'));
+    language: text/javascript
+order: 8000

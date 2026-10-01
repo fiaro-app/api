@@ -24,6 +24,7 @@ function setup(active: readonly Membership[]) {
     create: vi.fn(),
     findById: vi.fn(),
     findActiveByUserId,
+    update: vi.fn(),
   };
   return {
     resolver: new MembershipLenderScopeResolver(memberships),

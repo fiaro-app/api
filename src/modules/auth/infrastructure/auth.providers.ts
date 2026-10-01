@@ -23,6 +23,7 @@ import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset
 import { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
+import { GetUserByPhoneUseCase } from '@/modules/auth/application/use-cases/get-user-by-phone.use-case.js';
 import { SESSION_REPOSITORY } from '@/modules/auth/domain/tokens/session-repository.token.js';
 import { USER_REPOSITORY } from '@/modules/auth/domain/tokens/user-repository.token.js';
 import { VERIFICATION_CODE_REPOSITORY } from '@/modules/auth/domain/tokens/verification-code-repository.token.js';
@@ -164,6 +165,7 @@ export const authProviders: Provider[] = [
   },
   { provide: VERIFICATION_CODE_HASHER, useClass: Sha256VerificationCodeHasher },
   CreateUserUseCase,
+  GetUserByPhoneUseCase,
   RequestPasswordResetUseCase,
   ResetPasswordUseCase,
   RequestContactEmailVerificationUseCase,
@@ -172,5 +174,12 @@ export const authProviders: Provider[] = [
   DeactivateAccountUseCase,
 ];
 
-/** Lo que el módulo ofrece a los demás: el resolvedor de sesión del guard global y el alta de personas. */
-export const authExports = [SESSION_RESOLVER, CreateUserUseCase];
+/**
+ * Lo que el módulo ofrece a los demás: el resolvedor de sesión del guard global, el alta de
+ * personas y la búsqueda por celular (la usa `memberships` para invitar a un cobrador).
+ */
+export const authExports = [
+  SESSION_RESOLVER,
+  CreateUserUseCase,
+  GetUserByPhoneUseCase,
+];
