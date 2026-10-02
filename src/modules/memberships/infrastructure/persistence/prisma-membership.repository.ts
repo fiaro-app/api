@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import type { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
 import type { Role } from '@/modules/memberships/domain/entities/role.js';
 import { MembershipAlreadyExistsError } from '@/modules/memberships/domain/errors/membership-already-exists.error.js';
-import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
+import type {
+  ListMembershipsCriteria,
+  MembershipRepository,
+  MembershipsPage,
+} from '@/modules/memberships/domain/repositories/membership.repository.js';
 import {
   toMembership,
   toMembershipCreateInput,
@@ -85,5 +89,25 @@ export class PrismaMembershipRepository implements MembershipRepository {
       where: { id: membership.id, lenderId: membership.lenderId },
       data: toMembershipCreateInput(membership),
     });
+  }
+
+  /** @param criteria - Prestamista, paginación y los filtros opcionales de estado y rol. */
+  async list(criteria: ListMembershipsCriteria): Promise<MembershipsPage> {
+    const where: Prisma.MembershipWhereInput = {
+      lenderId: criteria.lenderId,
+      ...(criteria.status ? { status: criteria.status } : {}),
+      ...(criteria.role ? { roles: { has: criteria.role } } : {}),
+    };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.membership.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        skip: (criteria.page - 1) * criteria.pageSize,
+        take: criteria.pageSize,
+      }),
+      this.prisma.membership.count({ where }),
+    ]);
+    return { items: rows.map(toMembership), total };
   }
 }

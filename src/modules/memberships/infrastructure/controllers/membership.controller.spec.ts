@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import type { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import type { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
+import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import { MembershipController } from '@/modules/memberships/infrastructure/controllers/membership.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -41,16 +42,32 @@ function setup() {
   const changeMembershipRolesUseCase = {
     execute: vi.fn(() => Promise.resolve(MEMBERSHIP_DETAILS)),
   };
+  const listMembershipsUseCase = {
+    execute: vi.fn(() =>
+      Promise.resolve({
+        items: [
+          {
+            ...MEMBERSHIP_DETAILS,
+            fullName: 'Luis Gómez',
+            phone: '+573109998877',
+          },
+        ],
+        total: 1,
+      }),
+    ),
+  };
   const controller = new MembershipController(
     inviteMembershipUseCase as unknown as InviteMembershipUseCase,
     deactivateMembershipUseCase as unknown as DeactivateMembershipUseCase,
     changeMembershipRolesUseCase as unknown as ChangeMembershipRolesUseCase,
+    listMembershipsUseCase as unknown as ListMembershipsUseCase,
   );
   return {
     controller,
     inviteMembershipUseCase,
     deactivateMembershipUseCase,
     changeMembershipRolesUseCase,
+    listMembershipsUseCase,
   };
 }
 
@@ -64,7 +81,7 @@ const scopeWith = (
 });
 
 describe('MembershipController', () => {
-  it('publica POST y PATCH, colgando de /memberships', () => {
+  it('publica QUERY, POST y PATCH, colgando de /memberships', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       MembershipController.prototype,
     )
@@ -79,10 +96,40 @@ describe('MembershipController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['PATCH', 'POST', 'POST']);
+    expect(publishedRoutes).toEqual(['PATCH', 'POST', 'POST', 'QUERY']);
     expect(Reflect.getMetadata(PATH_METADATA, MembershipController)).toBe(
       'memberships',
     );
+  });
+
+  describe('listMemberships', () => {
+    it('con rol LENDER busca colaboradores del prestamista de la sesión', async () => {
+      const { controller, listMembershipsUseCase } = setup();
+
+      const response = await controller.listMemberships(
+        { page: 1, pageSize: 20 },
+        scopeWith(['LENDER']),
+      );
+
+      expect(listMembershipsUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        lenderId: 'lender-1',
+        page: 1,
+        pageSize: 20,
+      });
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0]).toMatchObject({ fullName: 'Luis Gómez' });
+    });
+
+    it('con solo el rol COLLECTOR responde 403 sin buscar nada', async () => {
+      const { controller, listMembershipsUseCase } = setup();
+
+      const error = await controller
+        .listMemberships({ page: 1, pageSize: 20 }, scopeWith(['COLLECTOR']))
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(listMembershipsUseCase.execute).not.toHaveBeenCalled();
+    });
   });
 
   describe('inviteMembership', () => {

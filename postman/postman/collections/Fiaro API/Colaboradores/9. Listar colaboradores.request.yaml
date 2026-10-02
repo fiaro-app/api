@@ -1,0 +1,32 @@
+$kind: http-request
+description: "Paginados, con nombre y celular de cada uno (D-92). Filtro opcional de estado y rol: aquí se pide solo INACTIVE, para confirmar que la baja del paso anterior se ve en la lista. Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/memberships"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "page": 1,
+      "pageSize": 20,
+      "status": "INACTIVE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae al colaborador recién desactivado, con nombre y celular', () => {
+        const entry = body.data.find((item) => item.id === pm.collectionVariables.get('membershipsCollectorMembershipId'));
+        pm.expect(entry).to.not.be.undefined;
+        pm.expect(entry.fullName).to.be.a('string');
+        pm.expect(entry.phone).to.be.a('string');
+        pm.expect(entry.status).to.eql('INACTIVE');
+      });
+    language: text/javascript
+order: 9000

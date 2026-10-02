@@ -5,6 +5,7 @@ import { DeactivateMembershipUseCase } from '@/modules/memberships/application/u
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { ListActiveMembershipsByRolesUseCase } from '@/modules/memberships/application/use-cases/list-active-memberships-by-roles.use-case.js';
+import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
 import { PrismaMembershipRepository } from '@/modules/memberships/infrastructure/persistence/prisma-membership.repository.js';
@@ -26,6 +27,7 @@ export const membershipsProviders: Provider[] = [
   DeactivateMembershipUseCase,
   ChangeMembershipRolesUseCase,
   ListActiveMembershipsByRolesUseCase,
+  ListMembershipsUseCase,
 ];
 
 /**

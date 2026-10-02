@@ -1,4 +1,8 @@
-import { MobilePhoneSchema, RoleSchema } from '@fiaro-app/contracts';
+import {
+  MobilePhoneSchema,
+  PageQuerySchema,
+  RoleSchema,
+} from '@fiaro-app/contracts';
 import { z } from 'zod';
 
 /**
@@ -53,5 +57,15 @@ export const ChangeMembershipRolesRequestSchema = z.strictObject({
   portfolioId: z.uuid().optional().meta({
     description:
       'Cartera del cobrador. Si no llega y los roles incluyen COLLECTOR, se conserva la que ya tenía.',
+  }),
+});
+
+/** Cuerpo de `QUERY /memberships`: paginación y los filtros opcionales de estado y rol. */
+export const ListMembershipsRequestSchema = PageQuerySchema.extend({
+  status: z.enum(['ACTIVE', 'INACTIVE']).optional().meta({
+    description: 'Ausente para traer activas e inactivas por igual.',
+  }),
+  role: RoleSchema.optional().meta({
+    description: 'Ausente para traer cualquier rol.',
   }),
 });

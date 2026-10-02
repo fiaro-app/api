@@ -18,6 +18,7 @@ function setup() {
     findById: vi.fn(() => Promise.resolve(null)),
     findActiveByUserId: vi.fn(() => Promise.resolve([])),
     findActiveByLenderAndRoles: vi.fn(() => Promise.resolve([])),
+    list: vi.fn(),
     update: vi.fn(() => Promise.resolve()),
   };
   const ids: IdGenerator = { next: () => 'membership-1' };

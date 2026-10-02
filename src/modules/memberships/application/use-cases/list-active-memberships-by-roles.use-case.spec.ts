@@ -24,6 +24,7 @@ function setup() {
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles,
     update: vi.fn(),
+    list: vi.fn(),
   };
   return {
     useCase: new ListActiveMembershipsByRolesUseCase(memberships),
