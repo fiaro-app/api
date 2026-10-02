@@ -37,5 +37,8 @@
   "unrecognized_keys": "Dato no esperado: {keys}.",
   "not_multiple_of": "Debe ser múltiplo de {divisor}.",
   "invalid_union": "El dato no cumple ninguna de las opciones permitidas.",
-  "custom": "El dato no es válido."
+  "custom": "El dato no es válido.",
+  "settlement": {
+    "note_required": "Debes explicar la diferencia entre lo esperado y lo cobrado."
+  }
 }

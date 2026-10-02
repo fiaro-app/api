@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Lo cobrado (60.000) difiere de lo esperado (100.000) y no llega collectorNote: D-19 la exige cuando hay diferencia."
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 100000,
+      "collectedCash": 60000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('código VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));
+    language: text/javascript
+order: 3000

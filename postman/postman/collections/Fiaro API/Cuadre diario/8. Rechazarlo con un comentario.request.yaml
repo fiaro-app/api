@@ -1,0 +1,25 @@
+$kind: http-request
+description: "El rechazo es informativo: no bloquea la ruta del cobrador (D-19). reviewNote es opcional, pero útil sobre todo aquí."
+url: "{{baseUrl}}/daily-settlements/{{settlementId}}/reject"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "reviewNote": "Falta soportar el efectivo con un recibo."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('queda REJECTED', () => pm.expect(body.status).to.eql('REJECTED'));
+      pm.test('trae el comentario', () => pm.expect(body.reviewNote).to.eql('Falta soportar el efectivo con un recibo.'));
+    language: text/javascript
+order: 8000

@@ -1,0 +1,32 @@
+$kind: http-request
+description: "Reenviar el cuadre del mismo día actualiza la misma fila y la devuelve a PENDING, incluso estando ya APPROVED (D-36): limpia reviewedByMembershipId y reviewedAt."
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 100000,
+      "collectedCash": 100000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('es el mismo cuadre', () => pm.expect(body.id).to.eql(pm.collectionVariables.get('settlementId')));
+      pm.test('vuelve a PENDING', () => pm.expect(body.status).to.eql('PENDING'));
+      pm.test('la revisión anterior queda limpia', () => {
+        pm.expect(body.reviewedByMembershipId).to.be.null;
+        pm.expect(body.reviewedAt).to.be.null;
+      });
+    language: text/javascript
+order: 7000

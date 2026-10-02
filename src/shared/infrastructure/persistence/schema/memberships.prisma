@@ -30,6 +30,8 @@ model Membership {
   portfolio Portfolio? @relation(fields: [portfolioId], references: [id])
   collectionAssignments CollectionAssignment[]
   collectionVisits CollectionVisit[]
+  settlementsSubmitted DailySettlement[] @relation("SettlementsSubmitted")
+  settlementsReviewed  DailySettlement[] @relation("SettlementsReviewed")
 
   @@unique([userId, lenderId])
   @@index([lenderId])
