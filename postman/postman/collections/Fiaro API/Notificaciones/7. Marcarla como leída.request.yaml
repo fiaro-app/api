@@ -1,0 +1,20 @@
+$kind: http-request
+description: Siempre la propia. Volver a marcarla no falla (no se exige que siga sin leer).
+url: "{{baseUrl}}/notifications/{{notifAssignedNotificationId}}/read"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('readAt ya no es null', () => pm.expect(pm.response.json().readAt).to.not.be.null);
+    language: text/javascript
+order: 7000

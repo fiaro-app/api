@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
+import type { Role } from '@/modules/memberships/domain/entities/role.js';
 import { MembershipAlreadyExistsError } from '@/modules/memberships/domain/errors/membership-already-exists.error.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
 import {
@@ -58,6 +59,21 @@ export class PrismaMembershipRepository implements MembershipRepository {
   async findActiveByUserId(userId: string): Promise<readonly Membership[]> {
     const rows = await this.prisma.membership.findMany({
       where: { userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map(toMembership);
+  }
+
+  /**
+   * @param lenderId - El prestamista.
+   * @param roles - Trae las membresías `ACTIVE` que tengan al menos uno de estos roles.
+   */
+  async findActiveByLenderAndRoles(
+    lenderId: string,
+    roles: readonly Role[],
+  ): Promise<readonly Membership[]> {
+    const rows = await this.prisma.membership.findMany({
+      where: { lenderId, status: 'ACTIVE', roles: { hasSome: [...roles] } },
       orderBy: { createdAt: 'asc' },
     });
     return rows.map(toMembership);

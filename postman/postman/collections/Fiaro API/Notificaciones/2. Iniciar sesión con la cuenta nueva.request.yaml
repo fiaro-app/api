@@ -1,0 +1,24 @@
+$kind: http-request
+description: Abre la sesión de la dueña que se acaba de registrar.
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{notifOwnerPhone}}",
+      "password": "{{notifOwnerPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+    language: text/javascript
+order: 2000

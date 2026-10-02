@@ -1,0 +1,22 @@
+$kind: http-request
+description: El texto de la notificación es el mismo reviewNote que se mandó al rechazar.
+url: "{{baseUrl}}/notifications"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const rejected = pm.response.json().data.find((item) => item.title === 'Cuadre rechazado');
+      pm.test('encuentra la notificación de cuadre rechazado', () => pm.expect(rejected).to.not.be.undefined);
+      pm.test('trae el motivo como texto', () => pm.expect(rejected.body).to.eql('Falta soportar el efectivo con un recibo.'));
+    language: text/javascript
+order: 12000

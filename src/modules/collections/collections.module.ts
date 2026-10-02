@@ -7,6 +7,7 @@ import { PaymentReversalController } from '@/modules/collections/infrastructure/
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
+import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
 
 /**
@@ -16,12 +17,19 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  * `POST`/`GET /loans/:loanId/collection-visits`, `GET /loans/:loanId/balance` y
  * `POST /payments/:id/reversals`, todas con `LenderScopeGuard` — de ahí que importe `LoansModule`
  * (`GetLoanUseCase` para validar el préstamo, `ReconcileLoanStatusUseCase` para cerrarlo o
- * reabrirlo), `MembershipsModule` (`GetMembershipUseCase`, para validar el cobrador al asignar) y
+ * reabrirlo), `MembershipsModule` (`GetMembershipUseCase`, para validar el cobrador al asignar),
  * `LendersModule` (`GetLenderUseCase`, para los días sin cobro del prestamista que el saldo
- * necesita).
+ * necesita) y `NotificationsModule` (`CreateNotificationUseCase`, para avisarle al cobrador que
+ * tiene un préstamo nuevo, D-87).
  */
 @Module({
-  imports: [PersistenceModule, LoansModule, MembershipsModule, LendersModule],
+  imports: [
+    PersistenceModule,
+    LoansModule,
+    MembershipsModule,
+    LendersModule,
+    NotificationsModule,
+  ],
   controllers: [
     CollectionAssignmentController,
     CollectionVisitController,

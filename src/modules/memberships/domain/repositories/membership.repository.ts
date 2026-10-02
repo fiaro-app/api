@@ -1,4 +1,5 @@
 import type { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
+import type { Role } from '@/modules/memberships/domain/entities/role.js';
 
 /** Puerto de persistencia de las membresías. */
 export interface MembershipRepository {
@@ -21,6 +22,16 @@ export interface MembershipRepository {
    * @returns Sus membresías `ACTIVE`, de la más antigua a la más nueva.
    */
   findActiveByUserId(userId: string): Promise<readonly Membership[]>;
+
+  /**
+   * @param lenderId - El prestamista.
+   * @param roles - Trae las membresías `ACTIVE` que tengan al menos uno de estos roles.
+   * @returns Como `(userId, lenderId)` es único, hay a lo más una por persona.
+   */
+  findActiveByLenderAndRoles(
+    lenderId: string,
+    roles: readonly Role[],
+  ): Promise<readonly Membership[]>;
 
   /** @param membership - La membresía con sus datos ya actualizados. */
   update(membership: Membership): Promise<void>;

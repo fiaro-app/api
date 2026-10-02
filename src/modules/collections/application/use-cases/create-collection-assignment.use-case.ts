@@ -10,6 +10,7 @@ import { CollectionAssignment } from '@/modules/collections/domain/entities/coll
 import { InvalidCollectionAssignmentDataError } from '@/modules/collections/domain/errors/invalid-collection-assignment-data.error.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
+import { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
 import { addDays } from '@/shared/domain/calendar/business-date.js';
 import type { DomainIssue } from '@/shared/domain/errors/domain-error.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
@@ -25,8 +26,9 @@ import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
  * (`effectiveTo` al día anterior a la nueva `effectiveFrom`), si tiene una, antes de crear la
  * nueva — así queda el historial de quién cobraba cada día. Si `effectiveTo` llega (un reemplazo
  * de uno o varios días), no toca la asignación permanente: ambas conviven. Compone
- * `GetLoanUseCase` (`loans/application`) y `GetMembershipUseCase` (`memberships/application`)
- * por la capa de aplicación (regla de fronteras, ARCHITECTURE.md §3).
+ * `GetLoanUseCase` (`loans/application`), `GetMembershipUseCase` (`memberships/application`) y
+ * `CreateNotificationUseCase` (`notifications/application`, D-87: avisa al cobrador con el
+ * préstamo ya asignado) por la capa de aplicación (regla de fronteras, ARCHITECTURE.md §3).
  */
 @Injectable()
 export class CreateCollectionAssignmentUseCase {
@@ -35,6 +37,7 @@ export class CreateCollectionAssignmentUseCase {
     private readonly assignments: CollectionAssignmentRepository,
     private readonly getLoan: GetLoanUseCase,
     private readonly getMembership: GetMembershipUseCase,
+    private readonly createNotification: CreateNotificationUseCase,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -89,6 +92,15 @@ export class CreateCollectionAssignmentUseCase {
       createdAt: this.clock.now(),
     });
     await this.assignments.create(assignment);
+    await this.createNotification.execute({
+      recipientUserId: collector.userId,
+      lenderId: input.lenderId,
+      severity: 'INFO',
+      title: 'Préstamo asignado',
+      body: 'Te asignaron un préstamo para cobrar.',
+      relatedEntityType: 'LOAN',
+      relatedEntityId: input.loanId,
+    });
     return toCollectionAssignmentDetails(assignment);
   }
 

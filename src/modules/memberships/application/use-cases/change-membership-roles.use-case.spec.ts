@@ -29,6 +29,7 @@ function setup(found: Membership | null) {
     create: vi.fn(),
     findById: vi.fn(() => Promise.resolve(found)),
     findActiveByUserId: vi.fn(),
+    findActiveByLenderAndRoles: vi.fn(),
     update,
   };
   return { useCase: new ChangeMembershipRolesUseCase(memberships), update };

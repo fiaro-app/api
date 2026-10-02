@@ -35,11 +35,13 @@ export interface SettlementDetails {
 }
 
 /**
- * Datos con los que el cobrador cierra su día (D-36). Sin `lenderId`: el propio
- * `collectorMembershipId` ya lo resolvió `LenderScopeGuard` dentro de la sesión, así que no hay
- * un prestamista distinto contra el que validar.
+ * Datos con los que el cobrador cierra su día (D-36). `lenderId` no se usa para validar
+ * `collectorMembershipId` (ya lo resolvió `LenderScopeGuard` dentro de la sesión): solo para
+ * avisarle a quien administra el prestamista que hay un cuadre por revisar (D-87).
  */
 export interface SubmitSettlementInput {
+  /** El prestamista con el que opera la sesión, resuelto por `LenderScopeGuard`. */
+  readonly lenderId: string;
   /** El cobrador que cierra, resuelto por `LenderScopeGuard`: siempre su propio cuadre. */
   readonly collectorMembershipId: string;
   /** Lo esperado, declarado por el cobrador. */
