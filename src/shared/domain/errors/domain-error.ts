@@ -16,7 +16,9 @@ export type DomainErrorKind =
   /** Quien lo pide no tiene permiso. */
   | 'FORBIDDEN'
   /** El estado actual no permite la operación: una regla de negocio la impide. */
-  | 'RULE_VIOLATED';
+  | 'RULE_VIOLATED'
+  /** El servicio no puede atender la petición en este momento (mantenimiento declarado). */
+  | 'UNAVAILABLE';
 
 /** Un dato que no cumple una regla, con la ruta del campo en que ocurre. */
 export interface DomainIssue {

@@ -26,6 +26,12 @@ describe('loadEnv', () => {
         resendApiKey: undefined,
         fromAddress: undefined,
       },
+      maintenanceMode: false,
+      mobile: {
+        minimumSupportedVersion: '0.0.0',
+        latestVersion: '0.0.0',
+        downloadUrl: 'https://example.com/fiaro.apk',
+      },
     });
   });
 
@@ -41,6 +47,7 @@ describe('loadEnv', () => {
       LOG_LEVEL: 'warn',
       MOBILE_APP_SCHEMES: 'fiaro',
       QUEUE_PREFIX: 'fiaro-staging',
+      MAINTENANCE_MODE: 'true',
       ...PRODUCTION_ENV,
     });
 
@@ -64,6 +71,12 @@ describe('loadEnv', () => {
       email: {
         resendApiKey: PRODUCTION_ENV.RESEND_API_KEY,
         fromAddress: PRODUCTION_ENV.RESEND_FROM_EMAIL,
+      },
+      maintenanceMode: true,
+      mobile: {
+        minimumSupportedVersion: PRODUCTION_ENV.MOBILE_MIN_SUPPORTED_VERSION,
+        latestVersion: PRODUCTION_ENV.MOBILE_LATEST_VERSION,
+        downloadUrl: PRODUCTION_ENV.MOBILE_DOWNLOAD_URL,
       },
     });
   });

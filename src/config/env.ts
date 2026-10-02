@@ -5,6 +5,7 @@ import {
   DatabaseUrlSchema,
   integer,
   LogLevelSchema,
+  MobileAppVersionSchema,
   MobileSchemeSchema,
   MongoUriSchema,
   OriginSchema,
@@ -34,6 +35,10 @@ const EnvSchema = z
     MOBILE_APP_SCHEMES: commaSeparated(MobileSchemeSchema),
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().optional(),
+    MOBILE_MIN_SUPPORTED_VERSION: MobileAppVersionSchema.optional(),
+    MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
+    MOBILE_DOWNLOAD_URL: z.url().optional(),
+    MAINTENANCE_MODE: z.stringbool().optional(),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -61,6 +66,24 @@ const EnvSchema = z
     message:
       'es obligatoria en producción para poder enviar correos; en desarrollo, sin ella se usa un envío que solo registra el correo en los logs',
   })
+  .refine(
+    (env) => env.NODE_ENV !== 'production' || env.MOBILE_MIN_SUPPORTED_VERSION,
+    {
+      path: ['MOBILE_MIN_SUPPORTED_VERSION'],
+      message:
+        'es obligatoria en producción: GET /mobile/version la usa para bloquear versiones viejas de la app',
+    },
+  )
+  .refine((env) => env.NODE_ENV !== 'production' || env.MOBILE_LATEST_VERSION, {
+    path: ['MOBILE_LATEST_VERSION'],
+    message:
+      'es obligatoria en producción: GET /mobile/version la muestra en la pantalla de actualización',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.MOBILE_DOWNLOAD_URL, {
+    path: ['MOBILE_DOWNLOAD_URL'],
+    message:
+      'es obligatoria en producción: GET /mobile/version la usa para enlazar la descarga del APK',
+  })
   .transform((env) => ({
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
@@ -83,6 +106,12 @@ const EnvSchema = z
     email: {
       resendApiKey: env.RESEND_API_KEY,
       fromAddress: env.RESEND_FROM_EMAIL,
+    },
+    maintenanceMode: env.MAINTENANCE_MODE ?? false,
+    mobile: {
+      minimumSupportedVersion: env.MOBILE_MIN_SUPPORTED_VERSION ?? '0.0.0',
+      latestVersion: env.MOBILE_LATEST_VERSION ?? '0.0.0',
+      downloadUrl: env.MOBILE_DOWNLOAD_URL ?? 'https://example.com/fiaro.apk',
     },
   }));
 

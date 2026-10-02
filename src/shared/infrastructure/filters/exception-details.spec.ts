@@ -57,6 +57,7 @@ describe('describeException', () => {
       ['CONFLICT', 409],
       ['FORBIDDEN', 403],
       ['RULE_VIOLATED', 422],
+      ['UNAVAILABLE', 503],
     ] as const)('de la categoría %s responde %i', (kind, statusCode) => {
       expect(describeException(new ProbeDomainError(kind))).toMatchObject({
         statusCode,

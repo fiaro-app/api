@@ -83,4 +83,9 @@ export const API_TAGS = {
     description:
       'Los préstamos que el cobrador de la sesión debe visitar en una fecha (hoy, si no se pide otra), con su saldo y su mora. Exige rol `COLLECTOR` en la membresía activa.',
   },
+  system: {
+    name: 'Sistema',
+    description:
+      'Rutas de infraestructura sin sesión (`GET /health`, `GET /mobile/version`): las usa el orquestador y la app desde el primer arranque, no una persona.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

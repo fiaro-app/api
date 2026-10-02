@@ -11,6 +11,7 @@ import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { SettlementsModule } from '@/modules/settlements/settlements.module.js';
+import { SystemModule } from '@/modules/system/system.module.js';
 import { TenantsModule } from '@/modules/tenants/tenants.module.js';
 import { AuditModule } from '@/shared/infrastructure/audit/audit.module.js';
 import { ApiErrorsModule } from '@/shared/infrastructure/filters/api-errors.module.js';
@@ -46,6 +47,7 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
     LoansModule,
     CollectionsModule,
     SettlementsModule,
+    SystemModule,
     ThrottlerModule.forRootAsync({
       /** Redundante en runtime (`EnvModule` es global): los tipos de `@nestjs/throttler` 6.7 con Nest 12 lo exigen. */
       imports: [EnvModule],

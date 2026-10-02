@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Infraestructura (D-90): `GET /health` y `GET /mobile/version`, las dos sin sesión ni cabecera
+  `Origin`. Responden a "la última versión publicada" según cómo arrancó la API: con
+  `pnpm docker:dev`, sin las variables `MOBILE_MIN_SUPPORTED_VERSION`/`MOBILE_LATEST_VERSION`/
+  `MOBILE_DOWNLOAD_URL`, usa valores que nunca bloquean a nadie.
+order: 2005

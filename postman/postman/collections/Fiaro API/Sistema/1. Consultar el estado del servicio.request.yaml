@@ -1,0 +1,15 @@
+$kind: http-request
+description: "Healthcheck HTTP (D-90): sin sesión, sin límite de tasa y sin importar la cabecera API-Version (VERSION_NEUTRAL). Lo consulta el orquestador, no una persona."
+url: "{{baseUrl}}/health"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('ok, con la versión desplegada', () => {
+        pm.expect(body.status).to.eql('ok');
+        pm.expect(body.version).to.match(/^\d+\.\d+\.\d+$/);
+      });
+    language: text/javascript
+order: 1000
