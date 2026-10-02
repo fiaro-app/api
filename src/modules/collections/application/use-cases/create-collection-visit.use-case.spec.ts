@@ -24,7 +24,12 @@ function setup(
   >(() => Promise.resolve());
   const findById = vi.fn(() => Promise.resolve(existing));
   const listByLoan = vi.fn(() => Promise.resolve(listByLoanResult));
-  const visits: CollectionVisitRepository = { create, findById, listByLoan };
+  const visits: CollectionVisitRepository = {
+    create,
+    findById,
+    listByLoan,
+    listByCollectorAndPromisedDate: vi.fn(),
+  };
   const getLoanExecute = vi.fn(() => Promise.resolve(LOAN));
   const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
   const reconcileExecute = vi.fn(() => Promise.resolve());

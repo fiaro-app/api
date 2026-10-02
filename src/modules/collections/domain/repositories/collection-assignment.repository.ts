@@ -18,6 +18,19 @@ export interface CollectionAssignmentRepository {
    */
   listByLoan(loanId: string): Promise<readonly CollectionAssignment[]>;
 
+  /**
+   * Las asignaciones vigentes de un cobrador en una fecha: `effectiveFrom <= date` y
+   * (`effectiveTo` es `null` o `effectiveTo >= date`). La comparación de texto funciona porque
+   * las fechas son `AAAA-MM-DD`: el orden lexicográfico coincide con el cronológico.
+   *
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  findActiveByCollectorAndDate(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<readonly CollectionAssignment[]>;
+
   /** @param assignment - La asignación con sus datos ya actualizados (cerrarla con `effectiveTo`). */
   update(assignment: CollectionAssignment): Promise<void>;
 }

@@ -26,4 +26,16 @@ export interface CollectionVisitRepository {
    * @returns Sus visitas con sus pagos, de la más antigua a la más nueva.
    */
   listByLoan(loanId: string): Promise<readonly CollectionVisitRecord[]>;
+
+  /**
+   * Los préstamos que este cobrador prometió volver a visitar en esta fecha (D-17): reaparecen en
+   * su ruta del día aunque ya no tengan una asignación vigente con él.
+   *
+   * @param collectorMembershipId - El cobrador que hizo la promesa.
+   * @param promisedDate - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  listByCollectorAndPromisedDate(
+    collectorMembershipId: string,
+    promisedDate: string,
+  ): Promise<readonly CollectionVisit[]>;
 }

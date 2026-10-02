@@ -72,6 +72,7 @@ function setup(records: readonly CollectionVisitRecord[] = []) {
     create: vi.fn(() => Promise.resolve()),
     findById: vi.fn(() => Promise.resolve(null)),
     listByLoan,
+    listByCollectorAndPromisedDate: vi.fn(),
   };
   const getLoanExecute = vi.fn(() => Promise.resolve(LOAN));
   const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
@@ -157,6 +158,7 @@ describe('GetLoanBalanceUseCase', () => {
       create: vi.fn(() => Promise.resolve()),
       findById: vi.fn(() => Promise.resolve(null)),
       listByLoan: vi.fn(() => Promise.resolve([])),
+      listByCollectorAndPromisedDate: vi.fn(),
     };
     const clock: Clock = { now: () => NOW };
     const closedUseCase = new GetLoanBalanceUseCase(

@@ -1,0 +1,8 @@
+$kind: collection
+description: |-
+  Ruta del día de un cobrador (D-88): `QUERY /collectors/me/route`. Autocontenida: registra su
+  propio negocio (la dueña nace con OWNER, LENDER y COLLECTOR, D-78) y se asigna un préstamo a sí
+  misma; confirma que aparece en la ruta de hoy con su cliente y su saldo. Da de alta un segundo
+  préstamo sin asignar y le registra una promesa (D-17) para mañana: confirma que la ruta de hoy
+  no lo trae, pero la de mañana sí, junto con el asignado.
+order: 2003

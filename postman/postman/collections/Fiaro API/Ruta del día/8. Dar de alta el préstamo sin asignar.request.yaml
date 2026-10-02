@@ -1,0 +1,29 @@
+$kind: http-request
+description: "Nunca se le crea una CollectionAssignment: solo la promesa del paso siguiente debería traerlo a la ruta."
+url: "{{baseUrl}}/loans"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "clientId": "{{routePromisedClientId}}",
+      "principalAmount": 20000,
+      "installmentCount": 2,
+      "installmentValue": 10000,
+      "totalPayable": 20000,
+      "frequency": "DAILY",
+      "startDate": "2026-10-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('routePromisedLoanId', pm.response.json().id);
+    language: text/javascript
+order: 8000

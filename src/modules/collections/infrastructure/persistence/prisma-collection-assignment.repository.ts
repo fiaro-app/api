@@ -36,6 +36,25 @@ export class PrismaCollectionAssignmentRepository implements CollectionAssignmen
     return rows.map(toCollectionAssignment);
   }
 
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  async findActiveByCollectorAndDate(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<readonly CollectionAssignment[]> {
+    const rows = await this.prisma.collectionAssignment.findMany({
+      where: {
+        collectorMembershipId,
+        effectiveFrom: { lte: date },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
+      },
+      orderBy: { effectiveFrom: 'asc' },
+    });
+    return rows.map(toCollectionAssignment);
+  }
+
   /** @param assignment - La asignación con sus datos ya actualizados. */
   async update(assignment: CollectionAssignment): Promise<void> {
     await this.prisma.collectionAssignment.update({
