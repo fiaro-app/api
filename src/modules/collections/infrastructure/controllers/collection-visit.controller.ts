@@ -48,9 +48,10 @@ const LoanIdParamSchema = z.uuid();
  * Cuelga de `/loans/:loanId/collection-visits`, mismo criterio que
  * `CollectionAssignmentController` (D-82): el concepto vive en `collections`, no en `loans`. La
  * membresía que cobra es `scope.membershipId`, no un campo del cuerpo: el cobrador siempre
- * registra sus propias visitas. Sin la validación de que esa membresía tenga una
- * `CollectionAssignment` vigente para este préstamo todavía (D-74 ya la anticipaba, "modo
- * cobrador"); sin auditoría propia todavía.
+ * registra sus propias visitas. La validación de que esa membresía tenga una
+ * `CollectionAssignment` vigente para este préstamo ("modo cobrador", D-74) vive en
+ * `CreateCollectionVisitUseCase.assertCollectorAssigned`, no aquí (D-89); sin auditoría propia
+ * todavía.
  */
 @ApiTags(API_TAGS.collectionVisit.name)
 @Controller('loans/:loanId/collection-visits')

@@ -4,7 +4,7 @@ Backend del sistema de control de cartera (gota a gota) de Fiaro: un SaaS multi-
 
 Repo privado. Software propietario — ver [LICENSE](./LICENSE).
 
-Documento de dominio y producto (entidades, multi-tenancy, suscripciones, roadmap): [PRODUCT.md](./PRODUCT.md). Arquitectura de código de este repo: [ARCHITECTURE.md](./ARCHITECTURE.md).
+Documento de dominio y producto (entidades, multi-tenancy, suscripciones, roadmap): [PRODUCT.md](./PRODUCT.md). Arquitectura de código de este repo: [ARCHITECTURE.md](./ARCHITECTURE.md). Matriz de permisos por rol, ruta por ruta: [PERMISSIONS.md](./PERMISSIONS.md).
 
 ## Stack
 
