@@ -1,0 +1,41 @@
+/// `PENDING`: enviado por el cobrador, sin revisar. `APPROVED`/`REJECTED`: decisión del prestamista.
+/// El rechazo es informativo (no bloquea la ruta); el cobrador puede reenviar con aclaración.
+enum SettlementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Cierre diario de un cobrador: lo esperado contra lo cobrado, declarado por él mismo al cerrar,
+/// con desglose por medio de pago (PRODUCT.md §5, D-36). Uno por cobrador y día; reenviarlo
+/// actualiza la misma fila y la devuelve a PENDING, sin guardar historial de versiones (el de
+/// cambios queda en la auditoría).
+model DailySettlement {
+  id                     String           @id @db.Uuid
+  collectorMembershipId  String           @map("collector_membership_id") @db.Uuid
+  /// Fecha de calendario en texto (AAAA-MM-DD), mismo criterio que Loan.startDate: así se guarda
+  /// tal como la entrega el contrato, sin que la zona horaria del driver la corra un día.
+  date                   String
+  expectedAmount         Int              @map("expected_amount")
+  collectedAmount        Int              @map("collected_amount")
+  collectedCash          Int              @map("collected_cash")
+  collectedNequi         Int              @map("collected_nequi")
+  collectedTransfer      Int              @map("collected_transfer")
+  status                 SettlementStatus @default(PENDING)
+  /// Obligatoria cuando collectedAmount difiere de expectedAmount (D-19).
+  collectorNote          String?          @map("collector_note")
+  /// Comentario del prestamista al revisar, sobre todo al rechazar.
+  reviewNote             String?          @map("review_note")
+  reviewedByMembershipId String?          @map("reviewed_by_membership_id") @db.Uuid
+  reviewedAt             DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  /// Último envío del cobrador: se actualiza en cada reenvío, a diferencia de createdAt.
+  submittedAt            DateTime         @map("submitted_at") @db.Timestamptz(3)
+  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  collectorMembership  Membership  @relation("SettlementsSubmitted", fields: [collectorMembershipId], references: [id], onDelete: Cascade)
+  reviewedByMembership Membership? @relation("SettlementsReviewed", fields: [reviewedByMembershipId], references: [id])
+
+  @@unique([collectorMembershipId, date])
+  @@index([collectorMembershipId])
+  @@map("daily_settlements")
+}

@@ -68,4 +68,9 @@ export const API_TAGS = {
     description:
       'Corrección de un pago registrado por error, del prestamista con el que opera la sesión (`LenderScopeGuard`). El pago queda intacto (append-only): la reversión es lo que deja de contarlo para el saldo. Un pago se reversa una sola vez; exige `OWNER` o `LENDER` en la membresía activa.',
   },
+  dailySettlement: {
+    name: 'Cuadres',
+    description:
+      'Cierre diario de un cobrador del prestamista con el que opera la sesión (`LenderScopeGuard`): lo esperado contra lo cobrado, declarado por él mismo al cerrar, con desglose por medio de pago. Uno por cobrador y día; reenviarlo lo actualiza y lo devuelve a `PENDING`. Verlo no pide un rol específico; enviarlo exige `COLLECTOR`; aprobarlo o rechazarlo exige `OWNER` o `LENDER`.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;
