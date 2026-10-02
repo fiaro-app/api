@@ -37,7 +37,7 @@ const ApiWrongRoleResponse = () =>
   ApiResponse({
     status: 403,
     description:
-      'Sin ninguna membresía activa, o la membresía activa no tiene rol `COLLECTOR` (`FORBIDDEN`).',
+      'Sin ninguna membresía activa, la membresía activa no tiene rol `COLLECTOR`, o no tiene una asignación vigente para este préstamo el día de la visita ("modo cobrador", PRODUCT.md §6) (`FORBIDDEN`).',
     standardSchema: CollectionVisitForbiddenSchema,
   });
 
@@ -55,7 +55,7 @@ export const ApiCreateCollectionVisit = () =>
     ApiOperation({
       summary: 'Registrar una visita de cobro',
       description:
-        'Idempotente: el id lo genera el dispositivo, así que reenviar la misma visita (misma conexión perdida) devuelve el resultado original sin duplicar nada (D-29). outcome PAID exige payment; RESCHEDULED exige promisedDate; ningún otro resultado acepta ninguno de los dos. Exige rol COLLECTOR en la membresía activa.',
+        'Idempotente: el id lo genera el dispositivo, así que reenviar la misma visita (misma conexión perdida) devuelve el resultado original sin duplicar nada (D-29). outcome PAID exige payment; RESCHEDULED exige promisedDate; ningún otro resultado acepta ninguno de los dos. Exige rol COLLECTOR en la membresía activa, con una asignación vigente para este préstamo el día de la visita ("modo cobrador", PRODUCT.md §6).',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
