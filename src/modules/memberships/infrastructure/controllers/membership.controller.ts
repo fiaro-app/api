@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  QueryMethod,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -15,20 +16,25 @@ import { z } from 'zod';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
+import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import {
   ApiChangeMembershipRoles,
   ApiDeactivateMembership,
   ApiInviteMembership,
+  ApiListMemberships,
 } from '@/modules/memberships/infrastructure/controllers/docs/membership-routes.docs.js';
 import {
   ChangeMembershipRolesRequestSchema,
   InviteMembershipRequestSchema,
+  ListMembershipsRequestSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-requests.schema.js';
 import {
   toInvitedMembershipResponse,
   toMembershipResponse,
+  toMembershipsPageResponse,
   type InvitedMembershipResponseSchema,
   type MembershipResponseSchema,
+  type MembershipsPageResponseSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
@@ -46,12 +52,12 @@ const MembershipIdParamSchema = z.uuid();
  * `LenderScopeGuard`, así que corre después de `AuthGuard` y ya sabe con qué Lender operar.
  *
  * @remarks
- * Las tres rutas exigen `OWNER` o `LENDER`, el mismo criterio que crear/editar en el resto del
- * sistema: administrar quién entra a un negocio es tan sensible como crear un cliente o un
- * préstamo. Además, ninguna deja que una sesión actúe sobre su propia membresía
- * (`scope.membershipId === id`): desactivarse o cambiarse los roles a sí mismo podría dejar un
- * negocio sin nadie que lo administre. Sin listar membresías todavía (`GET /memberships`): nada
- * lo necesita aún, se agrega cuando la UI lo pida. Sin auditoría propia todavía.
+ * Las cuatro rutas exigen `OWNER` o `LENDER`, el mismo criterio que crear/editar en el resto del
+ * sistema: administrar quién entra a un negocio (y ver quién ya está) es tan sensible como crear
+ * un cliente o un préstamo. Las tres que actúan sobre una membresía puntual, además, nunca dejan
+ * que una sesión actúe sobre la propia (`scope.membershipId === id`): desactivarse o cambiarse
+ * los roles a sí mismo podría dejar un negocio sin nadie que lo administre (D-92: listar sí
+ * puede traer la propia, ver no tiene ese riesgo). Sin auditoría propia todavía.
  */
 @ApiTags(API_TAGS.membership.name)
 @Controller('memberships')
@@ -61,7 +67,30 @@ export class MembershipController {
     private readonly inviteMembershipUseCase: InviteMembershipUseCase,
     private readonly deactivateMembershipUseCase: DeactivateMembershipUseCase,
     private readonly changeMembershipRolesUseCase: ChangeMembershipRolesUseCase,
+    private readonly listMembershipsUseCase: ListMembershipsUseCase,
   ) {}
+
+  /**
+   * @param query - Página, tamaño y los filtros opcionales de estado y rol, ya validados.
+   * @param scope - El Lender con el que opera la sesión.
+   */
+  @QueryMethod()
+  @HttpCode(HttpStatus.OK)
+  @ApiListMemberships()
+  async listMemberships(
+    @Body({ schema: ListMembershipsRequestSchema })
+    query: z.output<typeof ListMembershipsRequestSchema>,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<z.output<typeof MembershipsPageResponseSchema>> {
+    if (!hasAnyRole(scope.roles, EDITOR_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    const page = await this.listMembershipsUseCase.execute({
+      lenderId: scope.lenderId,
+      ...query,
+    });
+    return toMembershipsPageResponse(page, query);
+  }
 
   /**
    * @param body - Los datos de la persona, sus roles y, si aplica, su cartera, ya validados.

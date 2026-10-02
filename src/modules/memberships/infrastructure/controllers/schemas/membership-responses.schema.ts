@@ -1,6 +1,10 @@
-import { RoleSchema } from '@fiaro-app/contracts';
+import { paginated, RoleSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
 import type { InvitedMembership } from '@/modules/memberships/application/dtos/invite-membership.dto.js';
+import type {
+  MembershipListEntry,
+  MembershipsPageResult,
+} from '@/modules/memberships/application/dtos/membership-list-entry.dto.js';
 import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 
 /** Respuesta con los datos públicos de una membresía. */
@@ -27,6 +31,20 @@ export const MembershipResponseSchema = z
     }),
   })
   .meta({ id: 'MembershipResponse' });
+
+/** Respuesta de `QUERY /memberships`: una membresía con el nombre y el celular de la persona. */
+export const MembershipListEntryResponseSchema =
+  MembershipResponseSchema.extend({
+    fullName: z
+      .string()
+      .meta({ description: 'Nombre completo de la persona.' }),
+    phone: z.string().meta({ description: 'Su celular, en formato E.164.' }),
+  }).meta({ id: 'MembershipListEntryResponse' });
+
+/** Respuesta de `QUERY /memberships`: una página de colaboradores. */
+export const MembershipsPageResponseSchema = paginated(
+  MembershipListEntryResponseSchema,
+).meta({ id: 'MembershipsPageResponse' });
 
 /** Respuesta de `POST /memberships`: la membresía creada y, si la persona es nueva, su contraseña temporal. */
 export const InvitedMembershipResponseSchema = z
@@ -62,5 +80,34 @@ export function toInvitedMembershipResponse(
   return {
     membership: toMembershipResponse(invited.membership),
     tempPassword: invited.tempPassword,
+  };
+}
+
+/** @param entry - Una membresía con su persona, tal como la devuelve `ListMembershipsUseCase`. */
+export function toMembershipListEntryResponse(
+  entry: MembershipListEntry,
+): z.output<typeof MembershipListEntryResponseSchema> {
+  return {
+    ...toMembershipResponse(entry),
+    fullName: entry.fullName,
+    phone: entry.phone,
+  };
+}
+
+/**
+ * @param page - La página de colaboradores, tal como la devuelve el caso de uso.
+ * @param pageQuery - La página y el tamaño pedidos.
+ */
+export function toMembershipsPageResponse(
+  page: MembershipsPageResult,
+  pageQuery: { page: number; pageSize: number },
+): z.output<typeof MembershipsPageResponseSchema> {
+  return {
+    data: page.items.map(toMembershipListEntryResponse),
+    meta: {
+      page: pageQuery.page,
+      pageSize: pageQuery.pageSize,
+      total: page.total,
+    },
   };
 }

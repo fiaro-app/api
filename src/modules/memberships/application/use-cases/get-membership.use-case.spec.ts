@@ -13,6 +13,7 @@ function setup(found: Membership | null) {
     findById,
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
+    list: vi.fn(),
     update: vi.fn(),
   };
   return { useCase: new GetMembershipUseCase(memberships), findById };

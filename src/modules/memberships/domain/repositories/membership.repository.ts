@@ -1,5 +1,30 @@
-import type { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
+import type {
+  Membership,
+  MembershipStatus,
+} from '@/modules/memberships/domain/entities/membership.entity.js';
 import type { Role } from '@/modules/memberships/domain/entities/role.js';
+
+/** Criterio de {@link MembershipRepository.list}. */
+export interface ListMembershipsCriteria {
+  /** El prestamista dueño de las membresías. */
+  readonly lenderId: string;
+  /** Página, desde 1. */
+  readonly page: number;
+  /** Tamaño de la página. */
+  readonly pageSize: number;
+  /** Filtra por estado; ausente para traer `ACTIVE` e `INACTIVE` por igual. */
+  readonly status?: MembershipStatus;
+  /** Filtra por rol; ausente para traer cualquiera. */
+  readonly role?: Role;
+}
+
+/** Una página de {@link MembershipRepository.list}. */
+export interface MembershipsPage {
+  /** Las membresías de esta página. */
+  readonly items: readonly Membership[];
+  /** Cuántas membresías cumplen el criterio en total, sin paginar. */
+  readonly total: number;
+}
 
 /** Puerto de persistencia de las membresías. */
 export interface MembershipRepository {
@@ -35,4 +60,7 @@ export interface MembershipRepository {
 
   /** @param membership - La membresía con sus datos ya actualizados. */
   update(membership: Membership): Promise<void>;
+
+  /** @param criteria - Prestamista, paginación y los filtros opcionales de estado y rol. */
+  list(criteria: ListMembershipsCriteria): Promise<MembershipsPage>;
 }

@@ -11,6 +11,7 @@ import {
 import {
   InvitedMembershipResponseSchema,
   MembershipResponseSchema,
+  MembershipsPageResponseSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
@@ -53,6 +54,29 @@ const ApiValidationFailedResponse = () =>
       'El cuerpo no cumple el contrato, los roles no son válidos, o falta la cartera o la cédula que exige `COLLECTOR` (`VALIDATION_FAILED`).',
     standardSchema: MembershipValidationErrorSchema,
   });
+
+/** Documenta `QUERY /memberships`. */
+export const ApiListMemberships = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Buscar colaboradores',
+      description:
+        'Colaboradores (cobradores y prestamistas) del prestamista con el que opera la sesión, paginados, con nombre y celular de cada uno. Filtro opcional por estado y por rol. Exige rol `OWNER` o `LENDER` en la membresía activa, mismo criterio que administrarlas.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Página de colaboradores.',
+      standardSchema: MembershipsPageResponseSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiResponse({
+      status: 403,
+      description:
+        'Sin ninguna membresía activa, o la membresía activa no tiene rol `OWNER` ni `LENDER` (`FORBIDDEN`).',
+      standardSchema: MembershipForbiddenSchema,
+    }),
+  );
 
 /** Documenta `POST /memberships`. */
 export const ApiInviteMembership = () =>
