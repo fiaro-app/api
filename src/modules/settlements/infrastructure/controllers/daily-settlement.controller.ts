@@ -84,6 +84,7 @@ export class DailySettlementController {
     }
     return toSettlementResponse(
       await this.submitSettlementUseCase.execute({
+        lenderId: scope.lenderId,
         collectorMembershipId: scope.membershipId,
         expectedAmount: body.expectedAmount,
         collectedCash: body.collectedCash,

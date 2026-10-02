@@ -1,0 +1,38 @@
+/// Qué tan importante es, define el color con que la app la muestra.
+enum NotificationSeverity {
+  ALERT
+  WARNING
+  SUCCESS
+  INFO
+}
+
+/// Entidad a la que lleva la notificación al tocarla.
+enum NotificationEntityType {
+  DAILY_SETTLEMENT
+  LOAN
+  CLIENT
+  MEMBERSHIP
+  SUBSCRIPTION
+}
+
+/// Aviso interno para una persona. Lleva lenderId porque alguien que trabaja para varios
+/// prestamistas recibe notificaciones de todos, por separado.
+model Notification {
+  id                String                  @id @db.Uuid
+  recipientUserId   String                  @map("recipient_user_id") @db.Uuid
+  lenderId          String                  @map("lender_id") @db.Uuid
+  severity          NotificationSeverity
+  title             String
+  body              String
+  relatedEntityType NotificationEntityType? @map("related_entity_type")
+  relatedEntityId   String?                 @map("related_entity_id") @db.Uuid
+  /// null mientras no se haya leído.
+  readAt            DateTime?               @map("read_at") @db.Timestamptz(3)
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recipient User   @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  lender    Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId, lenderId])
+  @@map("notifications")
+}

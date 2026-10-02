@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Cerrar un cuadre dispara \"cuadre por revisar\" (D-87) hacia quien administra el prestamista — aquí, la misma dueña, porque también tiene rol OWNER/LENDER."
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 50000,
+      "collectedCash": 50000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.collectionVariables.set('notifSettlementId', pm.response.json().id);
+    language: text/javascript
+order: 9000

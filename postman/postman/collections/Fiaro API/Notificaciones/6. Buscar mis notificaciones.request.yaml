@@ -1,0 +1,23 @@
+$kind: http-request
+description: "Notificaciones propias de la sesión (método QUERY, ARCHITECTURE.md §5). Debería traer la de \"Préstamo asignado\" que disparó el paso anterior."
+url: "{{baseUrl}}/notifications"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const assigned = pm.response.json().data.find((item) => item.title === 'Préstamo asignado');
+      pm.test('encuentra la notificación de préstamo asignado', () => pm.expect(assigned).to.not.be.undefined);
+      pm.test('apunta al préstamo correcto', () => pm.expect(assigned.relatedEntityId).to.eql(pm.collectionVariables.get('notifLoanId')));
+      pm.collectionVariables.set('notifAssignedNotificationId', assigned.id);
+    language: text/javascript
+order: 6000

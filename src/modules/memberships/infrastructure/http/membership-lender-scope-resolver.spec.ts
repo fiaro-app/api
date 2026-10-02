@@ -24,6 +24,7 @@ function setup(active: readonly Membership[]) {
     create: vi.fn(),
     findById: vi.fn(),
     findActiveByUserId,
+    findActiveByLenderAndRoles: vi.fn(),
     update: vi.fn(),
   };
   return {

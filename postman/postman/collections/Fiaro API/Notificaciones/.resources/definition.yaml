@@ -1,0 +1,8 @@
+$kind: collection
+description: |-
+  Notificaciones internas (D-87): `QUERY /notifications` y `POST /notifications/:id/read`.
+  Autocontenida: registra su propio negocio (la dueña nace con OWNER, LENDER y COLLECTOR, D-78) y
+  se asigna un préstamo a sí misma para disparar "préstamo asignado"; la marca como leída y
+  confirma que sale de `unreadOnly`; cierra un cuadre para disparar "cuadre por revisar" y lo
+  rechaza para disparar "cuadre rechazado" con el motivo como texto.
+order: 2001

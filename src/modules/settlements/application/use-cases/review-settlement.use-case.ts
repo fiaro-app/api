@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
+import { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
 import type {
   ReviewSettlementInput,
   SettlementDetails,
@@ -16,12 +18,21 @@ import { CLOCK } from '@/shared/application/ports/clock.token.js';
  * informativo: no bloquea la ruta del cobrador, que puede reenviar su cuadre con una aclaración
  * (D-19) y eso lo devuelve a `PENDING` para un ciclo de revisión nuevo. Quién puede llamarlo lo
  * decide el controller (`OWNER` o `LENDER`).
+ *
+ * @remarks
+ * Al rechazar, compone `GetMembershipUseCase` (`memberships/application`) y
+ * `CreateNotificationUseCase` (`notifications/application`) para avisarle al cobrador (D-87,
+ * PRODUCT.md §5: "Collector recibe cuadre rechazado"), sin conocer el dominio de ninguno de los
+ * dos módulos (regla de fronteras, ARCHITECTURE.md §3). Aprobar no notifica: no está en el
+ * alcance que PRODUCT.md define para el MVP.
  */
 @Injectable()
 export class ReviewSettlementUseCase {
   constructor(
     @Inject(DAILY_SETTLEMENT_REPOSITORY)
     private readonly settlements: DailySettlementRepository,
+    private readonly getMembership: GetMembershipUseCase,
+    private readonly createNotification: CreateNotificationUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -49,6 +60,23 @@ export class ReviewSettlementUseCase {
       reviewedByMembershipId: input.reviewerMembershipId,
       reviewedAt: this.clock.now(),
     });
+
+    if (reviewed.status === 'REJECTED') {
+      const collector = await this.getMembership.execute(
+        reviewed.collectorMembershipId,
+        input.lenderId,
+      );
+      await this.createNotification.execute({
+        recipientUserId: collector.userId,
+        lenderId: input.lenderId,
+        severity: 'WARNING',
+        title: 'Cuadre rechazado',
+        body: input.reviewNote ?? `Revisa tu cuadre del ${reviewed.date}.`,
+        relatedEntityType: 'DAILY_SETTLEMENT',
+        relatedEntityId: reviewed.id,
+      });
+    }
+
     return toSettlementDetails(reviewed);
   }
 }

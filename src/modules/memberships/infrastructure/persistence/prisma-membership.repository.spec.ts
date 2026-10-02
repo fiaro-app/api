@@ -135,6 +135,28 @@ describe('PrismaMembershipRepository.findActiveByUserId', () => {
   });
 });
 
+describe('PrismaMembershipRepository.findActiveByLenderAndRoles', () => {
+  it('filtra por prestamista, ACTIVE y al menos uno de los roles pedidos', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([row]);
+
+    const found = await repository.findActiveByLenderAndRoles('lender-1', [
+      'OWNER',
+      'LENDER',
+    ]);
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        lenderId: 'lender-1',
+        status: 'ACTIVE',
+        roles: { hasSome: ['OWNER', 'LENDER'] },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(found).toHaveLength(1);
+  });
+});
+
 describe('PrismaMembershipRepository.update', () => {
   it('reemplaza los datos de la membresía, con su lenderId en el where', async () => {
     const { repository, update } = setup();

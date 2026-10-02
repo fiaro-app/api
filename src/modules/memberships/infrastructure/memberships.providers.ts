@@ -4,6 +4,7 @@ import { CreateMembershipUseCase } from '@/modules/memberships/application/use-c
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
+import { ListActiveMembershipsByRolesUseCase } from '@/modules/memberships/application/use-cases/list-active-memberships-by-roles.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
 import { PrismaMembershipRepository } from '@/modules/memberships/infrastructure/persistence/prisma-membership.repository.js';
@@ -24,6 +25,7 @@ export const membershipsProviders: Provider[] = [
   InviteMembershipUseCase,
   DeactivateMembershipUseCase,
   ChangeMembershipRolesUseCase,
+  ListActiveMembershipsByRolesUseCase,
 ];
 
 /**
@@ -31,10 +33,12 @@ export const membershipsProviders: Provider[] = [
  * compartido, con qué Lender opera una sesión — lo usa `LenderScopeGuard` (`shared/infrastructure`),
  * así que cualquier módulo que proteja una ruta con ese guard debe importar `MembershipsModule`.
  * `GetMembershipUseCase` lo usa `collections` para validar `collectorMembershipId` al asignar un
- * cobrador a un préstamo.
+ * cobrador a un préstamo. `ListActiveMembershipsByRolesUseCase` lo usa `notifications` para
+ * encontrar a quién avisarle algo del negocio (D-87).
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
   GetMembershipUseCase,
+  ListActiveMembershipsByRolesUseCase,
   LENDER_SCOPE_RESOLVER,
 ];

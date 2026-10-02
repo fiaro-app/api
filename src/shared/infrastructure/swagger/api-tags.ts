@@ -73,4 +73,9 @@ export const API_TAGS = {
     description:
       'Cierre diario de un cobrador del prestamista con el que opera la sesión (`LenderScopeGuard`): lo esperado contra lo cobrado, declarado por él mismo al cerrar, con desglose por medio de pago. Uno por cobrador y día; reenviarlo lo actualiza y lo devuelve a `PENDING`. Verlo no pide un rol específico; enviarlo exige `COLLECTOR`; aprobarlo o rechazarlo exige `OWNER` o `LENDER`.',
   },
+  notification: {
+    name: 'Notificaciones',
+    description:
+      'Avisos internos de quien tiene la sesión (préstamo asignado, cuadre por revisar, cuadre rechazado), siempre los propios, de todos los prestamistas para los que trabaja salvo que filtre por uno. Nadie las crea por HTTP: siempre las genera el sistema.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

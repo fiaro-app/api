@@ -1,0 +1,24 @@
+$kind: http-request
+description: Con unreadOnly, la que se acaba de marcar como leída ya no debería aparecer.
+url: "{{baseUrl}}/notifications"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "unreadOnly": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const stillThere = pm.response.json().data.some((item) => item.id === pm.collectionVariables.get('notifAssignedNotificationId'));
+      pm.test('la notificación leída ya no aparece', () => pm.expect(stillThere).to.be.false);
+    language: text/javascript
+order: 8000

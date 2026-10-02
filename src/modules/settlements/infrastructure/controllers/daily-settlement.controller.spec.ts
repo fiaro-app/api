@@ -103,6 +103,7 @@ describe('DailySettlementController', () => {
       );
 
       expect(submitSettlementUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        lenderId: 'lender-1',
         collectorMembershipId: 'membership-1',
         expectedAmount: 100_000,
         collectedCash: 100_000,

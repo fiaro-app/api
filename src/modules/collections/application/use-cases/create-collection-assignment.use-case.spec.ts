@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 import type { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
+import type { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
 import { CreateCollectionAssignmentUseCase } from '@/modules/collections/application/use-cases/create-collection-assignment.use-case.js';
 import { CollectionAssignment } from '@/modules/collections/domain/entities/collection-assignment.entity.js';
 import { InvalidCollectionAssignmentDataError } from '@/modules/collections/domain/errors/invalid-collection-assignment-data.error.js';
@@ -42,12 +43,17 @@ function setup(openAssignment: CollectionAssignment | null = null) {
   const getMembership = {
     execute: getMembershipExecute,
   } as unknown as GetMembershipUseCase;
+  const createNotificationExecute = vi.fn(() => Promise.resolve({} as never));
+  const createNotification = {
+    execute: createNotificationExecute,
+  } as unknown as CreateNotificationUseCase;
   const ids: IdGenerator = { next: () => 'assignment-new' };
   const clock: Clock = { now: () => NOW };
   const useCase = new CreateCollectionAssignmentUseCase(
     assignments,
     getLoan,
     getMembership,
+    createNotification,
     ids,
     clock,
   );
@@ -58,13 +64,20 @@ function setup(openAssignment: CollectionAssignment | null = null) {
     findOpenByLoan,
     getLoanExecute,
     getMembershipExecute,
+    createNotificationExecute,
   };
 }
 
 describe('CreateCollectionAssignmentUseCase', () => {
   it('crea una asignación permanente cuando el préstamo no tenía ninguna vigente', async () => {
-    const { useCase, create, update, getLoanExecute, getMembershipExecute } =
-      setup(null);
+    const {
+      useCase,
+      create,
+      update,
+      getLoanExecute,
+      getMembershipExecute,
+      createNotificationExecute,
+    } = setup(null);
 
     const created = await useCase.execute({
       lenderId: 'lender-1',
@@ -85,6 +98,15 @@ describe('CreateCollectionAssignmentUseCase', () => {
     expect(create).toHaveBeenCalledOnce();
     expect(created.id).toBe('assignment-new');
     expect(created.effectiveTo).toBeNull();
+    expect(createNotificationExecute).toHaveBeenCalledExactlyOnceWith({
+      recipientUserId: 'user-1',
+      lenderId: 'lender-1',
+      severity: 'INFO',
+      title: 'Préstamo asignado',
+      body: 'Te asignaron un préstamo para cobrar.',
+      relatedEntityType: 'LOAN',
+      relatedEntityId: 'loan-1',
+    });
   });
 
   it('cierra la asignación permanente vigente antes de crear la nueva', async () => {
