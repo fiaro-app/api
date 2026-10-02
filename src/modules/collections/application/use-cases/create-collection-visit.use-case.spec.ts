@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { ReconcileLoanStatusUseCase } from '@/modules/loans/application/use-cases/reconcile-loan-status.use-case.js';
 import { CreateCollectionVisitUseCase } from '@/modules/collections/application/use-cases/create-collection-visit.use-case.js';
+import { CollectionAssignment } from '@/modules/collections/domain/entities/collection-assignment.entity.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
+import { CollectorNotAssignedError } from '@/modules/collections/domain/errors/collector-not-assigned.error.js';
 import { InvalidCollectionVisitDataError } from '@/modules/collections/domain/errors/invalid-collection-visit-data.error.js';
+import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
@@ -15,9 +18,19 @@ const OCCURRED_AT = new Date('2026-10-01T14:00:00Z');
 
 const LOAN = { id: 'loan-1', installmentValue: 30_000 } as never;
 
+const ASSIGNED = CollectionAssignment.create({
+  id: 'assignment-1',
+  loanId: 'loan-1',
+  collectorMembershipId: 'membership-1',
+  effectiveFrom: '2026-09-01',
+  effectiveTo: null,
+  createdAt: NOW,
+});
+
 function setup(
   existing: CollectionVisitRecord | null = null,
   listByLoanResult: readonly CollectionVisitRecord[] = [],
+  assignedLoans: readonly CollectionAssignment[] = [ASSIGNED],
 ) {
   const create = vi.fn<
     (visit: CollectionVisit, payment: Payment | null) => Promise<void>
@@ -30,6 +43,16 @@ function setup(
     listByLoan,
     listByCollectorAndPromisedDate: vi.fn(),
   };
+  const findActiveByCollectorAndDate = vi.fn(() =>
+    Promise.resolve(assignedLoans),
+  );
+  const assignments: CollectionAssignmentRepository = {
+    create: vi.fn(),
+    findOpenByLoan: vi.fn(),
+    listByLoan: vi.fn(),
+    findActiveByCollectorAndDate,
+    update: vi.fn(),
+  };
   const getLoanExecute = vi.fn(() => Promise.resolve(LOAN));
   const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
   const reconcileExecute = vi.fn(() => Promise.resolve());
@@ -40,6 +63,7 @@ function setup(
   const clock: Clock = { now: () => NOW };
   const useCase = new CreateCollectionVisitUseCase(
     visits,
+    assignments,
     getLoan,
     reconcileLoanStatus,
     ids,
@@ -50,6 +74,7 @@ function setup(
     create,
     findById,
     listByLoan,
+    findActiveByCollectorAndDate,
     getLoanExecute,
     reconcileExecute,
   };
@@ -239,5 +264,62 @@ describe('CreateCollectionVisitUseCase', () => {
       }),
     ).rejects.toBeInstanceOf(InvalidCollectionVisitDataError);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('consulta la asignación con la fecha de occurredAt, no la de hoy', async () => {
+    const { useCase, findActiveByCollectorAndDate } = setup();
+
+    await useCase.execute({
+      lenderId: 'lender-1',
+      loanId: 'loan-1',
+      collectorMembershipId: 'membership-1',
+      id: 'visit-1',
+      outcome: 'NOT_FOUND',
+      occurredAt: OCCURRED_AT,
+    });
+
+    expect(findActiveByCollectorAndDate).toHaveBeenCalledExactlyOnceWith(
+      'membership-1',
+      '2026-10-01',
+    );
+  });
+
+  it('rechaza sin una CollectionAssignment vigente para este préstamo, sin guardar nada ("modo cobrador", PRODUCT.md §6)', async () => {
+    const { useCase, create } = setup(null, [], []);
+
+    await expect(
+      useCase.execute({
+        lenderId: 'lender-1',
+        loanId: 'loan-1',
+        collectorMembershipId: 'membership-1',
+        id: 'visit-1',
+        outcome: 'NOT_FOUND',
+        occurredAt: OCCURRED_AT,
+      }),
+    ).rejects.toBeInstanceOf(CollectorNotAssignedError);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rechaza si tiene asignaciones vigentes, pero ninguna de este préstamo', async () => {
+    const otherLoanAssignment = CollectionAssignment.create({
+      id: 'assignment-2',
+      loanId: 'loan-2',
+      collectorMembershipId: 'membership-1',
+      effectiveFrom: '2026-09-01',
+      effectiveTo: null,
+      createdAt: NOW,
+    });
+    const { useCase } = setup(null, [], [otherLoanAssignment]);
+
+    await expect(
+      useCase.execute({
+        lenderId: 'lender-1',
+        loanId: 'loan-1',
+        collectorMembershipId: 'membership-1',
+        id: 'visit-1',
+        outcome: 'NOT_FOUND',
+        occurredAt: OCCURRED_AT,
+      }),
+    ).rejects.toBeInstanceOf(CollectorNotAssignedError);
   });
 });

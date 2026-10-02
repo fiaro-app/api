@@ -43,6 +43,8 @@ async function seedLoan(
       businessName: 'Negocio de prueba',
     });
   expect(registerResponse.status).toBe(201);
+  const membershipId = (registerResponse.body as { membership: { id: string } })
+    .membership.id;
 
   const signInResponse = await signIn(testApp, {
     phone,
@@ -78,8 +80,17 @@ async function seedLoan(
       startDate: '2026-10-01',
     });
   expect(loanResponse.status).toBe(201);
+  const loanId = loanResponse.body.id as string;
 
-  return { loanId: loanResponse.body.id, cookie };
+  // "Modo cobrador" (D-89): hace falta una asignación vigente para registrar visitas.
+  const assignmentResponse = await testApp.http
+    .post(`/loans/${loanId}/collection-assignments`)
+    .set(HEADERS)
+    .set('Cookie', cookie)
+    .send({ collectorMembershipId: membershipId, effectiveFrom: '2026-10-01' });
+  expect(assignmentResponse.status).toBe(201);
+
+  return { loanId, cookie };
 }
 
 /** Registra una visita PAID por `amount` y devuelve el id del pago que generó. */

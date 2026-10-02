@@ -118,7 +118,7 @@ describe('QUERY /collectors/me/route', () => {
     ]);
   });
 
-  it('une lo asignado hoy con lo prometido para una fecha, sin repetir préstamos', async () => {
+  it('une lo asignado con lo prometido, y la promesa sobrevive a que la asignación venza', async () => {
     app = await startTestApp();
     const { cookie, membershipId } = await seedBusiness(app);
     const { loanId: assignedLoanId } = await seedLoan(
@@ -131,12 +131,26 @@ describe('QUERY /collectors/me/route', () => {
       cookie,
       'Pedro Prometido',
     );
+    const dayAfterTomorrow = addDays(TOMORROW, 1);
 
+    // Asignación permanente: cubre cualquier fecha futura.
     await app.http
       .post(`/loans/${assignedLoanId}/collection-assignments`)
       .set(HEADERS)
       .set('Cookie', cookie)
       .send({ collectorMembershipId: membershipId, effectiveFrom: TODAY });
+
+    // Asignación de un solo día (hoy): hace falta para poder registrar la visita de hoy
+    // ("modo cobrador", D-89), pero ya no cubre mañana ni después.
+    await app.http
+      .post(`/loans/${promisedLoanId}/collection-assignments`)
+      .set(HEADERS)
+      .set('Cookie', cookie)
+      .send({
+        collectorMembershipId: membershipId,
+        effectiveFrom: TODAY,
+        effectiveTo: TODAY,
+      });
 
     await app.http
       .post(`/loans/${promisedLoanId}/collection-visits`)
@@ -150,15 +164,6 @@ describe('QUERY /collectors/me/route', () => {
         promisedDate: TOMORROW,
       });
 
-    const todayRoute = await httpQuery(app.http, '/collectors/me/route')
-      .set(HEADERS)
-      .set('Cookie', cookie)
-      .send({ date: TODAY });
-    const todayLoanIds = (todayRoute.body as { loanId: string }[]).map(
-      (entry) => entry.loanId,
-    );
-    expect(todayLoanIds).toEqual([assignedLoanId]);
-
     const tomorrowRoute = await httpQuery(app.http, '/collectors/me/route')
       .set(HEADERS)
       .set('Cookie', cookie)
@@ -169,5 +174,16 @@ describe('QUERY /collectors/me/route', () => {
     expect(tomorrowLoanIds).toContain(assignedLoanId);
     expect(tomorrowLoanIds).toContain(promisedLoanId);
     expect(tomorrowLoanIds).toHaveLength(2);
+
+    // Pasado mañana, ni la asignación de un día ni la promesa (era solo para mañana) siguen
+    // vigentes: el prometido ya no debería aparecer.
+    const laterRoute = await httpQuery(app.http, '/collectors/me/route')
+      .set(HEADERS)
+      .set('Cookie', cookie)
+      .send({ date: dayAfterTomorrow });
+    const laterLoanIds = (laterRoute.body as { loanId: string }[]).map(
+      (entry) => entry.loanId,
+    );
+    expect(laterLoanIds).toEqual([assignedLoanId]);
   });
 });
