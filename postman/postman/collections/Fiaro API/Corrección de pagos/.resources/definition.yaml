@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Corrección de un pago y cierre automático del préstamo (D-85): `POST /payments/:id/reversals`,
+  protegida por `LenderScopeGuard`. Autocontenida: registra su propio negocio, cliente y un
+  préstamo pequeño (2 cuotas de 10.000), lo paga del todo para verlo pasar a PAID_OFF, reversa el
+  segundo pago para verlo volver a ACTIVE, y confirma que reversarlo otra vez responde 409.
+order: 1997

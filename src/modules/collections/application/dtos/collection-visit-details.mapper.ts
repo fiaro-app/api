@@ -2,11 +2,19 @@ import type {
   CollectionVisitDetails,
   PaymentDetails,
 } from '@/modules/collections/application/dtos/collection-visit-details.dto.js';
+import { toPaymentReversalDetails } from '@/modules/collections/application/dtos/payment-reversal-details.mapper.js';
 import type { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
+import type { PaymentReversal } from '@/modules/collections/domain/entities/payment-reversal.entity.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 
-/** @param payment - El pago. */
-function toPaymentDetails(payment: Payment): PaymentDetails {
+/**
+ * @param payment - El pago.
+ * @param reversal - Su reversión, o `null` si sigue vigente.
+ */
+function toPaymentDetails(
+  payment: Payment,
+  reversal: PaymentReversal | null,
+): PaymentDetails {
   return {
     id: payment.id,
     loanId: payment.loanId,
@@ -15,10 +23,11 @@ function toPaymentDetails(payment: Payment): PaymentDetails {
     method: payment.method,
     occurredAt: payment.occurredAt,
     createdAt: payment.createdAt,
+    reversal: reversal === null ? null : toPaymentReversalDetails(reversal),
   };
 }
 
-/** @param record - La visita con su pago, si tiene uno. */
+/** @param record - La visita con su pago, si tiene uno, y la reversión de ese pago, si tiene una. */
 export function toCollectionVisitDetails(
   record: CollectionVisitRecord,
 ): CollectionVisitDetails {
@@ -31,6 +40,9 @@ export function toCollectionVisitDetails(
     promisedDate: record.visit.promisedDate,
     occurredAt: record.visit.occurredAt,
     createdAt: record.visit.createdAt,
-    payment: record.payment === null ? null : toPaymentDetails(record.payment),
+    payment:
+      record.payment === null
+        ? null
+        : toPaymentDetails(record.payment, record.reversal),
   };
 }

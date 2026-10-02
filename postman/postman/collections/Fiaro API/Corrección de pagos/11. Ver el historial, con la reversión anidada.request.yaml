@@ -1,0 +1,17 @@
+$kind: http-request
+description: El historial de visitas, de la más antigua a la más nueva, anida la reversión dentro del pago que corrige (D-85). El primer pago sigue sin reversión.
+url: "{{baseUrl}}/loans/{{reversalLoanId}}/collection-visits"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const visits = pm.response.json();
+      pm.test('la primera visita no tiene reversión', () => pm.expect(visits[0].payment.reversal).to.be.null);
+      pm.test('la segunda visita trae la reversión', () => pm.expect(visits[1].payment.reversal.reason).to.eql('El cobrador registró el monto equivocado.'));
+    language: text/javascript
+order: 11000

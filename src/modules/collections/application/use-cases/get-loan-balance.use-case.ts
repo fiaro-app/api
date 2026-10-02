@@ -4,6 +4,7 @@ import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-le
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
 import { toLoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.mapper.js';
+import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
 import { computeLoanBalance } from '@/shared/domain/calendar/loan-balance.js';
@@ -17,8 +18,9 @@ import { CLOCK } from '@/shared/application/ports/clock.token.js';
  * @remarks
  * Compone tres fuentes para alimentar el motor de calendario/mora puro
  * (`shared/domain/calendar/loan-balance.ts`): el préstamo (`GetLoanUseCase`, de `loans`), los
- * días sin cobro del prestamista (`GetLenderUseCase`, de `lenders`) y lo pagado hasta ahora
- * (`CollectionVisitRepository.listByLoan`, de este mismo módulo). Vive en `collections`, no en
+ * días sin cobro del prestamista (`GetLenderUseCase`, de `lenders`) y lo pagado de verdad hasta
+ * ahora (`sumNetPayments` sobre `CollectionVisitRepository.listByLoan`, de este mismo módulo: un
+ * pago con reversión no cuenta, D-85). Vive en `collections`, no en
  * `loans`, porque `loans` no puede depender de `collections` sin crear un ciclo de módulos
  * (`collections` ya depende de `loans` para validar el préstamo al asignar y al registrar una
  * visita); `lenders` no depende de ningún otro módulo, así que sumar esa dependencia aquí es
@@ -45,11 +47,7 @@ export class GetLoanBalanceUseCase {
     const loan = await this.getLoan.execute(loanId, lenderId);
     const lender = await this.getLender.execute(lenderId);
     const records = await this.visits.listByLoan(loanId);
-
-    const totalPaid = records.reduce(
-      (sum, record) => sum + (record.payment?.amount ?? 0),
-      0,
-    );
+    const totalPaid = sumNetPayments(records);
     const asOf = toBusinessDate(this.clock.now());
 
     const balance = computeLoanBalance({

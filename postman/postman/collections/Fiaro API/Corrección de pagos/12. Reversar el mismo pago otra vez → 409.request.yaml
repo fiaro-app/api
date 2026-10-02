@@ -1,0 +1,23 @@
+$kind: http-request
+description: Un pago se reversa una sola vez (D-16); la restricción de unicidad en payment_id responde CONFLICT, no un código propio (mismo criterio que D-80/D-81).
+url: "{{baseUrl}}/payments/{{reversalSecondPaymentId}}/reversals"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "reason": "Segundo intento, no debería funcionar."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 409', () => pm.response.to.have.status(409));
+      pm.test('código CONFLICT', () => pm.expect(pm.response.json().code).to.eql('CONFLICT'));
+    language: text/javascript
+order: 12000

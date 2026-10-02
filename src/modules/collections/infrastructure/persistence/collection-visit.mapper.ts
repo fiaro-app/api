@@ -2,9 +2,11 @@ import type { Prisma } from '@/shared/infrastructure/persistence/generated/clien
 import type {
   CollectionVisitModel,
   PaymentModel,
+  PaymentReversalModel,
 } from '@/shared/infrastructure/persistence/generated/models.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
+import { PaymentReversal } from '@/modules/collections/domain/entities/payment-reversal.entity.js';
 
 /** @param visit - Visita nueva. */
 export function toCollectionVisitCreateInput(
@@ -60,6 +62,30 @@ export function toPayment(row: PaymentModel): Payment {
     amount: row.amount,
     method: row.method,
     occurredAt: row.occurredAt,
+    createdAt: row.createdAt,
+  });
+}
+
+/** @param reversal - Reversión nueva. */
+export function toPaymentReversalCreateInput(
+  reversal: PaymentReversal,
+): Prisma.PaymentReversalUncheckedCreateInput {
+  return {
+    id: reversal.id,
+    paymentId: reversal.paymentId,
+    reason: reversal.reason,
+    reversedByMembershipId: reversal.reversedByMembershipId,
+    createdAt: reversal.createdAt,
+  };
+}
+
+/** @param row - Fila de `payment_reversals`. */
+export function toPaymentReversal(row: PaymentReversalModel): PaymentReversal {
+  return PaymentReversal.create({
+    id: row.id,
+    paymentId: row.paymentId,
+    reason: row.reason,
+    reversedByMembershipId: row.reversedByMembershipId,
     createdAt: row.createdAt,
   });
 }

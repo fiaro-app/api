@@ -2,6 +2,21 @@ import { PaymentMethodSchema, VisitOutcomeSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
 import type { CollectionVisitDetails } from '@/modules/collections/application/dtos/collection-visit-details.dto.js';
 
+/** Respuesta con los datos públicos de una reversión de pago. */
+const PaymentReversalResponseSchema = z
+  .object({
+    id: z.uuid().meta({ description: 'Identificador de la reversión.' }),
+    paymentId: z.uuid().meta({ description: 'El pago anulado.' }),
+    reason: z.string().meta({ description: 'Motivo.' }),
+    reversedByMembershipId: z.uuid().meta({
+      description: 'La membresía (rol LENDER) que la hizo.',
+    }),
+    createdAt: z.iso.datetime({ offset: true }).meta({
+      description: 'Cuándo se registró.',
+    }),
+  })
+  .meta({ id: 'PaymentReversalResponse' });
+
 /** Respuesta con los datos públicos de un pago. */
 const PaymentResponseSchema = z
   .object({
@@ -19,6 +34,9 @@ const PaymentResponseSchema = z
     }),
     createdAt: z.iso.datetime({ offset: true }).meta({
       description: 'Cuándo se registró.',
+    }),
+    reversal: PaymentReversalResponseSchema.nullable().meta({
+      description: 'La reversión de este pago, o null si sigue vigente.',
     }),
   })
   .meta({ id: 'PaymentResponse' });
@@ -81,6 +99,17 @@ export function toCollectionVisitResponse(
             method: details.payment.method,
             occurredAt: details.payment.occurredAt.toISOString(),
             createdAt: details.payment.createdAt.toISOString(),
+            reversal:
+              details.payment.reversal === null
+                ? null
+                : {
+                    id: details.payment.reversal.id,
+                    paymentId: details.payment.reversal.paymentId,
+                    reason: details.payment.reversal.reason,
+                    reversedByMembershipId:
+                      details.payment.reversal.reversedByMembershipId,
+                    createdAt: details.payment.reversal.createdAt.toISOString(),
+                  },
           },
   };
 }

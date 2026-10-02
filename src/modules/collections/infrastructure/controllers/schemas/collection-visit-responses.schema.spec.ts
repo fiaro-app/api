@@ -25,6 +25,7 @@ const DETAILS: CollectionVisitDetails = {
     method: 'CASH',
     occurredAt: OCCURRED_AT,
     createdAt: CREATED_AT,
+    reversal: null,
   },
 };
 
@@ -47,6 +48,7 @@ describe('toCollectionVisitResponse', () => {
         method: 'CASH',
         occurredAt: '2026-10-01T14:00:00.000Z',
         createdAt: '2026-10-01T14:05:00.000Z',
+        reversal: null,
       },
     });
   });
@@ -59,6 +61,36 @@ describe('toCollectionVisitResponse', () => {
         payment: null,
       }),
     ).toMatchObject({ payment: null });
+  });
+
+  it('anida la reversión del pago, si tiene una', () => {
+    const response = toCollectionVisitResponse({
+      ...DETAILS,
+      payment: {
+        id: 'payment-1',
+        loanId: 'loan-1',
+        visitId: 'visit-1',
+        amount: 30_000,
+        method: 'CASH',
+        occurredAt: OCCURRED_AT,
+        createdAt: CREATED_AT,
+        reversal: {
+          id: 'reversal-1',
+          paymentId: 'payment-1',
+          reason: 'Monto equivocado.',
+          reversedByMembershipId: 'membership-2',
+          createdAt: CREATED_AT,
+        },
+      },
+    });
+
+    expect(response.payment?.reversal).toEqual({
+      id: 'reversal-1',
+      paymentId: 'payment-1',
+      reason: 'Monto equivocado.',
+      reversedByMembershipId: 'membership-2',
+      createdAt: '2026-10-01T14:05:00.000Z',
+    });
   });
 });
 
