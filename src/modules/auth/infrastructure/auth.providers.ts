@@ -6,6 +6,8 @@ import { AUDIT_LOG } from '@/shared/application/audit/audit-log.token.js';
 import type { AuditLog } from '@/shared/application/audit/audit-log.port.js';
 import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 import { SESSION_RESOLVER } from '@/shared/application/ports/session-resolver.token.js';
+import { TEMP_PASSWORD_GENERATOR } from '@/shared/application/ports/temp-password-generator.token.js';
+import { RandomTempPasswordGenerator } from '@/shared/infrastructure/crypto/random-temp-password-generator.js';
 import { PersonalDataMasker } from '@/shared/infrastructure/audit/personal-data-masker.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { CONTACT_EMAIL_VERIFICATION_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/contact-email-verification-verify-attempts.token.js';
@@ -23,6 +25,7 @@ import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset
 import { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
+import { AdminResetPasswordUseCase } from '@/modules/auth/application/use-cases/admin-reset-password.use-case.js';
 import { GetUserByIdUseCase } from '@/modules/auth/application/use-cases/get-user-by-id.use-case.js';
 import { GetUserByPhoneUseCase } from '@/modules/auth/application/use-cases/get-user-by-phone.use-case.js';
 import { SESSION_REPOSITORY } from '@/modules/auth/domain/tokens/session-repository.token.js';
@@ -154,6 +157,7 @@ export const authProviders: Provider[] = [
   },
   { provide: SESSION_RESOLVER, useClass: BetterAuthSessionResolver },
   { provide: PASSWORD_HASHER, useClass: BetterAuthPasswordHasher },
+  { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
   { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
   { provide: SESSION_REPOSITORY, useClass: PrismaSessionRepository },
   {
@@ -168,6 +172,7 @@ export const authProviders: Provider[] = [
   CreateUserUseCase,
   GetUserByPhoneUseCase,
   GetUserByIdUseCase,
+  AdminResetPasswordUseCase,
   RequestPasswordResetUseCase,
   ResetPasswordUseCase,
   RequestContactEmailVerificationUseCase,
@@ -178,12 +183,15 @@ export const authProviders: Provider[] = [
 
 /**
  * Lo que el módulo ofrece a los demás: el resolvedor de sesión del guard global, el alta de
- * personas, la búsqueda por celular (la usa `memberships` para invitar a un cobrador) y por id
- * (la usa `memberships` para mostrar nombre y celular al listar colaboradores, D-92).
+ * personas, la búsqueda por celular (la usa `memberships` para invitar a un cobrador), por id (la
+ * usa `memberships` para mostrar nombre y celular al listar colaboradores, D-92) y el reinicio de
+ * contraseña a una temporal (la usa `memberships` para que un `OWNER`/`LENDER` reinicie la de un
+ * colaborador, D-93).
  */
 export const authExports = [
   SESSION_RESOLVER,
   CreateUserUseCase,
   GetUserByPhoneUseCase,
   GetUserByIdUseCase,
+  AdminResetPasswordUseCase,
 ];

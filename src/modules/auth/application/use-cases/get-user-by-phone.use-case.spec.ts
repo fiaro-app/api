@@ -14,6 +14,7 @@ function setup(found: User | null) {
     findByPhone,
     findById: vi.fn(),
     updatePassword: vi.fn(),
+    resetToTemporaryPassword: vi.fn(),
     markContactEmailVerified: vi.fn(),
     updateProfile: vi.fn(),
     findPasswordHash: vi.fn(),

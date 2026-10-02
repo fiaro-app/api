@@ -46,6 +46,16 @@ export const MembershipsPageResponseSchema = paginated(
   MembershipListEntryResponseSchema,
 ).meta({ id: 'MembershipsPageResponse' });
 
+/** Respuesta de `POST /memberships/:id/reset-password`. */
+export const ResetMembershipPasswordResponseSchema = z
+  .object({
+    tempPassword: z.string().meta({
+      description:
+        'Contraseña temporal en claro, para pasarla por WhatsApp. Se muestra una sola vez.',
+    }),
+  })
+  .meta({ id: 'ResetMembershipPasswordResponse' });
+
 /** Respuesta de `POST /memberships`: la membresía creada y, si la persona es nueva, su contraseña temporal. */
 export const InvitedMembershipResponseSchema = z
   .object({

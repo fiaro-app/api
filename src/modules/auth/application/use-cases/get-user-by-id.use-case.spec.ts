@@ -13,6 +13,7 @@ function setup(found: User | null) {
     findByPhone: vi.fn(),
     findById,
     updatePassword: vi.fn(),
+    resetToTemporaryPassword: vi.fn(),
     markContactEmailVerified: vi.fn(),
     updateProfile: vi.fn(),
     findPasswordHash: vi.fn(),

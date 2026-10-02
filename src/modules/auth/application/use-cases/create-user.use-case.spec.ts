@@ -35,6 +35,7 @@ function setup(options: { repositoryError?: Error } = {}) {
     findByPhone: vi.fn(() => Promise.resolve(null)),
     findById: vi.fn(() => Promise.resolve(null)),
     updatePassword: vi.fn(() => Promise.resolve()),
+    resetToTemporaryPassword: vi.fn(() => Promise.resolve()),
     markContactEmailVerified: vi.fn(() => Promise.resolve()),
     updateProfile: vi.fn(() => Promise.resolve()),
     findPasswordHash: vi.fn(() => Promise.resolve(null)),

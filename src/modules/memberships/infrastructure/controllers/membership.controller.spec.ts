@@ -5,6 +5,7 @@ import type { ChangeMembershipRolesUseCase } from '@/modules/memberships/applica
 import type { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import type { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
+import type { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
 import { MembershipController } from '@/modules/memberships/infrastructure/controllers/membership.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -56,11 +57,15 @@ function setup() {
       }),
     ),
   };
+  const resetMembershipPasswordUseCase = {
+    execute: vi.fn(() => Promise.resolve('TempNewAbc234')),
+  };
   const controller = new MembershipController(
     inviteMembershipUseCase as unknown as InviteMembershipUseCase,
     deactivateMembershipUseCase as unknown as DeactivateMembershipUseCase,
     changeMembershipRolesUseCase as unknown as ChangeMembershipRolesUseCase,
     listMembershipsUseCase as unknown as ListMembershipsUseCase,
+    resetMembershipPasswordUseCase as unknown as ResetMembershipPasswordUseCase,
   );
   return {
     controller,
@@ -68,6 +73,7 @@ function setup() {
     deactivateMembershipUseCase,
     changeMembershipRolesUseCase,
     listMembershipsUseCase,
+    resetMembershipPasswordUseCase,
   };
 }
 
@@ -96,7 +102,7 @@ describe('MembershipController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['PATCH', 'POST', 'POST', 'QUERY']);
+    expect(publishedRoutes).toEqual(['PATCH', 'POST', 'POST', 'POST', 'QUERY']);
     expect(Reflect.getMetadata(PATH_METADATA, MembershipController)).toBe(
       'memberships',
     );
@@ -246,6 +252,47 @@ describe('MembershipController', () => {
 
       expect(error).toBeInstanceOf(ForbiddenException);
       expect(changeMembershipRolesUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resetMembershipPassword', () => {
+    it('con rol OWNER restablece la contraseña de otra persona', async () => {
+      const { controller, resetMembershipPasswordUseCase } = setup();
+
+      const response = await controller.resetMembershipPassword(
+        'membership-2',
+        scopeWith(['OWNER']),
+      );
+
+      expect(
+        resetMembershipPasswordUseCase.execute,
+      ).toHaveBeenCalledExactlyOnceWith('membership-2', 'lender-1');
+      expect(response).toEqual({ tempPassword: 'TempNewAbc234' });
+    });
+
+    it('no deja restablecerse la contraseña a sí mismo', async () => {
+      const { controller, resetMembershipPasswordUseCase } = setup();
+
+      const error = await controller
+        .resetMembershipPassword(
+          'membership-1',
+          scopeWith(['OWNER'], 'membership-1'),
+        )
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(resetMembershipPasswordUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('con solo el rol COLLECTOR responde 403', async () => {
+      const { controller, resetMembershipPasswordUseCase } = setup();
+
+      const error = await controller
+        .resetMembershipPassword('membership-2', scopeWith(['COLLECTOR']))
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(resetMembershipPasswordUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });
