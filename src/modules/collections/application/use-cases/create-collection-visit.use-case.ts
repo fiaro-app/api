@@ -77,15 +77,11 @@ export class CreateCollectionVisitUseCase {
       return toCollectionVisitDetails(existing);
     }
 
-    const assignedToday = await this.assignments.findActiveByCollectorAndDate(
+    await this.assertCollectorAssigned(
       input.collectorMembershipId,
-      toBusinessDate(input.occurredAt),
+      input.loanId,
+      input.occurredAt,
     );
-    if (
-      !assignedToday.some((assignment) => assignment.loanId === input.loanId)
-    ) {
-      throw new CollectorNotAssignedError();
-    }
 
     validateCollectionVisitData(input);
 
@@ -126,5 +122,23 @@ export class CreateCollectionVisitUseCase {
     }
 
     return toCollectionVisitDetails({ visit, payment, reversal: null });
+  }
+
+  /**
+   * @throws {@link CollectorNotAssignedError} Si la membresía no tiene una asignación vigente
+   * para este préstamo el día de la visita.
+   */
+  private async assertCollectorAssigned(
+    collectorMembershipId: string,
+    loanId: string,
+    occurredAt: Date,
+  ): Promise<void> {
+    const assignedToday = await this.assignments.findActiveByCollectorAndDate(
+      collectorMembershipId,
+      toBusinessDate(occurredAt),
+    );
+    if (!assignedToday.some((assignment) => assignment.loanId === loanId)) {
+      throw new CollectorNotAssignedError();
+    }
   }
 }
