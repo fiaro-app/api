@@ -14,4 +14,4 @@ scripts:
       pm.test('queda INACTIVE', () => pm.expect(body.status).to.eql('INACTIVE'));
       pm.test('trae cuándo se desactivó', () => pm.expect(body.deactivatedAt).to.be.a('string'));
     language: text/javascript
-order: 8000
+order: 9000

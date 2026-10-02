@@ -49,6 +49,7 @@ function setup(
     findByPhone: vi.fn(),
     findById: vi.fn(() => Promise.resolve(user)),
     updatePassword: vi.fn(),
+    resetToTemporaryPassword: vi.fn(),
     markContactEmailVerified,
     updateProfile: vi.fn(),
     findPasswordHash: vi.fn(),

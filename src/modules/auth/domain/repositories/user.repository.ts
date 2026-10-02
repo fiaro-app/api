@@ -43,6 +43,15 @@ export interface UserRepository {
   updatePassword(userId: string, passwordHash: string): Promise<void>;
 
   /**
+   * Como {@link updatePassword}, pero además marca `mustChangePassword`: la contraseña nueva es
+   * temporal y la persona debe cambiarla al entrar, mismo criterio que un alta (D-81).
+   *
+   * @param userId - La persona.
+   * @param passwordHash - Hash de la contraseña temporal; la contraseña en claro nunca llega aquí.
+   */
+  resetToTemporaryPassword(userId: string, passwordHash: string): Promise<void>;
+
+  /**
    * Marca el correo de contacto de la persona como verificado.
    *
    * @param userId - La persona.

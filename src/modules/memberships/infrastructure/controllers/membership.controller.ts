@@ -17,11 +17,13 @@ import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
+import { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
 import {
   ApiChangeMembershipRoles,
   ApiDeactivateMembership,
   ApiInviteMembership,
   ApiListMemberships,
+  ApiResetMembershipPassword,
 } from '@/modules/memberships/infrastructure/controllers/docs/membership-routes.docs.js';
 import {
   ChangeMembershipRolesRequestSchema,
@@ -35,6 +37,7 @@ import {
   type InvitedMembershipResponseSchema,
   type MembershipResponseSchema,
   type MembershipsPageResponseSchema,
+  type ResetMembershipPasswordResponseSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
@@ -52,12 +55,14 @@ const MembershipIdParamSchema = z.uuid();
  * `LenderScopeGuard`, así que corre después de `AuthGuard` y ya sabe con qué Lender operar.
  *
  * @remarks
- * Las cuatro rutas exigen `OWNER` o `LENDER`, el mismo criterio que crear/editar en el resto del
+ * Las cinco rutas exigen `OWNER` o `LENDER`, el mismo criterio que crear/editar en el resto del
  * sistema: administrar quién entra a un negocio (y ver quién ya está) es tan sensible como crear
- * un cliente o un préstamo. Las tres que actúan sobre una membresía puntual, además, nunca dejan
- * que una sesión actúe sobre la propia (`scope.membershipId === id`): desactivarse o cambiarse
- * los roles a sí mismo podría dejar un negocio sin nadie que lo administre (D-92: listar sí
- * puede traer la propia, ver no tiene ese riesgo). Sin auditoría propia todavía.
+ * un cliente o un préstamo. Las cuatro que actúan sobre una membresía puntual, además, nunca
+ * dejan que una sesión actúe sobre la propia (`scope.membershipId === id`): desactivarse,
+ * cambiarse los roles o restablecerse la contraseña a sí mismo por aquí no tiene sentido (ya
+ * existe `/auth/change-password` para lo último) y podría, en el caso de desactivar o cambiar
+ * roles, dejar un negocio sin nadie que lo administre (D-92: listar sí puede traer la propia, ver
+ * no tiene ese riesgo). Sin auditoría propia todavía.
  */
 @ApiTags(API_TAGS.membership.name)
 @Controller('memberships')
@@ -68,6 +73,7 @@ export class MembershipController {
     private readonly deactivateMembershipUseCase: DeactivateMembershipUseCase,
     private readonly changeMembershipRolesUseCase: ChangeMembershipRolesUseCase,
     private readonly listMembershipsUseCase: ListMembershipsUseCase,
+    private readonly resetMembershipPasswordUseCase: ResetMembershipPasswordUseCase,
   ) {}
 
   /**
@@ -155,6 +161,25 @@ export class MembershipController {
         body.portfolioId,
       ),
     );
+  }
+
+  /**
+   * @param id - La membresía.
+   * @param scope - El Lender con el que opera la sesión.
+   */
+  @Post(':id/reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiResetMembershipPassword()
+  async resetMembershipPassword(
+    @Param('id', { schema: MembershipIdParamSchema }) id: string,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<z.output<typeof ResetMembershipPasswordResponseSchema>> {
+    this.assertCanAdminister(scope, id);
+    const tempPassword = await this.resetMembershipPasswordUseCase.execute(
+      id,
+      scope.lenderId,
+    );
+    return { tempPassword };
   }
 
   /**

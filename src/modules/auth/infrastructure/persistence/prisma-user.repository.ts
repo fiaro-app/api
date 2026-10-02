@@ -80,6 +80,35 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
+  /**
+   * @remarks
+   * El hash vive en `account` y `mustChangePassword` en `user`: una transacción evita que un
+   * fallo a mitad de camino deje la contraseña nueva sin exigir el cambio, o viceversa.
+   *
+   * @param userId - La persona.
+   * @param passwordHash - Hash de la contraseña temporal.
+   */
+  async resetToTemporaryPassword(
+    userId: string,
+    passwordHash: string,
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.account.update({
+        where: {
+          providerId_accountId: {
+            providerId: CREDENTIAL_PROVIDER,
+            accountId: userId,
+          },
+        },
+        data: { password: passwordHash },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { mustChangePassword: true },
+      }),
+    ]);
+  }
+
   /** @param userId - La persona. */
   async markContactEmailVerified(userId: string): Promise<void> {
     await this.prisma.user.update({

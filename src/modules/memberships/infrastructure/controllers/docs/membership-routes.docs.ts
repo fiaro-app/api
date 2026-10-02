@@ -12,6 +12,7 @@ import {
   InvitedMembershipResponseSchema,
   MembershipResponseSchema,
   MembershipsPageResponseSchema,
+  ResetMembershipPasswordResponseSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
@@ -116,6 +117,25 @@ export const ApiDeactivateMembership = () =>
       status: 200,
       description: 'Membresía desactivada.',
       standardSchema: MembershipResponseSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiWrongRoleResponse(),
+    ApiMembershipNotFoundResponse(),
+  );
+
+/** Documenta `POST /memberships/:id/reset-password`. */
+export const ApiResetMembershipPassword = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Restablecer la contraseña de un colaborador',
+      description:
+        'Genera una contraseña temporal nueva, que se muestra una sola vez en `tempPassword` para pasarla por WhatsApp (mismo criterio que invitar, PROTOTIPO-FLUJOS.md §4.7), y revoca todas sus sesiones. Nadie puede restablecerse la contraseña a sí mismo por esta ruta: ya tiene `/auth/change-password`. Exige rol `OWNER` o `LENDER` en la membresía activa.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Contraseña temporal nueva.',
+      standardSchema: ResetMembershipPasswordResponseSchema,
     }),
     ApiUnauthenticatedResponse(),
     ApiWrongRoleResponse(),
