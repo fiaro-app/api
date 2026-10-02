@@ -1,0 +1,33 @@
+$kind: http-request
+description: "outcome RESCHEDULED con promisedDate (D-17): ese día el préstamo reaparece en la ruta, aunque no tenga una asignación vigente. El id lo genera el dispositivo (aquí, el script previo)."
+url: "{{baseUrl}}/loans/{{routePromisedLoanId}}/collection-visits"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{routePromisedVisitId}}",
+      "outcome": "RESCHEDULED",
+      "occurredAt": "2026-10-01T15:00:00.000Z",
+      "promisedDate": "{{routeTomorrow}}"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      pm.collectionVariables.set('routePromisedVisitId', pm.variables.replaceIn('{{$guid}}'));
+      const tomorrow = new Date();
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      pm.collectionVariables.set('routeTomorrow', tomorrow.toISOString().slice(0, 10));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.test('queda RESCHEDULED', () => pm.expect(pm.response.json().outcome).to.eql('RESCHEDULED'));
+    language: text/javascript
+order: 9000

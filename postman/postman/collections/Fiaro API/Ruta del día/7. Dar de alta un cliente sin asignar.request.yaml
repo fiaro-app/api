@@ -1,0 +1,31 @@
+$kind: http-request
+description: "El cliente de un préstamo que no se va a asignar: solo una promesa de visita (más adelante) debería traerlo a la ruta."
+url: "{{baseUrl}}/clients"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "nationalId": "{{routePromisedClientNationalId}}",
+      "fullName": "Paula Prometida",
+      "occupation": "Comerciante",
+      "phone": "+573005554433",
+      "address": "Calle 30 # 9-20, Bogotá"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      pm.collectionVariables.set('routePromisedClientNationalId', `${Math.floor(10000000 + Math.random() * 90000000)}`);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('routePromisedClientId', pm.response.json().id);
+    language: text/javascript
+order: 7000

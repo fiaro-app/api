@@ -11,6 +11,7 @@ function setup(found: readonly CollectionVisitRecord[]) {
     create: vi.fn(),
     findById: vi.fn(),
     listByLoan,
+    listByCollectorAndPromisedDate: vi.fn(),
   };
   const getLoanExecute = vi.fn(() =>
     Promise.resolve({ id: 'loan-1' } as never),

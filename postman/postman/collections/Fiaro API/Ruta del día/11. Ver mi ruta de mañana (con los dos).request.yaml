@@ -1,0 +1,25 @@
+$kind: http-request
+description: Mañana trae el asignado (permanente, cubre cualquier fecha) y el prometido (D-17), aunque este último no tenga asignación.
+url: "{{baseUrl}}/collectors/me/route"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "date": "{{routeTomorrow}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const loanIds = pm.response.json().map((entry) => entry.loanId);
+      pm.test('trae el préstamo asignado', () => pm.expect(loanIds).to.include(pm.collectionVariables.get('routeAssignedLoanId')));
+      pm.test('trae el préstamo prometido', () => pm.expect(loanIds).to.include(pm.collectionVariables.get('routePromisedLoanId')));
+    language: text/javascript
+order: 11000

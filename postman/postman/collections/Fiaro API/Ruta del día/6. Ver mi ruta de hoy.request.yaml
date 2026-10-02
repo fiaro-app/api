@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Sin fecha, es la de hoy (método QUERY, ARCHITECTURE.md §5). La asignación es permanente (effectiveTo null), así que cubre cualquier día en que se corra esta carpeta."
+url: "{{baseUrl}}/collectors/me/route"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const route = pm.response.json();
+      pm.test('trae el préstamo asignado', () => pm.expect(route.some((entry) => entry.loanId === pm.collectionVariables.get('routeAssignedLoanId'))).to.be.true);
+      const entry = route.find((e) => e.loanId === pm.collectionVariables.get('routeAssignedLoanId'));
+      pm.test('con el nombre del cliente y el saldo', () => {
+        pm.expect(entry.clientFullName).to.eql('Camilo Asignado');
+        pm.expect(entry.balance).to.eql(20000);
+      });
+    language: text/javascript
+order: 6000

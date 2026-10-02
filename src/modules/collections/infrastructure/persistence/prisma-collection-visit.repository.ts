@@ -87,4 +87,19 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
     });
     return rows.map(toRecord);
   }
+
+  /**
+   * @param collectorMembershipId - El cobrador que hizo la promesa.
+   * @param promisedDate - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  async listByCollectorAndPromisedDate(
+    collectorMembershipId: string,
+    promisedDate: string,
+  ): Promise<readonly CollectionVisit[]> {
+    const rows = await this.prisma.collectionVisit.findMany({
+      where: { collectorMembershipId, promisedDate },
+      orderBy: { occurredAt: 'asc' },
+    });
+    return rows.map(toCollectionVisit);
+  }
 }

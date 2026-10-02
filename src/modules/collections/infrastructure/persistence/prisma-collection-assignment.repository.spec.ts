@@ -95,6 +95,28 @@ describe('PrismaCollectionAssignmentRepository.listByLoan', () => {
   });
 });
 
+describe('PrismaCollectionAssignmentRepository.findActiveByCollectorAndDate', () => {
+  it('filtra por cobrador y por vigencia en la fecha', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([row]);
+
+    const found = await repository.findActiveByCollectorAndDate(
+      'membership-1',
+      '2026-10-02',
+    );
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        collectorMembershipId: 'membership-1',
+        effectiveFrom: { lte: '2026-10-02' },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: '2026-10-02' } }],
+      },
+      orderBy: { effectiveFrom: 'asc' },
+    });
+    expect(found).toEqual([assignment]);
+  });
+});
+
 describe('PrismaCollectionAssignmentRepository.update', () => {
   it('reemplaza los datos de la asignación', async () => {
     const { repository, update } = setup();

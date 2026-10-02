@@ -13,6 +13,7 @@ function setup(found: readonly CollectionAssignment[]) {
     update: vi.fn(),
     findOpenByLoan: vi.fn(),
     listByLoan,
+    findActiveByCollectorAndDate: vi.fn(),
   };
   const getLoanExecute = vi.fn(() =>
     Promise.resolve({ id: 'loan-1' } as never),

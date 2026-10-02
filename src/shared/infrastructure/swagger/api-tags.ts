@@ -78,4 +78,9 @@ export const API_TAGS = {
     description:
       'Avisos internos de quien tiene la sesión (préstamo asignado, cuadre por revisar, cuadre rechazado), siempre los propios, de todos los prestamistas para los que trabaja salvo que filtre por uno. Nadie las crea por HTTP: siempre las genera el sistema.',
   },
+  collectorRoute: {
+    name: 'Ruta del cobrador',
+    description:
+      'Los préstamos que el cobrador de la sesión debe visitar en una fecha (hoy, si no se pide otra), con su saldo y su mora. Exige rol `COLLECTOR` en la membresía activa.',
+  },
 } as const satisfies Record<string, ApiTagDefinition>;

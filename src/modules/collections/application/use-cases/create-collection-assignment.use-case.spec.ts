@@ -32,6 +32,7 @@ function setup(openAssignment: CollectionAssignment | null = null) {
     update,
     findOpenByLoan,
     listByLoan: vi.fn(() => Promise.resolve([])),
+    findActiveByCollectorAndDate: vi.fn(() => Promise.resolve([])),
   };
   const getLoanExecute = vi.fn(() =>
     Promise.resolve({ id: 'loan-1' } as never),

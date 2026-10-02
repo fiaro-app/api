@@ -205,3 +205,45 @@ describe('PrismaCollectionVisitRepository.listByLoan', () => {
     expect(found[0]?.visit).toEqual(visit);
   });
 });
+
+describe('PrismaCollectionVisitRepository.listByCollectorAndPromisedDate', () => {
+  it('filtra por cobrador y por la fecha prometida', async () => {
+    const { repository, findMany } = setup();
+    const rescheduled = CollectionVisit.create({
+      id: 'visit-2',
+      loanId: 'loan-1',
+      collectorMembershipId: 'membership-1',
+      outcome: 'RESCHEDULED',
+      expectedAmount: 30_000,
+      promisedDate: '2026-10-05',
+      occurredAt: OCCURRED_AT,
+      createdAt: CREATED_AT,
+    });
+    findMany.mockResolvedValueOnce([
+      {
+        id: 'visit-2',
+        loanId: 'loan-1',
+        collectorMembershipId: 'membership-1',
+        outcome: 'RESCHEDULED' as const,
+        expectedAmount: 30_000,
+        promisedDate: '2026-10-05',
+        occurredAt: OCCURRED_AT,
+        createdAt: CREATED_AT,
+      },
+    ]);
+
+    const found = await repository.listByCollectorAndPromisedDate(
+      'membership-1',
+      '2026-10-05',
+    );
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        collectorMembershipId: 'membership-1',
+        promisedDate: '2026-10-05',
+      },
+      orderBy: { occurredAt: 'asc' },
+    });
+    expect(found).toEqual([rescheduled]);
+  });
+});
