@@ -102,6 +102,7 @@ export async function seedBusinessWithCollector(
   const changePasswordResponse = await testApp.http
     .post('/auth/change-password')
     .set(HEADERS)
+    .set('X-Forwarded-For', nextIp())
     .set('Cookie', cookieOf(collectorSignIn))
     .send({
       currentPassword: tempPassword,

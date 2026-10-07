@@ -32,6 +32,10 @@ describe('loadEnv', () => {
         latestVersion: '0.0.0',
         downloadUrl: 'https://example.com/fiaro.apk',
       },
+      push: {
+        delivery: 'log',
+        expoAccessToken: undefined,
+      },
     });
   });
 
@@ -77,6 +81,10 @@ describe('loadEnv', () => {
         minimumSupportedVersion: PRODUCTION_ENV.MOBILE_MIN_SUPPORTED_VERSION,
         latestVersion: PRODUCTION_ENV.MOBILE_LATEST_VERSION,
         downloadUrl: PRODUCTION_ENV.MOBILE_DOWNLOAD_URL,
+      },
+      push: {
+        delivery: 'expo',
+        expoAccessToken: undefined,
       },
     });
   });

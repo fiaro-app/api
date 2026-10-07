@@ -18,7 +18,7 @@ const UnauthenticatedErrorSchema = ApiErrorSchema.extend({
 }).meta({ id: 'NotificationUnauthenticated' });
 
 /** El 401 de toda ruta protegida: sin sesión vigente. */
-const ApiUnauthenticatedResponse = () =>
+export const ApiUnauthenticatedResponse = () =>
   ApiResponse({
     status: 401,
     description: 'No hay sesión vigente (`UNAUTHENTICATED`).',

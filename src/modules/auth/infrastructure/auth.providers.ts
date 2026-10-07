@@ -11,7 +11,7 @@ import { RandomTempPasswordGenerator } from '@/shared/infrastructure/crypto/rand
 import { PersonalDataMasker } from '@/shared/infrastructure/audit/personal-data-masker.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { CONTACT_EMAIL_VERIFICATION_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/contact-email-verification-verify-attempts.token.js';
-import { NOTIFICATION_EMAIL_READER } from '@/modules/auth/application/ports/notification-email-reader.token.js';
+import { NOTIFICATION_RECIPIENT_READER } from '@/modules/auth/application/ports/notification-recipient-reader.token.js';
 import { PASSWORD_HASHER } from '@/modules/auth/application/ports/password-hasher.token.js';
 import { PASSWORD_RESET_REQUEST_ATTEMPTS } from '@/modules/auth/application/ports/password-reset-request-attempts.token.js';
 import { PASSWORD_RESET_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/password-reset-verify-attempts.token.js';
@@ -54,7 +54,7 @@ import {
 } from '@/modules/auth/domain/policies/contact-email-verification.policy.js';
 import { ContactEmailVerificationGuard } from '@/modules/auth/infrastructure/contact-email-verification/contact-email-verification-guard.js';
 import { PasswordResetGuard } from '@/modules/auth/infrastructure/password-reset/password-reset-guard.js';
-import { PrismaNotificationEmailReader } from '@/modules/auth/infrastructure/persistence/prisma-notification-email.reader.js';
+import { PrismaNotificationRecipientReader } from '@/modules/auth/infrastructure/persistence/prisma-notification-recipient.reader.js';
 import { PrismaSessionRepository } from '@/modules/auth/infrastructure/persistence/prisma-session.repository.js';
 import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/prisma-user.repository.js';
 import { PrismaVerificationCodeRepository } from '@/modules/auth/infrastructure/persistence/prisma-verification-code.repository.js';
@@ -172,8 +172,8 @@ export const authProviders: Provider[] = [
   },
   { provide: VERIFICATION_CODE_HASHER, useClass: Sha256VerificationCodeHasher },
   {
-    provide: NOTIFICATION_EMAIL_READER,
-    useClass: PrismaNotificationEmailReader,
+    provide: NOTIFICATION_RECIPIENT_READER,
+    useClass: PrismaNotificationRecipientReader,
   },
   CreateUserUseCase,
   GetUserByPhoneUseCase,
@@ -201,5 +201,5 @@ export const authExports = [
   GetUserByPhoneUseCase,
   GetUserByIdUseCase,
   AdminResetPasswordUseCase,
-  NOTIFICATION_EMAIL_READER,
+  NOTIFICATION_RECIPIENT_READER,
 ];
