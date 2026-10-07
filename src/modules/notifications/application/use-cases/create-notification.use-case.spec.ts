@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { DeliverNotificationUseCase } from '@/modules/notifications/application/use-cases/deliver-notification.use-case.js';
 import { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
 import type { Notification } from '@/modules/notifications/domain/entities/notification.entity.js';
 import type { NotificationRepository } from '@/modules/notifications/domain/repositories/notification.repository.js';
@@ -9,8 +10,10 @@ const NOW = new Date('2026-10-02T00:00:00Z');
 
 function setup() {
   const saved: Notification[] = [];
+  const order: string[] = [];
   const create = vi.fn((notification: Notification) => {
     saved.push(notification);
+    order.push('save');
     return Promise.resolve();
   });
   const notifications: NotificationRepository = {
@@ -21,9 +24,18 @@ function setup() {
   };
   const ids: IdGenerator = { next: () => 'notification-1' };
   const clock: Clock = { now: () => NOW };
+  const deliverExecute = vi.fn(() => {
+    order.push('deliver');
+    return Promise.resolve();
+  });
+  const deliver = {
+    execute: deliverExecute,
+  } as unknown as DeliverNotificationUseCase;
   return {
-    useCase: new CreateNotificationUseCase(notifications, ids, clock),
+    useCase: new CreateNotificationUseCase(notifications, ids, clock, deliver),
     saved,
+    order,
+    deliverExecute,
   };
 }
 
@@ -71,5 +83,22 @@ describe('CreateNotificationUseCase', () => {
 
     expect(saved[0]?.relatedEntityType).toBeNull();
     expect(saved[0]?.relatedEntityId).toBeNull();
+  });
+
+  it('entrega la notificación recién guardada, después de guardarla', async () => {
+    const { useCase, saved, order, deliverExecute } = setup();
+
+    await useCase.execute({
+      recipientUserId: 'user-1',
+      lenderId: 'lender-1',
+      severity: 'INFO',
+      title: 'Cuadre por revisar',
+      body: 'Un cobrador cerró su día.',
+      relatedEntityType: 'DAILY_SETTLEMENT',
+      relatedEntityId: 'settlement-1',
+    });
+
+    expect(order).toEqual(['save', 'deliver']);
+    expect(deliverExecute).toHaveBeenCalledWith(saved[0]);
   });
 });

@@ -1,3 +1,5 @@
+import { escapeHtml } from '@/shared/domain/text/escape-html.js';
+
 /** El asunto y los dos cuerpos de un correo, listos para enviar. */
 export interface EmailContent {
   /** Asunto del correo. */
@@ -14,6 +16,12 @@ export interface EmailContent {
  * define que la contraseña se muestra una sola vez en la respuesta para pasarla por WhatsApp,
  * porque muchos cobradores no tienen correo.
  *
+ * @remarks
+ * El nombre es texto libre que escribe quien invita, así que en el HTML se escapa: sin eso, un
+ * nombre con etiquetas se vería como parte del correo oficial. El celular y la contraseña
+ * temporal no lo necesitan (el celular viene validado en E.164 y la contraseña sale de un
+ * alfabeto sin caracteres especiales).
+ *
  * @param fullName - Nombre de la persona invitada.
  * @param phone - Su celular, para iniciar sesión.
  * @param tempPassword - Su contraseña temporal, en claro.
@@ -27,6 +35,6 @@ export function membershipInviteEmail(
   return {
     subject,
     text: `Hola ${fullName}. Ya tienes una cuenta en Fiaro. Celular: ${phone}. Contraseña temporal: ${tempPassword}. Debes cambiarla al iniciar sesión.`,
-    html: `<p>Hola ${fullName}. Ya tienes una cuenta en Fiaro.</p><p>Celular: <strong>${phone}</strong></p><p>Contraseña temporal: <strong>${tempPassword}</strong></p><p>Debes cambiarla al iniciar sesión.</p>`,
+    html: `<p>Hola ${escapeHtml(fullName)}. Ya tienes una cuenta en Fiaro.</p><p>Celular: <strong>${phone}</strong></p><p>Contraseña temporal: <strong>${tempPassword}</strong></p><p>Debes cambiarla al iniciar sesión.</p>`,
   };
 }

@@ -11,6 +11,7 @@ import { RandomTempPasswordGenerator } from '@/shared/infrastructure/crypto/rand
 import { PersonalDataMasker } from '@/shared/infrastructure/audit/personal-data-masker.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { CONTACT_EMAIL_VERIFICATION_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/contact-email-verification-verify-attempts.token.js';
+import { NOTIFICATION_EMAIL_READER } from '@/modules/auth/application/ports/notification-email-reader.token.js';
 import { PASSWORD_HASHER } from '@/modules/auth/application/ports/password-hasher.token.js';
 import { PASSWORD_RESET_REQUEST_ATTEMPTS } from '@/modules/auth/application/ports/password-reset-request-attempts.token.js';
 import { PASSWORD_RESET_VERIFY_ATTEMPTS } from '@/modules/auth/application/ports/password-reset-verify-attempts.token.js';
@@ -53,6 +54,7 @@ import {
 } from '@/modules/auth/domain/policies/contact-email-verification.policy.js';
 import { ContactEmailVerificationGuard } from '@/modules/auth/infrastructure/contact-email-verification/contact-email-verification-guard.js';
 import { PasswordResetGuard } from '@/modules/auth/infrastructure/password-reset/password-reset-guard.js';
+import { PrismaNotificationEmailReader } from '@/modules/auth/infrastructure/persistence/prisma-notification-email.reader.js';
 import { PrismaSessionRepository } from '@/modules/auth/infrastructure/persistence/prisma-session.repository.js';
 import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/prisma-user.repository.js';
 import { PrismaVerificationCodeRepository } from '@/modules/auth/infrastructure/persistence/prisma-verification-code.repository.js';
@@ -169,6 +171,10 @@ export const authProviders: Provider[] = [
     useClass: RandomVerificationCodeGenerator,
   },
   { provide: VERIFICATION_CODE_HASHER, useClass: Sha256VerificationCodeHasher },
+  {
+    provide: NOTIFICATION_EMAIL_READER,
+    useClass: PrismaNotificationEmailReader,
+  },
   CreateUserUseCase,
   GetUserByPhoneUseCase,
   GetUserByIdUseCase,
@@ -184,9 +190,10 @@ export const authProviders: Provider[] = [
 /**
  * Lo que el módulo ofrece a los demás: el resolvedor de sesión del guard global, el alta de
  * personas, la búsqueda por celular (la usa `memberships` para invitar a un cobrador), por id (la
- * usa `memberships` para mostrar nombre y celular al listar colaboradores, D-92) y el reinicio de
+ * usa `memberships` para mostrar nombre y celular al listar colaboradores, D-92), el reinicio de
  * contraseña a una temporal (la usa `memberships` para que un `OWNER`/`LENDER` reinicie la de un
- * colaborador, D-93).
+ * colaborador, D-93) y a qué correo se le puede mandar una notificación (la usa `notifications`,
+ * D-94).
  */
 export const authExports = [
   SESSION_RESOLVER,
@@ -194,4 +201,5 @@ export const authExports = [
   GetUserByPhoneUseCase,
   GetUserByIdUseCase,
   AdminResetPasswordUseCase,
+  NOTIFICATION_EMAIL_READER,
 ];

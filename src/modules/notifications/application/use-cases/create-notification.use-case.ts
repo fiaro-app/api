@@ -4,6 +4,7 @@ import type {
   NotificationDetails,
 } from '@/modules/notifications/application/dtos/notification-details.dto.js';
 import { toNotificationDetails } from '@/modules/notifications/application/dtos/notification-details.mapper.js';
+import { DeliverNotificationUseCase } from '@/modules/notifications/application/use-cases/deliver-notification.use-case.js';
 import { Notification } from '@/modules/notifications/domain/entities/notification.entity.js';
 import type { NotificationRepository } from '@/modules/notifications/domain/repositories/notification.repository.js';
 import { NOTIFICATION_REPOSITORY } from '@/modules/notifications/domain/tokens/notification-repository.token.js';
@@ -13,10 +14,15 @@ import type { IdGenerator } from '@/shared/application/ports/id-generator.port.j
 import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 
 /**
- * Crea una notificación para una sola persona. Uso interno: la llaman otros casos de uso de este
- * módulo (`NotifyMembershipUseCase`, `NotifyLenderUseCase`) y, por la capa de aplicación, de
- * otros módulos — nunca una ruta HTTP pública, porque nadie crea sus propias notificaciones
- * (PRODUCT.md §5: siempre las genera el sistema).
+ * Crea una notificación para una sola persona, la guarda en el feed y la entrega por sus canales
+ * (`DeliverNotificationUseCase`, D-94). Uso interno: la llaman otros casos de uso, de este módulo
+ * o de otros por la capa de aplicación (`CreateCollectionAssignmentUseCase`,
+ * `SubmitSettlementUseCase`, `ReviewSettlementUseCase`) — nunca una ruta HTTP, porque nadie crea
+ * sus propias notificaciones (PRODUCT.md §5: siempre las genera el sistema).
+ *
+ * @remarks
+ * Quien llama ya resolvió el destinatario: esta clase no sabe de membresías, a propósito (ver
+ * `notifications.providers.ts`).
  */
 @Injectable()
 export class CreateNotificationUseCase {
@@ -25,9 +31,13 @@ export class CreateNotificationUseCase {
     private readonly notifications: NotificationRepository,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly deliver: DeliverNotificationUseCase,
   ) {}
 
-  /** @param input - Destinatario, prestamista, texto y la entidad relacionada, si hay una. */
+  /**
+   * @param input - Destinatario, prestamista, texto y la entidad relacionada, si hay una.
+   * @returns La notificación guardada, tal como la lee la app.
+   */
   async execute(input: CreateNotificationInput): Promise<NotificationDetails> {
     const notification = Notification.create({
       id: this.ids.next(),
@@ -42,6 +52,7 @@ export class CreateNotificationUseCase {
       createdAt: this.clock.now(),
     });
     await this.notifications.create(notification);
+    await this.deliver.execute(notification);
     return toNotificationDetails(notification);
   }
 }
