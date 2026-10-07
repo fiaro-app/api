@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Loan } from '@/modules/loans/domain/entities/loan.entity.js';
+import type { LoanStatus } from '@/modules/loans/domain/entities/loan-status.js';
 import type {
   ListLoansCriteria,
   LoanRepository,
@@ -51,6 +52,18 @@ export class PrismaLoanRepository implements LoanRepository {
       this.prisma.loan.count({ where }),
     ]);
     return { items: rows.map(toLoan), total };
+  }
+
+  /** @param status - El estado de los préstamos. */
+  async listLenderIdsWithStatus(
+    status: LoanStatus,
+  ): Promise<readonly string[]> {
+    const rows = await this.prisma.loan.findMany({
+      where: { status },
+      distinct: ['lenderId'],
+      select: { lenderId: true },
+    });
+    return rows.map((row) => row.lenderId);
   }
 
   /** @param loan - Préstamo con sus datos ya actualizados. */

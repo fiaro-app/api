@@ -1,0 +1,12 @@
+/// Un día de negocio en que se mandó el aviso de mora (D-96). La fecha es la clave: hay un solo aviso
+/// por día, aunque haya varias instancias o el proceso se reinicie. `finishedAt` nulo quiere decir que
+/// el envío se interrumpió a medio camino y ese día no se reintenta.
+model MoraAlertRun {
+  businessDate    DateTime  @id @map("business_date") @db.Date
+  claimedAt       DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(3)
+  finishedAt      DateTime? @map("finished_at") @db.Timestamptz(3)
+  lendersNotified Int?      @map("lenders_notified")
+  loansInMora     Int?      @map("loans_in_mora")
+
+  @@map("mora_alert_runs")
+}

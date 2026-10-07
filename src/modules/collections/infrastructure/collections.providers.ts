@@ -38,3 +38,6 @@ export const collectionsProviders: Provider[] = [
   CreatePaymentReversalUseCase,
   GetCollectorRouteUseCase,
 ];
+
+/** Lo que `collections` expone a otros módulos: el saldo de un préstamo, que usa el aviso de mora (D-96). */
+export const collectionsExports = [GetLoanBalanceUseCase];
