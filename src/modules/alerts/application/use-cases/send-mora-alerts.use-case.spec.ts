@@ -157,7 +157,7 @@ describe('SendMoraAlertsUseCase', () => {
     expect(getLoanBalanceExecute).toHaveBeenCalledTimes(150);
   });
 
-  it('si una página llega vacía, deja de pedir aunque el total diga otra cosa', async () => {
+  it('con un solo préstamo, no pide una segunda página', async () => {
     const { useCase, listLoansExecute } = setup({
       lenders: ['lender-1'],
       loanIds: { 'lender-1': ['loan-1'] },
@@ -204,7 +204,7 @@ describe('SendMoraAlertsUseCase', () => {
       loansInMora: 1,
     });
     expect(logError).toHaveBeenCalledWith(
-      'No se pudo calcular la mora del prestamista lender-1: Error: membresías caídas.',
+      'No se pudo avisar al prestamista lender-1: Error: membresías caídas.',
     );
   });
 });
