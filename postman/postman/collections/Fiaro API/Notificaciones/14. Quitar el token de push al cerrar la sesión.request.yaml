@@ -1,0 +1,22 @@
+$kind: http-request
+description: "La app lo manda al cerrar la sesión. Solo quita un token de esta sesión; uno de otra persona no se toca. Repetirlo tampoco falla. No devuelve cuerpo."
+url: "{{baseUrl}}/push-tokens/revoke"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "token": "ExponentPushToken[postman-dispositivo-1]"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 204 sin cuerpo', () => pm.response.to.have.status(204));
+    language: text/javascript
+order: 14000

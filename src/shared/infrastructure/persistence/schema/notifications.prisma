@@ -36,3 +36,19 @@ model Notification {
   @@index([recipientUserId, lenderId])
   @@map("notifications")
 }
+
+/// Token de Expo de un dispositivo: a dónde mandarle una notificación push (D-95). Un dispositivo
+/// tiene un solo token a la vez, así que el token pertenece a quien tenga la sesión en él: si otra
+/// persona entra en el mismo dispositivo, el token se reasigna y no le llega a la anterior.
+model PushToken {
+  id        String   @id @db.Uuid
+  token     String   @unique
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
+}

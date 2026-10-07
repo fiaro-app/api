@@ -24,6 +24,7 @@ model User {
   accounts      Account[]
   memberships   Membership[]
   notifications Notification[]
+  pushTokens    PushToken[]
 
   @@map("users")
 }

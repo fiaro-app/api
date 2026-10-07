@@ -13,6 +13,22 @@ import {
   RedisUrlSchema,
 } from '@/config/env-fields.js';
 
+/**
+ * Cómo se mandan las notificaciones push (D-95): con Expo, o solo al log. Por defecto, con Expo en
+ * producción y solo al log en el resto, para que ni las pruebas ni el desarrollo manden push reales.
+ */
+function buildPushConfig(env: {
+  readonly NODE_ENV: 'development' | 'test' | 'production';
+  readonly PUSH_DELIVERY?: 'expo' | 'log' | undefined;
+  readonly EXPO_ACCESS_TOKEN?: string | undefined;
+}) {
+  return {
+    delivery:
+      env.PUSH_DELIVERY ?? (env.NODE_ENV === 'production' ? 'expo' : 'log'),
+    expoAccessToken: env.EXPO_ACCESS_TOKEN,
+  };
+}
+
 /** Variables de entorno de la API, validadas una sola vez al arrancar. */
 const EnvSchema = z
   .object({
@@ -39,6 +55,8 @@ const EnvSchema = z
     MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_DOWNLOAD_URL: z.url().optional(),
     MAINTENANCE_MODE: z.stringbool().optional(),
+    PUSH_DELIVERY: z.enum(['expo', 'log']).optional(),
+    EXPO_ACCESS_TOKEN: z.string().optional(),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -113,6 +131,7 @@ const EnvSchema = z
       latestVersion: env.MOBILE_LATEST_VERSION ?? '0.0.0',
       downloadUrl: env.MOBILE_DOWNLOAD_URL ?? 'https://example.com/fiaro.apk',
     },
+    push: buildPushConfig(env),
   }));
 
 /** Configuración validada y tipada; se inyecta con el token `ENV`. */
