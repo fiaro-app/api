@@ -19,8 +19,8 @@ import {
  */
 function buildPushConfig(env: {
   readonly NODE_ENV: 'development' | 'test' | 'production';
-  readonly PUSH_DELIVERY?: 'expo' | 'log' | undefined;
-  readonly EXPO_ACCESS_TOKEN?: string | undefined;
+  readonly PUSH_DELIVERY?: 'expo' | 'log';
+  readonly EXPO_ACCESS_TOKEN?: string;
 }) {
   return {
     delivery:

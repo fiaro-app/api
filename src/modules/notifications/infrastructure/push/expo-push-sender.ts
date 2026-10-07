@@ -37,11 +37,11 @@ type Ticket = z.infer<typeof TicketSchema>;
 /** Lo que el adaptador necesita para hablar con Expo. */
 export interface ExpoPushSenderOptions {
   /** Token de acceso de Expo, si la cuenta tiene activada la seguridad mejorada. */
-  readonly accessToken?: string | undefined;
+  readonly accessToken?: string;
   /** El registro de tokens: a un token que Expo ya no reconoce se le quita de aquí. */
   readonly invalidTokens: Pick<PushTokenRepository, 'deleteByToken'>;
   /** Cliente HTTP; por defecto, el `fetch` global. Las pruebas pasan uno falso. */
-  readonly fetch?: typeof fetch | undefined;
+  readonly fetch?: typeof fetch;
 }
 
 /**
