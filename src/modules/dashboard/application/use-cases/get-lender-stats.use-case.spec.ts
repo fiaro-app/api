@@ -15,59 +15,20 @@ import type { Clock } from '@/shared/application/ports/clock.port.js';
 const NOW = new Date('2026-10-07T15:00:00Z');
 const TODAY = '2026-10-07';
 
-function loan(id: string, clientId: string) {
-  return { id, clientId } as never;
-}
-
-function membership(id: string, portfolioId: string | null, fullName: string) {
-  return { id, portfolioId, fullName } as never;
-}
-
-function assignment(
+const loan = (id: string, clientId: string) => ({ id, clientId }) as never;
+const membership = (id: string, portfolioId: string | null, fullName: string) =>
+  ({ id, portfolioId, fullName }) as never;
+const balance = (overdueAmount: number, balanceAmount: number) =>
+  ({
+    balance: balanceAmount,
+    overdueAmount,
+    overdueDays: overdueAmount > 0 ? 10 : 0,
+  }) as never;
+const assignment = (
   collectorMembershipId: string,
   effectiveFrom: string,
   effectiveTo: string | null = null,
-): CollectionAssignmentDetails {
-  return {
-    id: `assignment-${collectorMembershipId}-${effectiveFrom}`,
-    loanId: 'loan-x',
-    collectorMembershipId,
-    effectiveFrom,
-    effectiveTo,
-    createdAt: NOW,
-  };
-}
-
-function balance(
-  overdueAmount: number,
-  balanceAmount: number,
-): LoanBalanceDetails {
-  return {
-    loanId: 'loan-x',
-    asOf: TODAY,
-    balance: balanceAmount,
-    totalExpectedToDate: 0,
-    overdueAmount,
-    overdueDays: overdueAmount > 0 ? 10 : 0,
-    nextDueDate: null,
-    firstOverdueDate: null,
-  };
-}
-
-function collectorStats(
-  overrides: Partial<CollectorPeriodStats> = {},
-): CollectorPeriodStats {
-  return {
-    from: TODAY,
-    to: TODAY,
-    expectedAmount: 0,
-    collectedAmount: 0,
-    effectiveness: null,
-    visitsCount: 0,
-    overdueAmount: 0,
-    ...overrides,
-  };
-}
+) => ({ collectorMembershipId, effectiveFrom, effectiveTo }) as never;
 
 interface SetupOptions {
   readonly loans?: readonly unknown[];
@@ -83,42 +44,46 @@ interface SetupOptions {
 
 function setup(options: SetupOptions) {
   const loans = options.loans ?? [];
-  const listLoansExecute = vi.fn(() =>
-    Promise.resolve({ items: loans, total: loans.length }),
-  );
   const listLoans = {
-    execute: listLoansExecute,
+    execute: vi.fn(() =>
+      Promise.resolve({ items: loans, total: loans.length }),
+    ),
   } as unknown as ListLoansUseCase;
 
   const balanceByLoan = options.balanceByLoan ?? {};
-  const getLoanBalanceExecute = vi.fn((loanId: string) =>
-    Promise.resolve(balanceByLoan[loanId] ?? balance(0, 0)),
-  );
   const getLoanBalance = {
-    execute: getLoanBalanceExecute,
+    execute: vi.fn((loanId: string) =>
+      Promise.resolve(balanceByLoan[loanId] ?? balance(0, 0)),
+    ),
   } as unknown as GetLoanBalanceUseCase;
 
   const assignmentsByLoan = options.assignmentsByLoan ?? {};
-  const listCollectionAssignmentsExecute = vi.fn((loanId: string) =>
-    Promise.resolve(assignmentsByLoan[loanId] ?? []),
-  );
   const listCollectionAssignments = {
-    execute: listCollectionAssignmentsExecute,
+    execute: vi.fn((loanId: string) =>
+      Promise.resolve(assignmentsByLoan[loanId] ?? []),
+    ),
   } as unknown as ListCollectionAssignmentsUseCase;
 
   const collectors = options.collectors ?? [];
-  const listMembershipsExecute = vi.fn(() =>
-    Promise.resolve({ items: collectors, total: collectors.length }),
-  );
   const listMemberships = {
-    execute: listMembershipsExecute,
+    execute: vi.fn(() =>
+      Promise.resolve({ items: collectors, total: collectors.length }),
+    ),
   } as unknown as ListMembershipsUseCase;
 
   const statsByCollector = options.statsByCollector ?? {};
   const getCollectorStatsExecute = vi.fn(
     (input: { collectorMembershipId: string }) =>
       Promise.resolve(
-        statsByCollector[input.collectorMembershipId] ?? collectorStats(),
+        statsByCollector[input.collectorMembershipId] ?? {
+          from: TODAY,
+          to: TODAY,
+          expectedAmount: 0,
+          collectedAmount: 0,
+          effectiveness: null,
+          visitsCount: 0,
+          overdueAmount: 0,
+        },
       ),
   );
   const getCollectorStats = {
@@ -147,6 +112,23 @@ function setup(options: SetupOptions) {
   );
   return { useCase, getCollectorStatsExecute, getClientExecute };
 }
+
+/** Dos préstamos, cada uno asignado hoy a un cobrador distinto, en carteras distintas. */
+const TWO_COLLECTORS_SETUP: SetupOptions = {
+  loans: [loan('loan-1', 'client-1'), loan('loan-2', 'client-2')],
+  balanceByLoan: {
+    'loan-1': balance(0, 100_000),
+    'loan-2': balance(0, 200_000),
+  },
+  assignmentsByLoan: {
+    'loan-1': [assignment('m1', TODAY)],
+    'loan-2': [assignment('m2', TODAY)],
+  },
+  collectors: [
+    membership('m1', 'portfolio-a', 'Cobrador Uno'),
+    membership('m2', 'portfolio-b', 'Cobrador Dos'),
+  ],
+};
 
 describe('GetLenderStatsUseCase', () => {
   it('sin préstamos ni cobradores, todo sale en cero, null o vacío, con el mes actual por defecto', async () => {
@@ -245,21 +227,7 @@ describe('GetLenderStatsUseCase', () => {
   });
 
   it('filtra por collectorMembershipId: solo sus préstamos y solo él en el desempeño', async () => {
-    const { useCase, getCollectorStatsExecute } = setup({
-      loans: [loan('loan-1', 'client-1'), loan('loan-2', 'client-2')],
-      balanceByLoan: {
-        'loan-1': balance(0, 100_000),
-        'loan-2': balance(0, 200_000),
-      },
-      assignmentsByLoan: {
-        'loan-1': [assignment('m1', TODAY)],
-        'loan-2': [assignment('m2', TODAY)],
-      },
-      collectors: [
-        membership('m1', null, 'Cobrador Uno'),
-        membership('m2', null, 'Cobrador Dos'),
-      ],
-    });
+    const { useCase, getCollectorStatsExecute } = setup(TWO_COLLECTORS_SETUP);
 
     const result = await useCase.execute({
       lenderId: 'lender-1',
@@ -281,21 +249,7 @@ describe('GetLenderStatsUseCase', () => {
   });
 
   it('filtra por portfolioId: solo los cobradores de esa cartera y sus préstamos', async () => {
-    const { useCase } = setup({
-      loans: [loan('loan-1', 'client-1'), loan('loan-2', 'client-2')],
-      balanceByLoan: {
-        'loan-1': balance(0, 100_000),
-        'loan-2': balance(0, 200_000),
-      },
-      assignmentsByLoan: {
-        'loan-1': [assignment('m1', TODAY)],
-        'loan-2': [assignment('m2', TODAY)],
-      },
-      collectors: [
-        membership('m1', 'portfolio-a', 'Cobrador Uno'),
-        membership('m2', 'portfolio-b', 'Cobrador Dos'),
-      ],
-    });
+    const { useCase } = setup(TWO_COLLECTORS_SETUP);
 
     const result = await useCase.execute({
       lenderId: 'lender-1',
@@ -315,10 +269,8 @@ describe('GetLenderStatsUseCase', () => {
         'loan-1': balance(0, 100_000),
         'loan-2': balance(0, 200_000),
       },
-      assignmentsByLoan: {
-        'loan-1': [assignment('m1', TODAY)],
-        // loan-2 sin ninguna asignación: sin cobrador hoy.
-      },
+      // loan-2 sin ninguna asignación: sin cobrador hoy.
+      assignmentsByLoan: { 'loan-1': [assignment('m1', TODAY)] },
       collectors: [membership('m1', 'portfolio-a', 'Cobrador Uno')],
     });
 
