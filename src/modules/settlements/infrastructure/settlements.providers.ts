@@ -17,3 +17,6 @@ export const settlementsProviders: Provider[] = [
   ListSettlementsUseCase,
   ReviewSettlementUseCase,
 ];
+
+/** Lo que `settlements` expone a otros módulos: los cuadres `PENDING`, que usa el resumen del Lender (D-99). */
+export const settlementsExports = [ListSettlementsUseCase];

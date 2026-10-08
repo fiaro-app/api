@@ -1,0 +1,28 @@
+$kind: http-request
+description: "Declara menos de lo esperado, así que exige collectorNote (D-86) y queda PENDING con una diferencia: lo que hace aparecer el aviso de cuadres pendientes y el propio cuadre en el resumen del paso 13."
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 30000,
+      "collectedCash": 20000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0,
+      "collectorNote": "Un cliente pidió un día más de plazo."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('queda PENDING', () => pm.expect(body.status).to.eql('PENDING'));
+    language: text/javascript
+order: 11000

@@ -45,5 +45,13 @@ export const collectionsProviders: Provider[] = [
   GetCollectorStatsUseCase,
 ];
 
-/** Lo que `collections` expone a otros módulos: el saldo de un préstamo, que usa el aviso de mora (D-96). */
-export const collectionsExports = [GetLoanBalanceUseCase];
+/**
+ * Lo que `collections` expone a otros módulos: el saldo de un préstamo, que usa el aviso de
+ * mora (D-96), y el resumen del día de un cobrador, que reusa el resumen del Lender (D-99) para
+ * "cobrado hoy", "efectividad general" y la alerta de cobradores sin ruta iniciada, sin repetir
+ * esa composición.
+ */
+export const collectionsExports = [
+  GetLoanBalanceUseCase,
+  GetCollectorDailySummaryUseCase,
+];

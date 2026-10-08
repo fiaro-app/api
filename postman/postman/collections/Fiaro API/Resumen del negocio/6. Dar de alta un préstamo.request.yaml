@@ -1,0 +1,39 @@
+$kind: http-request
+description: "Arranca ayer (hora de Bogotá, calculado por el script previo) para que, siendo DIARIO, el motor de calendario espere su primera cuota justo hoy — así totalPortfolio y effectivenessToday del paso 13 no quedan en cero."
+url: "{{baseUrl}}/loans"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "clientId": "{{dashboardClientId}}",
+      "principalAmount": 500000,
+      "installmentCount": 20,
+      "installmentValue": 30000,
+      "totalPayable": 600000,
+      "frequency": "DAILY",
+      "startDate": "{{dashboardLoanStartDate}}"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      function bogotaDate(offsetMs) {
+        return new Date(Date.now() + offsetMs).toISOString().slice(0, 10);
+      }
+      const HOUR = 60 * 60 * 1000;
+      const today = bogotaDate(-5 * HOUR);
+      pm.collectionVariables.set('dashboardToday', today);
+      pm.collectionVariables.set('dashboardLoanStartDate', bogotaDate(-5 * HOUR - 24 * HOUR));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('dashboardLoanId', pm.response.json().id);
+    language: text/javascript
+order: 6000
