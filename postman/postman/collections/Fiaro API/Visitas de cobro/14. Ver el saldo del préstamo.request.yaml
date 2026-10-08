@@ -18,4 +18,4 @@ scripts:
         pm.expect(body.totalExpectedToDate).to.be.a('number').and.to.be.at.least(0);
       });
     language: text/javascript
-order: 13000
+order: 14000

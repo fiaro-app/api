@@ -21,4 +21,4 @@ scripts:
       pm.test('responde 200', () => pm.response.to.have.status(200));
       pm.test('la marca de contraseña temporal desaparece', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.false);
     language: text/javascript
-order: 8000
+order: 9000

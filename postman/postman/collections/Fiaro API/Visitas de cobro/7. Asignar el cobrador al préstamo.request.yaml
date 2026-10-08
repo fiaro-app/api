@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Sin esta asignación, el paso 10 (registrar la visita) respondería 403: el modo cobrador (D-89) exige una CollectionAssignment vigente para este préstamo el día de la visita."
+url: "{{baseUrl}}/loans/{{visitsLoanId}}/collection-assignments"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "collectorMembershipId": "{{visitsCollectorMembershipId}}",
+      "effectiveFrom": "2026-10-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('queda vigente, sin fecha de fin', () => pm.expect(body.effectiveTo).to.be.null);
+    language: text/javascript
+order: 7000
