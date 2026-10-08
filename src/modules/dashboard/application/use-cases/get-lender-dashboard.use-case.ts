@@ -89,9 +89,7 @@ export class GetLenderDashboardUseCase {
   }
 
   /** @returns Cuántas membresías `COLLECTOR` hay en total, y el id de las que están `ACTIVE`. */
-  private async collectorCounts(
-    lenderId: string,
-  ): Promise<{
+  private async collectorCounts(lenderId: string): Promise<{
     readonly total: number;
     readonly activeIds: readonly string[];
   }> {
@@ -114,9 +112,7 @@ export class GetLenderDashboardUseCase {
   }
 
   /** @returns El saldo total y los clientes distintos con mora, de los préstamos `ACTIVE`. */
-  private async portfolioAndArrears(
-    lenderId: string,
-  ): Promise<{
+  private async portfolioAndArrears(lenderId: string): Promise<{
     readonly totalPortfolio: number;
     readonly clientsInArrears: number;
   }> {
