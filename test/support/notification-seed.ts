@@ -130,7 +130,9 @@ export async function seedBusinessWithCollector(
 export async function assignNewLoan(
   testApp: TestApp,
   business: SeededBusiness,
+  options: { readonly startDate?: string } = {},
 ): Promise<string> {
+  const startDate = options.startDate ?? '2026-10-01';
   clientSeq += 1;
   const clientResponse = await testApp.http
     .post('/clients')
@@ -156,7 +158,7 @@ export async function assignNewLoan(
       installmentValue: 10_000,
       totalPayable: 20_000,
       frequency: 'DAILY',
-      startDate: '2026-10-01',
+      startDate,
     });
   const loanId = loanResponse.body.id as string;
 
@@ -166,7 +168,7 @@ export async function assignNewLoan(
     .set('Cookie', business.ownerCookie)
     .send({
       collectorMembershipId: business.collectorMembershipId,
-      effectiveFrom: '2026-10-01',
+      effectiveFrom: startDate,
     });
   expect(assignmentResponse.status).toBe(201);
   return loanId;

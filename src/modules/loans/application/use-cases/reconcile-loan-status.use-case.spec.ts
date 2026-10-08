@@ -29,6 +29,7 @@ function setup(current: Loan | null) {
   const findById = vi.fn(() => Promise.resolve(current));
   const update = vi.fn<(loan: Loan) => Promise<void>>(() => Promise.resolve());
   const loans: LoanRepository = {
+    listLenderIdsWithStatus: vi.fn(() => Promise.resolve([])),
     create: vi.fn(() => Promise.resolve()),
     findById,
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),

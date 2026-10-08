@@ -14,6 +14,17 @@ import {
 } from '@/config/env-fields.js';
 
 /**
+ * Si corre el aviso diario de mora (D-96). Por defecto, sí, salvo en las pruebas: un aviso programado
+ * dentro de una prueba enviaría correos y crearía notificaciones que los demás casos no esperan.
+ */
+function buildMoraAlertsConfig(env: {
+  readonly NODE_ENV: 'development' | 'test' | 'production';
+  readonly MORA_ALERTS?: boolean;
+}) {
+  return { enabled: env.MORA_ALERTS ?? env.NODE_ENV !== 'test' };
+}
+
+/**
  * Cómo se mandan las notificaciones push (D-95): con Expo, o solo al log. Por defecto, con Expo en
  * producción y solo al log en el resto, para que ni las pruebas ni el desarrollo manden push reales.
  */
@@ -57,6 +68,7 @@ const EnvSchema = z
     MAINTENANCE_MODE: z.stringbool().optional(),
     PUSH_DELIVERY: z.enum(['expo', 'log']).optional(),
     EXPO_ACCESS_TOKEN: z.string().optional(),
+    MORA_ALERTS: z.stringbool().optional(),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -132,6 +144,7 @@ const EnvSchema = z
       downloadUrl: env.MOBILE_DOWNLOAD_URL ?? 'https://example.com/fiaro.apk',
     },
     push: buildPushConfig(env),
+    moraAlerts: buildMoraAlertsConfig(env),
   }));
 
 /** Configuración validada y tipada; se inyecta con el token `ENV`. */

@@ -36,6 +36,7 @@ describe('loadEnv', () => {
         delivery: 'log',
         expoAccessToken: undefined,
       },
+      moraAlerts: { enabled: true },
     });
   });
 
@@ -86,6 +87,7 @@ describe('loadEnv', () => {
         delivery: 'expo',
         expoAccessToken: undefined,
       },
+      moraAlerts: { enabled: true },
     });
   });
 

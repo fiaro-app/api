@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { collectionsProviders } from '@/modules/collections/infrastructure/collections.providers.js';
+import {
+  collectionsExports,
+  collectionsProviders,
+} from '@/modules/collections/infrastructure/collections.providers.js';
 import { CollectionAssignmentController } from '@/modules/collections/infrastructure/controllers/collection-assignment.controller.js';
 import { CollectionVisitController } from '@/modules/collections/infrastructure/controllers/collection-visit.controller.js';
 import { CollectorRouteController } from '@/modules/collections/infrastructure/controllers/collector-route.controller.js';
@@ -43,5 +46,6 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
     CollectorRouteController,
   ],
   providers: collectionsProviders,
+  exports: collectionsExports,
 })
 export class CollectionsModule {}

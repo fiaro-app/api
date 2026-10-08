@@ -42,6 +42,16 @@ export interface LoanRepository {
   list(criteria: ListLoansCriteria): Promise<LoansPage>;
 
   /**
+   * Los prestamistas que tienen préstamos en ese estado, sin repetir. Es la única consulta que
+   * cruza prestamistas: la usa el aviso diario de mora (D-96), que recorre a todos, y por eso no
+   * pide un `lenderId` como el resto.
+   *
+   * @param status - El estado de los préstamos.
+   * @returns Los identificadores de esos prestamistas.
+   */
+  listLenderIdsWithStatus(status: LoanStatus): Promise<readonly string[]>;
+
+  /**
    * Reemplaza los datos del préstamo. Se guarda con su propio `lenderId`, así que no puede mover
    * un préstamo de un prestamista a otro.
    *
