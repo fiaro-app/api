@@ -7,7 +7,7 @@ export const REQUIRED_ENV = {
 
 /**
  * Lo que además exige la configuración en producción: la auditoría durable (Redis y MongoDB), el
- * envío de correos (Resend) y el version-gate de la app móvil.
+ * envío de correos (Resend), el version-gate de la app móvil y la subida del logo (S3/R2).
  */
 export const PRODUCTION_ENV = {
   REDIS_URL: 'redis://localhost:6390',
@@ -17,4 +17,9 @@ export const PRODUCTION_ENV = {
   MOBILE_MIN_SUPPORTED_VERSION: '1.0.0',
   MOBILE_LATEST_VERSION: '1.0.0',
   MOBILE_DOWNLOAD_URL: 'https://example.com/fiaro.apk',
+  S3_ENDPOINT: 'https://example.r2.cloudflarestorage.com',
+  S3_BUCKET: 'fiaro-prod',
+  S3_ACCESS_KEY_ID: 'test-access-key-id',
+  S3_SECRET_ACCESS_KEY: 'test-secret-access-key',
+  S3_PUBLIC_URL_BASE: 'https://assets.fiaro.example',
 };

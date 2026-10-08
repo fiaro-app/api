@@ -90,6 +90,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `GET /lender` | Cualquiera | — |
 | `PATCH /lender` | `OWNER`, `LENDER` | — |
+| `POST /lender/logo-upload-url` | `OWNER`, `LENDER` | URL firmada de subida (PUT) y URL pública del logo (D-102). El archivo va directo al bucket; guardar la URL pública exige, aparte, `PATCH /lender { logoUrl }`. |
 
 ## Carteras — `/portfolios` (`PortfolioController`)
 

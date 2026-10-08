@@ -40,6 +40,25 @@ function buildPushConfig(env: {
   };
 }
 
+/** Credenciales S3/R2 de `POST /lender/logo-upload-url` (D-102), con los valores de `pnpm docker:dev`. */
+function buildS3Config(env: {
+  readonly S3_ENDPOINT?: string | undefined;
+  readonly S3_REGION: string;
+  readonly S3_BUCKET?: string | undefined;
+  readonly S3_ACCESS_KEY_ID?: string | undefined;
+  readonly S3_SECRET_ACCESS_KEY?: string | undefined;
+  readonly S3_PUBLIC_URL_BASE?: string | undefined;
+}) {
+  return {
+    endpoint: env.S3_ENDPOINT ?? 'http://localhost:8333',
+    region: env.S3_REGION,
+    bucket: env.S3_BUCKET ?? 'fiaro-dev',
+    accessKeyId: env.S3_ACCESS_KEY_ID ?? 'fiaro',
+    secretAccessKey: env.S3_SECRET_ACCESS_KEY ?? 'fiaro-secret',
+    publicUrlBase: env.S3_PUBLIC_URL_BASE ?? 'http://localhost:8333/fiaro-dev',
+  };
+}
+
 /** Variables de entorno de la API, validadas una sola vez al arrancar. */
 const EnvSchema = z
   .object({
@@ -69,6 +88,12 @@ const EnvSchema = z
     PUSH_DELIVERY: z.enum(['expo', 'log']).optional(),
     EXPO_ACCESS_TOKEN: z.string().optional(),
     MORA_ALERTS: z.stringbool().optional(),
+    S3_ENDPOINT: z.url().optional(),
+    S3_REGION: z.string().default('auto'),
+    S3_BUCKET: z.string().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
+    S3_PUBLIC_URL_BASE: z.url().optional(),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -114,6 +139,31 @@ const EnvSchema = z
     message:
       'es obligatoria en producción: GET /mobile/version la usa para enlazar la descarga del APK',
   })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_ENDPOINT, {
+    path: ['S3_ENDPOINT'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_BUCKET, {
+    path: ['S3_BUCKET'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_ACCESS_KEY_ID, {
+    path: ['S3_ACCESS_KEY_ID'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_SECRET_ACCESS_KEY, {
+    path: ['S3_SECRET_ACCESS_KEY'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_PUBLIC_URL_BASE, {
+    path: ['S3_PUBLIC_URL_BASE'],
+    message:
+      'es obligatoria en producción: es la URL pública del logo una vez subido (un dominio propio sobre el bucket, R2 no sirve su URL interna)',
+  })
   .transform((env) => ({
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
@@ -145,6 +195,7 @@ const EnvSchema = z
     },
     push: buildPushConfig(env),
     moraAlerts: buildMoraAlertsConfig(env),
+    s3: buildS3Config(env),
   }));
 
 /** Configuración validada y tipada; se inyecta con el token `ENV`. */

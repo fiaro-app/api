@@ -6,6 +6,7 @@ import {
   LenderForbiddenSchema,
   LenderValidationErrorSchema,
 } from '@/modules/lenders/infrastructure/controllers/schemas/lender-errors.schema.js';
+import { LenderLogoUploadUrlResponseSchema } from '@/modules/lenders/infrastructure/controllers/schemas/lender-logo-responses.schema.js';
 import { LenderResponseSchema } from '@/modules/lenders/infrastructure/controllers/schemas/lender-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
@@ -62,6 +63,34 @@ export const ApiUpdateLender = () =>
       status: 200,
       description: 'Configuración actualizada.',
       standardSchema: LenderResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'El cuerpo no cumple el contrato (`VALIDATION_FAILED`).',
+      standardSchema: LenderValidationErrorSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiResponse({
+      status: 403,
+      description:
+        'Sin ninguna membresía activa, o la membresía activa no tiene rol `OWNER` ni `LENDER` (`FORBIDDEN`).',
+      standardSchema: LenderForbiddenSchema,
+    }),
+  );
+
+/** Documenta `POST /lender/logo-upload-url`. */
+export const ApiGetLenderLogoUploadUrl = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Pedir una URL para subir el logo',
+      description:
+        'Una URL firmada de subida (PUT) y la URL pública del logo una vez subido, para el bucket S3/R2 configurado (D-102). El archivo va directo del dispositivo al bucket: la API nunca lo recibe. Guardar la URL pública exige, aparte, PATCH /lender { logoUrl }. Exige rol OWNER o LENDER.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'La URL firmada y la URL pública.',
+      standardSchema: LenderLogoUploadUrlResponseSchema,
     }),
     ApiResponse({
       status: 400,
