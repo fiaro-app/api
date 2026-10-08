@@ -10,6 +10,7 @@ import {
   toPaymentCreateInput,
   toPaymentReversal,
 } from '@/modules/collections/infrastructure/persistence/collection-visit.mapper.js';
+import { businessRangeInstants } from '@/shared/domain/calendar/business-date.js';
 import type { CollectionVisitModel } from '@/shared/infrastructure/persistence/generated/models.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 
@@ -101,5 +102,27 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
       orderBy: { occurredAt: 'asc' },
     });
     return rows.map(toCollectionVisit);
+  }
+
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param from - Primera fecha del rango (`AAAA-MM-DD`), inclusive.
+   * @param to - Última fecha del rango (`AAAA-MM-DD`), inclusive.
+   */
+  async listByCollectorAndDateRange(
+    collectorMembershipId: string,
+    from: string,
+    to: string,
+  ): Promise<readonly CollectionVisitRecord[]> {
+    const range = businessRangeInstants(from, to);
+    const rows = await this.prisma.collectionVisit.findMany({
+      where: {
+        collectorMembershipId,
+        occurredAt: { gte: range.start, lt: range.end },
+      },
+      include: WITH_PAYMENT_AND_REVERSAL,
+      orderBy: { occurredAt: 'asc' },
+    });
+    return rows.map(toRecord);
   }
 }

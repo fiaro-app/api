@@ -132,7 +132,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `QUERY /loans` | Cualquiera | — |
 | `POST /loans/:id/cancel` | `OWNER`, `LENDER` | Mismo rol que crear (D-79): anulación por error, antes de recibir pagos. |
 
-## Cobro en campo — `collections` (6 controllers)
+## Cobro en campo — `collections` (7 controllers)
 
 `LenderScopeGuard` en toda clase.
 
@@ -143,6 +143,8 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /loans/:loanId/collection-visits` | `COLLECTOR` | `collectorMembershipId` siempre `scope.membershipId`, nunca del body — el cobrador solo registra sus propias visitas. Además exige **"modo cobrador"**, ver abajo (D-89). |
 | `GET /loans/:loanId/collection-visits` | Cualquiera | Ve todas las visitas del préstamo, no solo las propias. |
 | `QUERY /collectors/me/route` | `COLLECTOR` | El `me` del path lo exige el código (`scope.membershipId`), no es solo convención. |
+| `QUERY /collectors/me/daily-summary` | `COLLECTOR` | Siempre el propio (`scope.membershipId`). `expectedAmount` lo calcula el motor de calendario, no las visitas ya registradas (D-98). |
+| `QUERY /collectors/me/stats` | `COLLECTOR` | Siempre el propio. Misma forma que `QUERY /lenders/me/stats` (por construir) le muestra al Lender sobre él, pero para su propia cartera (D-98). |
 | `POST /collectors/:id/deactivate` | `OWNER`, `LENDER` | Da de baja a un cobrador reasignando, en el mismo paso, cada préstamo activo que tiene asignado hoy (D-97). Mismo chequeo que `/memberships`: **nunca sobre la propia membresía**. `reassignments` debe cubrir exactamente sus préstamos activos (`400 VALIDATION_FAILED` si no), y ningún destino puede ser el cobrador que se da de baja. Vive aquí y no en `memberships` porque solo este módulo conoce las asignaciones de cobro. |
 | `GET /loans/:loanId/balance` | Cualquiera | Vive en `collections`, no en `loans`, para no crear un ciclo de módulos (D-84) — detalle arquitectónico, no de permisos. |
 | `POST /payments/:id/reversals` | `OWNER`, `LENDER` | Única forma de corregir un pago (D-85). `reversedByMembershipId` siempre de la sesión. |

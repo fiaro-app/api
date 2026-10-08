@@ -1,0 +1,36 @@
+$kind: http-request
+description: El celular no tiene cuenta todavía, así que el backend crea la persona con una contraseña temporal y la membresía con rol COLLECTOR.
+url: "{{baseUrl}}/memberships"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phone": "{{statsCollectorPhone}}",
+      "fullName": "Cobrador de prueba de estadísticas",
+      "nationalId": "{{statsCollectorNationalId}}",
+      "roles": ["COLLECTOR"],
+      "portfolioId": "{{statsPortfolioId}}"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      const suffix = Math.floor(100000000 + Math.random() * 900000000);
+      pm.collectionVariables.set('statsCollectorPhone', `+573${suffix}`);
+      const nationalId = Math.floor(10000000 + Math.random() * 90000000);
+      pm.collectionVariables.set('statsCollectorNationalId', `${nationalId}`);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.collectionVariables.set('statsCollectorMembershipId', body.membership.id);
+      pm.collectionVariables.set('statsCollectorTempPassword', body.tempPassword);
+    language: text/javascript
+order: 4000

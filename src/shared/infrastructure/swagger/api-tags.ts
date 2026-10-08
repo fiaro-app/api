@@ -88,6 +88,11 @@ export const API_TAGS = {
     description:
       'Baja de un cobrador del prestamista con el que opera la sesión (`LenderScopeGuard`), reasignando en el mismo paso cada préstamo activo que tiene asignado hoy. Exige `OWNER` o `LENDER`, y nunca sobre la propia membresía de la sesión.',
   },
+  collectorStats: {
+    name: 'Estadísticas del cobrador',
+    description:
+      'El resumen del día y las estadísticas de desempeño del cobrador de la sesión: siempre las propias. Exige rol `COLLECTOR` en la membresía activa.',
+  },
   system: {
     name: 'Sistema',
     description:

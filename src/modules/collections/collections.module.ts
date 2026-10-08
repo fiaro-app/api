@@ -6,6 +6,7 @@ import {
 import { CollectionAssignmentController } from '@/modules/collections/infrastructure/controllers/collection-assignment.controller.js';
 import { CollectionVisitController } from '@/modules/collections/infrastructure/controllers/collection-visit.controller.js';
 import { CollectorRouteController } from '@/modules/collections/infrastructure/controllers/collector-route.controller.js';
+import { CollectorStatsController } from '@/modules/collections/infrastructure/controllers/collector-stats.controller.js';
 import { CollectorController } from '@/modules/collections/infrastructure/controllers/collector.controller.js';
 import { LoanBalanceController } from '@/modules/collections/infrastructure/controllers/loan-balance.controller.js';
 import { PaymentReversalController } from '@/modules/collections/infrastructure/controllers/payment-reversal.controller.js';
@@ -19,17 +20,19 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
 /**
  * Cobro en campo: quién cobra cada préstamo (`CollectionAssignment`, D-82), las visitas con sus
  * pagos (`CollectionVisit`/`Payment`, D-83), el saldo/mora de un préstamo (D-84), la corrección de
- * pagos (`PaymentReversal`, D-85), la ruta del día de un cobrador (D-88) y su baja con reasignación
- * de préstamos (D-97). Publica `POST`/`GET /loans/:loanId/collection-assignments`,
- * `POST`/`GET /loans/:loanId/collection-visits`, `GET /loans/:loanId/balance`,
- * `POST /payments/:id/reversals`, `QUERY /collectors/me/route` y `POST /collectors/:id/deactivate`,
- * todas con `LenderScopeGuard` — de ahí que importe `LoansModule` (`GetLoanUseCase` para validar
- * el préstamo, `ReconcileLoanStatusUseCase` para cerrarlo o reabrirlo), `MembershipsModule`
- * (`GetMembershipUseCase` para validar el cobrador al asignar o al dar de baja, y
- * `DeactivateMembershipUseCase` para la baja en sí, D-97), `LendersModule` (`GetLenderUseCase`,
- * para los días sin cobro del prestamista que el saldo necesita), `NotificationsModule`
- * (`CreateNotificationUseCase`, para avisarle a un cobrador que tiene un préstamo nuevo, D-87) y
- * `ClientsModule` (`GetClientUseCase`, para el nombre del cliente en cada fila de la ruta, D-88).
+ * pagos (`PaymentReversal`, D-85), la ruta del día de un cobrador (D-88), su baja con reasignación
+ * de préstamos (D-97) y su resumen del día y estadísticas personales (D-98). Publica
+ * `POST`/`GET /loans/:loanId/collection-assignments`, `POST`/`GET /loans/:loanId/collection-visits`,
+ * `GET /loans/:loanId/balance`, `POST /payments/:id/reversals`, `QUERY /collectors/me/route`,
+ * `POST /collectors/:id/deactivate`, `QUERY /collectors/me/daily-summary` y
+ * `QUERY /collectors/me/stats`, todas con `LenderScopeGuard` — de ahí que importe `LoansModule`
+ * (`GetLoanUseCase` para validar el préstamo, `ReconcileLoanStatusUseCase` para cerrarlo o
+ * reabrirlo), `MembershipsModule` (`GetMembershipUseCase` para validar el cobrador al asignar o al
+ * dar de baja, y `DeactivateMembershipUseCase` para la baja en sí, D-97), `LendersModule`
+ * (`GetLenderUseCase`, para los días sin cobro del prestamista que el saldo y las estadísticas
+ * necesitan), `NotificationsModule` (`CreateNotificationUseCase`, para avisarle a un cobrador que
+ * tiene un préstamo nuevo, D-87) y `ClientsModule` (`GetClientUseCase`, para el nombre del cliente
+ * en cada fila de la ruta, D-88).
  */
 @Module({
   imports: [
@@ -47,6 +50,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
     PaymentReversalController,
     CollectorRouteController,
     CollectorController,
+    CollectorStatsController,
   ],
   providers: collectionsProviders,
   exports: collectionsExports,

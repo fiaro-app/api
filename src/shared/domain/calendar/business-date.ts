@@ -24,3 +24,48 @@ export function daysBetween(fromIsoDate: string, toIsoDate: string): number {
   const to = new Date(`${toIsoDate}T00:00:00Z`).getTime();
   return Math.round((to - from) / MS_PER_DAY);
 }
+
+/** El primer día del mes de una fecha `AAAA-MM-DD` ("este mes", el rango por defecto de los filtros de estadísticas). */
+export function startOfBusinessMonth(isoDate: string): string {
+  return `${isoDate.slice(0, 7)}-01`;
+}
+
+/** El instante exacto en que empieza y en que termina un día de calendario en Colombia. */
+export interface BusinessDayInstants {
+  /** El primer instante del día (00:00, hora de Bogotá). */
+  readonly start: Date;
+  /** El primer instante del día siguiente: el límite exclusivo del día. */
+  readonly end: Date;
+}
+
+/**
+ * Los límites, en instantes UTC reales, de una fecha de negocio (`AAAA-MM-DD`, hora de Bogotá):
+ * para filtrar una columna `Timestamptz` (`occurredAt`, `createdAt`) por fecha de calendario sin
+ * que la zona horaria del proceso la corra. Colombia no tiene horario de verano (D-82/D-96), así
+ * que el offset `-05:00` es válido todo el año.
+ *
+ * @param isoDate - Fecha de calendario (`AAAA-MM-DD`), hora de Bogotá.
+ */
+export function businessDayInstants(isoDate: string): BusinessDayInstants {
+  return {
+    start: new Date(`${isoDate}T00:00:00-05:00`),
+    end: new Date(`${addDays(isoDate, 1)}T00:00:00-05:00`),
+  };
+}
+
+/**
+ * Como {@link businessDayInstants}, pero para un rango de fechas completo (`from`/`to`
+ * inclusive): el límite exclusivo es el día siguiente a `to`.
+ *
+ * @param from - Primera fecha del rango (`AAAA-MM-DD`), hora de Bogotá.
+ * @param to - Última fecha del rango (`AAAA-MM-DD`), inclusive, hora de Bogotá.
+ */
+export function businessRangeInstants(
+  from: string,
+  to: string,
+): BusinessDayInstants {
+  return {
+    start: businessDayInstants(from).start,
+    end: businessDayInstants(to).end,
+  };
+}

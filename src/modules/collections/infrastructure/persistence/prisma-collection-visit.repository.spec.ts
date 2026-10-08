@@ -247,3 +247,30 @@ describe('PrismaCollectionVisitRepository.listByCollectorAndPromisedDate', () =>
     expect(found).toEqual([rescheduled]);
   });
 });
+
+describe('PrismaCollectionVisitRepository.listByCollectorAndDateRange', () => {
+  it('filtra por cobrador y por el rango de fechas, en hora de Bogotá', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([{ ...visitRow, payment: paymentRow }]);
+
+    const found = await repository.listByCollectorAndDateRange(
+      'membership-1',
+      '2026-10-01',
+      '2026-10-07',
+    );
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        collectorMembershipId: 'membership-1',
+        occurredAt: {
+          gte: new Date('2026-10-01T05:00:00.000Z'),
+          lt: new Date('2026-10-08T05:00:00.000Z'),
+        },
+      },
+      include: WITH_PAYMENT_AND_REVERSAL,
+      orderBy: { occurredAt: 'asc' },
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]?.visit).toEqual(visit);
+  });
+});

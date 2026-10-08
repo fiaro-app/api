@@ -64,6 +64,7 @@ function setup(
     findById: vi.fn(() => Promise.resolve(null)),
     listByLoan,
     listByCollectorAndPromisedDate: vi.fn(),
+    listByCollectorAndDateRange: vi.fn(),
   };
   const reconcileExecute = vi.fn(() => Promise.resolve());
   const reconcileLoanStatus = {
