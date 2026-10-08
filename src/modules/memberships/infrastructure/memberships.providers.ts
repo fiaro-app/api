@@ -41,12 +41,14 @@ export const membershipsProviders: Provider[] = [
  * lo usa `notifications` para encontrar a quién avisarle algo del negocio (D-87).
  * `DeactivateMembershipUseCase` lo usa `collections` para la baja en sí, una vez que ya reasignó
  * los préstamos del cobrador: el cambio de estado es el mismo para cualquier membresía, cobrador o
- * no (D-97).
+ * no (D-97). `ListMembershipsUseCase` lo usa `dashboard` para contar cobradores activos y totales
+ * del resumen del Lender (D-99).
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
   GetMembershipUseCase,
   DeactivateMembershipUseCase,
   ListActiveMembershipsByRolesUseCase,
+  ListMembershipsUseCase,
   LENDER_SCOPE_RESOLVER,
 ];

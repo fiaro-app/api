@@ -1,0 +1,28 @@
+$kind: http-request
+description: "Agrega todo lo anterior desde la vista de la dueña (D-99). totalPortfolio y effectivenessToday los calcula el motor de calendario sobre los préstamos asignados, no sobre las visitas ya registradas."
+url: "{{baseUrl}}/lenders/me/dashboard"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('cuenta a la dueña y al cobrador invitado', () => {
+        pm.expect(body.totalCollectors).to.eql(2);
+        pm.expect(body.activeCollectors).to.eql(2);
+      });
+      pm.test('cobró los 30.000 de la visita', () => pm.expect(body.collectedToday).to.eql(30000));
+      pm.test('trae el cuadre con diferencia, pendiente de revisar', () => {
+        pm.expect(body.pendingSettlements).to.have.lengthOf(1);
+        pm.expect(body.pendingSettlements[0].collectorMembershipId).to.eql(pm.collectionVariables.get('dashboardCollectorMembershipId'));
+        pm.expect(body.pendingSettlements[0].status).to.eql('PENDING');
+      });
+      pm.test('avisa del cuadre con diferencias', () => {
+        pm.expect(body.alerts).to.include('1 cuadre tiene diferencias pendientes de revisar.');
+      });
+    language: text/javascript
+order: 13000

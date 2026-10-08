@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { DailySettlementController } from '@/modules/settlements/infrastructure/controllers/daily-settlement.controller.js';
-import { settlementsProviders } from '@/modules/settlements/infrastructure/settlements.providers.js';
+import {
+  settlementsExports,
+  settlementsProviders,
+} from '@/modules/settlements/infrastructure/settlements.providers.js';
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
 
 /**
@@ -17,11 +20,13 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  * @remarks
  * No compone `loans` ni `collections`: a diferencia del saldo (D-84) o la corrección de pagos
  * (D-85), los montos del cuadre son los que declara el cobrador, no un cálculo contra sus visitas
- * o pagos del día (PRODUCT.md §5).
+ * o pagos del día (PRODUCT.md §5). `ListSettlementsUseCase` se exporta para que `dashboard` liste
+ * los `PENDING` del Lender en su resumen (D-99).
  */
 @Module({
   imports: [PersistenceModule, MembershipsModule, NotificationsModule],
   controllers: [DailySettlementController],
   providers: settlementsProviders,
+  exports: settlementsExports,
 })
 export class SettlementsModule {}

@@ -93,6 +93,11 @@ export const API_TAGS = {
     description:
       'El resumen del día y las estadísticas de desempeño del cobrador de la sesión: siempre las propias. Exige rol `COLLECTOR` en la membresía activa.',
   },
+  lenderDashboard: {
+    name: 'Resumen del negocio',
+    description:
+      'Cartera, cobro de hoy, cobradores, mora, alertas y cuadres por revisar del prestamista con el que opera la sesión (`LenderScopeGuard`). Exige `OWNER` o `LENDER`.',
+  },
   system: {
     name: 'Sistema',
     description:

@@ -8,6 +8,7 @@ import { AlertsModule } from '@/modules/alerts/alerts.module.js';
 import { AuthModule } from '@/modules/auth/auth.module.js';
 import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { CollectionsModule } from '@/modules/collections/collections.module.js';
+import { DashboardModule } from '@/modules/dashboard/dashboard.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
@@ -48,6 +49,7 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
     LoansModule,
     CollectionsModule,
     SettlementsModule,
+    DashboardModule,
     AlertsModule,
     SystemModule,
     ThrottlerModule.forRootAsync({

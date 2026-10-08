@@ -161,6 +161,14 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /daily-settlements/:id/approve` | `OWNER`, `LENDER` | — |
 | `POST /daily-settlements/:id/reject` | `OWNER`, `LENDER` | — |
 
+## Resumen del negocio — `lenders/me` (`LenderDashboardController`)
+
+`LenderScopeGuard` en toda la clase.
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
+
 ## Notificaciones — `/notifications` (`NotificationController`)
 
 Sin `LenderScopeGuard`, a propósito: una persona que trabaja para varios prestamistas recibe

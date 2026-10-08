@@ -1,0 +1,24 @@
+$kind: http-request
+description: "A partir de aquí la cookie es la del cobrador: el resto de la carpeta opera como él, hasta que el paso 12 vuelva a entrar como la dueña. La cuenta pide cambiar la contraseña antes de poder usar otras rutas."
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{dashboardCollectorPhone}}",
+      "password": "{{dashboardCollectorTempPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la cuenta pide cambiar la contraseña', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.true);
+    language: text/javascript
+order: 8000
