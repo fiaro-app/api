@@ -37,12 +37,16 @@ export const membershipsProviders: Provider[] = [
  * compartido, con qué Lender opera una sesión — lo usa `LenderScopeGuard` (`shared/infrastructure`),
  * así que cualquier módulo que proteja una ruta con ese guard debe importar `MembershipsModule`.
  * `GetMembershipUseCase` lo usa `collections` para validar `collectorMembershipId` al asignar un
- * cobrador a un préstamo. `ListActiveMembershipsByRolesUseCase` lo usa `notifications` para
- * encontrar a quién avisarle algo del negocio (D-87).
+ * cobrador a un préstamo, y también al darlo de baja (D-97). `ListActiveMembershipsByRolesUseCase`
+ * lo usa `notifications` para encontrar a quién avisarle algo del negocio (D-87).
+ * `DeactivateMembershipUseCase` lo usa `collections` para la baja en sí, una vez que ya reasignó
+ * los préstamos del cobrador: el cambio de estado es el mismo para cualquier membresía, cobrador o
+ * no (D-97).
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
   GetMembershipUseCase,
+  DeactivateMembershipUseCase,
   ListActiveMembershipsByRolesUseCase,
   LENDER_SCOPE_RESOLVER,
 ];

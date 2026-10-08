@@ -34,10 +34,14 @@ function setup() {
   const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(),
   );
+  const transaction = vi.fn<(ops: readonly unknown[]) => Promise<unknown[]>>(
+    () => Promise.resolve([]),
+  );
   const repository = new PrismaCollectionAssignmentRepository({
     collectionAssignment: { create, findFirst, findMany, update },
+    $transaction: transaction,
   } as unknown as PrismaService);
-  return { repository, create, findFirst, findMany, update };
+  return { repository, create, findFirst, findMany, update, transaction };
 }
 
 describe('PrismaCollectionAssignmentRepository.create', () => {
@@ -134,5 +138,84 @@ describe('PrismaCollectionAssignmentRepository.update', () => {
         createdAt: CREATED_AT,
       },
     });
+  });
+});
+
+describe('PrismaCollectionAssignmentRepository.listOpenByCollector', () => {
+  it('filtra por cobrador, vigentes o sin cerrar antes de la fecha', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([row]);
+
+    const found = await repository.listOpenByCollector(
+      'membership-1',
+      '2026-10-02',
+    );
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        collectorMembershipId: 'membership-1',
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: '2026-10-02' } }],
+      },
+      orderBy: { effectiveFrom: 'asc' },
+    });
+    expect(found).toEqual([assignment]);
+  });
+});
+
+describe('PrismaCollectionAssignmentRepository.reassign', () => {
+  it('cierra y abre asignaciones en una sola transacción', async () => {
+    const { repository, create, update, transaction } = setup();
+    const closed = CollectionAssignment.create({
+      id: 'assignment-1',
+      loanId: 'loan-1',
+      collectorMembershipId: 'membership-1',
+      effectiveFrom: '2026-10-01',
+      effectiveTo: '2026-10-06',
+      createdAt: CREATED_AT,
+    });
+    const opened = CollectionAssignment.create({
+      id: 'assignment-2',
+      loanId: 'loan-1',
+      collectorMembershipId: 'membership-2',
+      effectiveFrom: '2026-10-07',
+      effectiveTo: null,
+      createdAt: CREATED_AT,
+    });
+
+    await repository.reassign([closed], [opened]);
+
+    expect(update).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'assignment-1' },
+      data: {
+        id: 'assignment-1',
+        loanId: 'loan-1',
+        collectorMembershipId: 'membership-1',
+        effectiveFrom: '2026-10-01',
+        effectiveTo: '2026-10-06',
+        createdAt: CREATED_AT,
+      },
+    });
+    expect(create).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        id: 'assignment-2',
+        loanId: 'loan-1',
+        collectorMembershipId: 'membership-2',
+        effectiveFrom: '2026-10-07',
+        effectiveTo: null,
+        createdAt: CREATED_AT,
+      },
+    });
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(transaction.mock.calls[0]?.[0]).toHaveLength(2);
+  });
+
+  it('no escribe nada si no hay asignaciones que cerrar ni abrir', async () => {
+    const { repository, create, update, transaction } = setup();
+
+    await repository.reassign([], []);
+
+    expect(transaction).toHaveBeenCalledExactlyOnceWith([]);
+    expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 });

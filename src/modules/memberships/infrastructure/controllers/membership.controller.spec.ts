@@ -1,11 +1,14 @@
 import { ForbiddenException, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
+import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 import type { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import type { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import type { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import type { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import type { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
+import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
 import { MembershipController } from '@/modules/memberships/infrastructure/controllers/membership.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -60,12 +63,19 @@ function setup() {
   const resetMembershipPasswordUseCase = {
     execute: vi.fn(() => Promise.resolve('TempNewAbc234')),
   };
+  // Por defecto no es cobrador, para que la baja normal (no la de /collectors) siga pasando.
+  const getMembershipUseCase = {
+    execute: vi.fn<
+      (id: string, lenderId: string) => Promise<MembershipDetails>
+    >(() => Promise.resolve({ ...MEMBERSHIP_DETAILS, roles: ['LENDER'] })),
+  };
   const controller = new MembershipController(
     inviteMembershipUseCase as unknown as InviteMembershipUseCase,
     deactivateMembershipUseCase as unknown as DeactivateMembershipUseCase,
     changeMembershipRolesUseCase as unknown as ChangeMembershipRolesUseCase,
     listMembershipsUseCase as unknown as ListMembershipsUseCase,
     resetMembershipPasswordUseCase as unknown as ResetMembershipPasswordUseCase,
+    getMembershipUseCase as unknown as GetMembershipUseCase,
   );
   return {
     controller,
@@ -74,6 +84,7 @@ function setup() {
     changeMembershipRolesUseCase,
     listMembershipsUseCase,
     resetMembershipPasswordUseCase,
+    getMembershipUseCase,
   };
 }
 
@@ -179,17 +190,38 @@ describe('MembershipController', () => {
 
   describe('deactivateMembership', () => {
     it('con rol LENDER desactiva la membresía de otra persona', async () => {
-      const { controller, deactivateMembershipUseCase } = setup();
+      const { controller, deactivateMembershipUseCase, getMembershipUseCase } =
+        setup();
 
       const response = await controller.deactivateMembership(
         'membership-2',
         scopeWith(['LENDER']),
       );
 
+      expect(getMembershipUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+        'membership-2',
+        'lender-1',
+      );
       expect(
         deactivateMembershipUseCase.execute,
       ).toHaveBeenCalledExactlyOnceWith('membership-2', 'lender-1');
       expect(response.status).toBe('INACTIVE');
+    });
+
+    it('rechaza dar de baja a un cobrador y remite a /collectors/:id/deactivate', async () => {
+      const { controller, deactivateMembershipUseCase, getMembershipUseCase } =
+        setup();
+      getMembershipUseCase.execute.mockResolvedValueOnce({
+        ...MEMBERSHIP_DETAILS,
+        roles: ['COLLECTOR'],
+      });
+
+      const error = await controller
+        .deactivateMembership('membership-2', scopeWith(['LENDER']))
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(InvalidMembershipDataError);
+      expect(deactivateMembershipUseCase.execute).not.toHaveBeenCalled();
     });
 
     it('no deja desactivar la propia membresía', async () => {

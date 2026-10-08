@@ -83,6 +83,11 @@ export const API_TAGS = {
     description:
       'Los préstamos que el cobrador de la sesión debe visitar en una fecha (hoy, si no se pide otra), con su saldo y su mora. Exige rol `COLLECTOR` en la membresía activa.',
   },
+  collectorDeactivation: {
+    name: 'Baja de cobradores',
+    description:
+      'Baja de un cobrador del prestamista con el que opera la sesión (`LenderScopeGuard`), reasignando en el mismo paso cada préstamo activo que tiene asignado hoy. Exige `OWNER` o `LENDER`, y nunca sobre la propia membresía de la sesión.',
+  },
   system: {
     name: 'Sistema',
     description:

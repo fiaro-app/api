@@ -1,0 +1,15 @@
+$kind: http-request
+description: "Un cobrador no se da de baja por aquí (dejaría su préstamo sin cobrador, D-97): POST /memberships/:id/deactivate lo rechaza y remite a POST /collectors/:id/deactivate (paso 10)."
+url: "{{baseUrl}}/memberships/{{deactivateCollectorOldMembershipId}}/deactivate"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('código VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));
+    language: text/javascript
+order: 9000

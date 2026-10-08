@@ -154,11 +154,13 @@ describe('QUERY /memberships', () => {
     app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
     const { ownerCookie, collectorMembershipId } =
       await seedBusinessWithCollector(app);
+    // El cobrador es la membresía a desactivar, así que usa su propia ruta (D-97): sin préstamos
+    // asignados, reassignments vacío solo confirma la baja.
     await app.http
-      .post(`/memberships/${collectorMembershipId}/deactivate`)
+      .post(`/collectors/${collectorMembershipId}/deactivate`)
       .set(HEADERS)
       .set('Cookie', ownerCookie)
-      .send({});
+      .send({ reassignments: [] });
 
     const inactive = await httpQuery(app.http, '/memberships')
       .set(HEADERS)

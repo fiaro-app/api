@@ -1,0 +1,30 @@
+$kind: http-request
+description: "reassignments cubre exactamente el préstamo activo del cobrador saliente. Primero reasigna, luego desactiva la membresía (D-97): si algo falla a medio camino, ningún préstamo queda sin cobrador. Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/collectors/{{deactivateCollectorOldMembershipId}}/deactivate"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "reassignments": [
+        {
+          "loanId": "{{deactivateCollectorLoanId}}",
+          "collectorMembershipId": "{{deactivateCollectorNewMembershipId}}"
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('queda INACTIVE', () => pm.expect(body.status).to.eql('INACTIVE'));
+      pm.test('reasignó un préstamo', () => pm.expect(body.reassignedLoans).to.eql(1));
+    language: text/javascript
+order: 10000

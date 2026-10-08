@@ -2,6 +2,7 @@ import type { Provider } from '@nestjs/common';
 import { CreateCollectionAssignmentUseCase } from '@/modules/collections/application/use-cases/create-collection-assignment.use-case.js';
 import { CreateCollectionVisitUseCase } from '@/modules/collections/application/use-cases/create-collection-visit.use-case.js';
 import { CreatePaymentReversalUseCase } from '@/modules/collections/application/use-cases/create-payment-reversal.use-case.js';
+import { DeactivateCollectorUseCase } from '@/modules/collections/application/use-cases/deactivate-collector.use-case.js';
 import { GetCollectorRouteUseCase } from '@/modules/collections/application/use-cases/get-collector-route.use-case.js';
 import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
 import { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
@@ -37,6 +38,7 @@ export const collectionsProviders: Provider[] = [
   GetLoanBalanceUseCase,
   CreatePaymentReversalUseCase,
   GetCollectorRouteUseCase,
+  DeactivateCollectorUseCase,
 ];
 
 /** Lo que `collections` expone a otros módulos: el saldo de un préstamo, que usa el aviso de mora (D-96). */

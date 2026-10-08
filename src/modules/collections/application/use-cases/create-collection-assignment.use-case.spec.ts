@@ -28,6 +28,8 @@ function setup(openAssignment: CollectionAssignment | null = null) {
   const update = vi.fn(() => Promise.resolve());
   const findOpenByLoan = vi.fn(() => Promise.resolve(openAssignment));
   const assignments: CollectionAssignmentRepository = {
+    listOpenByCollector: vi.fn(() => Promise.resolve([])),
+    reassign: vi.fn(() => Promise.resolve()),
     create,
     update,
     findOpenByLoan,

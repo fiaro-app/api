@@ -62,4 +62,45 @@ export class PrismaCollectionAssignmentRepository implements CollectionAssignmen
       data: toCollectionAssignmentCreateInput(assignment),
     });
   }
+
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param asOf - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  async listOpenByCollector(
+    collectorMembershipId: string,
+    asOf: string,
+  ): Promise<readonly CollectionAssignment[]> {
+    const rows = await this.prisma.collectionAssignment.findMany({
+      where: {
+        collectorMembershipId,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: asOf } }],
+      },
+      orderBy: { effectiveFrom: 'asc' },
+    });
+    return rows.map(toCollectionAssignment);
+  }
+
+  /**
+   * @param closed - Las asignaciones que terminan, con su `effectiveTo` ya puesto.
+   * @param opened - Las asignaciones nuevas.
+   */
+  async reassign(
+    closed: readonly CollectionAssignment[],
+    opened: readonly CollectionAssignment[],
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      ...closed.map((assignment) =>
+        this.prisma.collectionAssignment.update({
+          where: { id: assignment.id },
+          data: toCollectionAssignmentCreateInput(assignment),
+        }),
+      ),
+      ...opened.map((assignment) =>
+        this.prisma.collectionAssignment.create({
+          data: toCollectionAssignmentCreateInput(assignment),
+        }),
+      ),
+    ]);
+  }
 }
