@@ -9,6 +9,7 @@ import {
   seedBusinessWithCollector,
   type SeededBusiness,
 } from '@test/support/notification-seed.js';
+import { httpQuery } from '@test/support/security-app.js';
 import { startTestApp, type TestApp } from '@test/support/test-app.js';
 
 const TODAY = toBusinessDate(new Date());
@@ -170,6 +171,89 @@ describe('GET /lenders/me/dashboard', () => {
       .get('/lenders/me/dashboard')
       .set(HEADERS)
       .set('X-Forwarded-For', nextIp());
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe('QUERY /lenders/me/stats', () => {
+  it('trae la salud de cartera y mora del negocio, con los 4 buckets siempre presentes', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedAssignedLoan(app);
+    await payToday(app, business, 10_000);
+
+    const response = await httpQuery(app.http, '/lenders/me/stats')
+      .set(HEADERS)
+      .set('Cookie', business.ownerCookie)
+      .send({});
+
+    expect(response.status).toBe(200);
+    const body = response.body as {
+      from: string;
+      to: string;
+      totalPortfolio: number;
+      portfolioAtRisk: number;
+      arrearsRate: number | null;
+      arrearsByAge: { label: string; amount: number; clientsCount: number }[];
+      topArrears: unknown[];
+      collectorPerformance: { collectorMembershipId: string }[];
+    };
+    expect(body.to).toBe(TODAY);
+    expect(body.totalPortfolio).toBeGreaterThanOrEqual(0);
+    expect(body.portfolioAtRisk).toBeGreaterThanOrEqual(0);
+    expect(body.arrearsRate === null || body.arrearsRate >= 0).toBe(true);
+    expect(body.arrearsByAge.map((bucket) => bucket.label)).toEqual([
+      '0-7',
+      '8-15',
+      '16-30',
+      '30+',
+    ]);
+    // 2: la dueña nace con rol COLLECTOR (D-78), y Carlos es el invitado.
+    expect(body.collectorPerformance).toHaveLength(2);
+    expect(
+      body.collectorPerformance.map((c) => c.collectorMembershipId),
+    ).toContain(business.collectorMembershipId);
+  });
+
+  it('filtra por collectorMembershipId: solo él en el desempeño', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedAssignedLoan(app);
+
+    const response = await httpQuery(app.http, '/lenders/me/stats')
+      .set(HEADERS)
+      .set('Cookie', business.ownerCookie)
+      .send({ collectorMembershipId: business.collectorMembershipId });
+
+    expect(response.status).toBe(200);
+    const body = response.body as {
+      collectorPerformance: { collectorMembershipId: string }[];
+    };
+    expect(body.collectorPerformance).toEqual([
+      expect.objectContaining({
+        collectorMembershipId: business.collectorMembershipId,
+      }),
+    ]);
+  });
+
+  it('con solo el rol COLLECTOR responde 403', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedBusinessWithCollector(app);
+
+    const response = await httpQuery(app.http, '/lenders/me/stats')
+      .set(HEADERS)
+      .set('Cookie', business.collectorCookie)
+      .send({});
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('sin sesión responde 401', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+
+    const response = await httpQuery(app.http, '/lenders/me/stats')
+      .set(HEADERS)
+      .send({});
 
     expect(response.status).toBe(401);
   });

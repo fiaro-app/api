@@ -1,8 +1,10 @@
 $kind: collection
 description: |-
-  El resumen del negocio del Lender (D-99): `GET /lenders/me/dashboard`, protegida por
-  `LenderScopeGuard` y el rol `OWNER`/`LENDER`. Cartera, cobro de hoy, cobradores, mora, alertas
-  de texto y los cuadres `PENDING` por revisar. Autocontenida: registra su propio negocio en el
-  paso 1 y a su cobrador en el paso 4, con celular y cédula al azar, para poder repetir la carpeta
-  sin chocar con una corrida anterior.
+  Las vistas agregadas del Lender sobre todo su negocio: `GET /lenders/me/dashboard` (resumen,
+  D-99) y `QUERY /lenders/me/stats` (salud de cartera y mora, D-100). Las dos protegidas por
+  `LenderScopeGuard` y el rol `OWNER`/`LENDER`. El resumen trae cartera, cobro de hoy, cobradores,
+  mora, alertas de texto y los cuadres `PENDING` por revisar; las estadísticas, cartera en riesgo,
+  % en mora, mora por antigüedad (4 buckets fijos), el ranking de mayor mora y el desempeño por
+  cobrador. Autocontenida: registra su propio negocio en el paso 1 y a su cobrador en el paso 4,
+  con celular y cédula al azar, para poder repetir la carpeta sin chocar con una corrida anterior.
 order: 2006

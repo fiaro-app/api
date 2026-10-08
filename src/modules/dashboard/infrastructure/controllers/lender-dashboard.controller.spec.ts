@@ -3,6 +3,8 @@ import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { LenderDashboard } from '@/modules/dashboard/application/dtos/lender-dashboard.dto.js';
 import type { GetLenderDashboardUseCase } from '@/modules/dashboard/application/use-cases/get-lender-dashboard.use-case.js';
+import type { LenderPeriodStats } from '@/modules/dashboard/application/dtos/lender-stats.dto.js';
+import type { GetLenderStatsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats.use-case.js';
 import { LenderDashboardController } from '@/modules/dashboard/infrastructure/controllers/lender-dashboard.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -17,14 +19,34 @@ const DASHBOARD: LenderDashboard = {
   pendingSettlements: [],
 };
 
+const STATS: LenderPeriodStats = {
+  from: '2026-10-01',
+  to: '2026-10-07',
+  totalPortfolio: 1_000_000,
+  portfolioAtRisk: 100_000,
+  arrearsRate: 0.1,
+  arrearsByAge: [
+    { label: '0-7', amount: 100_000, clientsCount: 1 },
+    { label: '8-15', amount: 0, clientsCount: 0 },
+    { label: '16-30', amount: 0, clientsCount: 0 },
+    { label: '30+', amount: 0, clientsCount: 0 },
+  ],
+  topArrears: [],
+  collectorPerformance: [],
+};
+
 function setup() {
   const getLenderDashboardUseCase = {
     execute: vi.fn(() => Promise.resolve(DASHBOARD)),
   };
+  const getLenderStatsUseCase = {
+    execute: vi.fn(() => Promise.resolve(STATS)),
+  };
   const controller = new LenderDashboardController(
     getLenderDashboardUseCase as unknown as GetLenderDashboardUseCase,
+    getLenderStatsUseCase as unknown as GetLenderStatsUseCase,
   );
-  return { controller, getLenderDashboardUseCase };
+  return { controller, getLenderDashboardUseCase, getLenderStatsUseCase };
 }
 
 const scopeWith = (roles: readonly string[]): LenderScope => ({
@@ -34,7 +56,7 @@ const scopeWith = (roles: readonly string[]): LenderScope => ({
 });
 
 describe('LenderDashboardController', () => {
-  it('publica solo GET /dashboard (cuelga de /lenders/me)', () => {
+  it('publica GET /dashboard y QUERY /stats (cuelga de /lenders/me)', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       LenderDashboardController.prototype,
     ).flatMap((name) => {
@@ -51,7 +73,7 @@ describe('LenderDashboardController', () => {
         : [`${RequestMethod[method]} ${path ?? ''}`];
     });
 
-    expect(publishedRoutes).toEqual(['GET dashboard']);
+    expect(publishedRoutes.sort()).toEqual(['GET dashboard', 'QUERY stats']);
     expect(Reflect.getMetadata(PATH_METADATA, LenderDashboardController)).toBe(
       'lenders/me',
     );
@@ -84,6 +106,58 @@ describe('LenderDashboardController', () => {
         code: 'FORBIDDEN',
       });
       expect(getLenderDashboardUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getLenderStats', () => {
+    it('con rol OWNER devuelve las estadísticas, pasando el período y los filtros', async () => {
+      const { controller, getLenderStatsUseCase } = setup();
+
+      const response = await controller.getLenderStats(
+        {
+          dateRange: { from: '2026-10-01', to: '2026-10-07' },
+          collectorMembershipId: 'membership-2',
+          portfolioId: 'portfolio-1',
+        },
+        scopeWith(['OWNER']),
+      );
+
+      expect(getLenderStatsUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        lenderId: 'lender-1',
+        from: '2026-10-01',
+        to: '2026-10-07',
+        collectorMembershipId: 'membership-2',
+        portfolioId: 'portfolio-1',
+      });
+      expect(response).toEqual(STATS);
+    });
+
+    it('sin dateRange ni filtros, los pasa indefinidos', async () => {
+      const { controller, getLenderStatsUseCase } = setup();
+
+      await controller.getLenderStats({}, scopeWith(['LENDER']));
+
+      expect(getLenderStatsUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        lenderId: 'lender-1',
+        from: undefined,
+        to: undefined,
+        collectorMembershipId: undefined,
+        portfolioId: undefined,
+      });
+    });
+
+    it('con solo el rol COLLECTOR responde 403 sin llamar al caso de uso', async () => {
+      const { controller, getLenderStatsUseCase } = setup();
+
+      const error = await controller
+        .getLenderStats({}, scopeWith(['COLLECTOR']))
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect((error as ForbiddenException).getResponse()).toEqual({
+        code: 'FORBIDDEN',
+      });
+      expect(getLenderStatsUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

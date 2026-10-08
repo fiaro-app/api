@@ -4,12 +4,28 @@ import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 import { LenderDashboardForbiddenSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-dashboard-errors.schema.js';
 import { LenderDashboardResponseSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-dashboard-responses.schema.js';
+import { LenderPeriodStatsResponseSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
 /** `401 UNAUTHENTICATED`: sin sesión vigente. */
 const UnauthenticatedErrorSchema = ApiErrorSchema.extend({
   code: z.literal('UNAUTHENTICATED'),
 }).meta({ id: 'LenderDashboardUnauthenticated' });
+
+const ApiUnauthenticatedResponse = () =>
+  ApiResponse({
+    status: 401,
+    description: 'No hay sesión vigente (`UNAUTHENTICATED`).',
+    standardSchema: UnauthenticatedErrorSchema,
+  });
+
+const ApiWrongRoleResponse = () =>
+  ApiResponse({
+    status: 403,
+    description:
+      'Sin ninguna membresía activa, o la membresía activa no tiene rol `OWNER` ni `LENDER` (`FORBIDDEN`).',
+    standardSchema: LenderDashboardForbiddenSchema,
+  });
 
 /** Documenta `GET /lenders/me/dashboard`. */
 export const ApiGetLenderDashboard = () =>
@@ -25,15 +41,31 @@ export const ApiGetLenderDashboard = () =>
       description: 'El resumen del negocio.',
       standardSchema: LenderDashboardResponseSchema,
     }),
-    ApiResponse({
-      status: 401,
-      description: 'No hay sesión vigente (`UNAUTHENTICATED`).',
-      standardSchema: UnauthenticatedErrorSchema,
-    }),
-    ApiResponse({
-      status: 403,
+    ApiUnauthenticatedResponse(),
+    ApiWrongRoleResponse(),
+  );
+
+/** Documenta `QUERY /lenders/me/stats`. */
+export const ApiGetLenderStats = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Ver las estadísticas del negocio',
       description:
-        'Sin ninguna membresía activa, o la membresía activa no tiene rol `OWNER` ni `LENDER` (`FORBIDDEN`).',
-      standardSchema: LenderDashboardForbiddenSchema,
+        'Salud de cartera y mora del prestamista con el que opera la sesión en un período (el mes actual, si no llega uno): cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), el ranking de clientes con mayor mora y el desempeño de cada cobrador (D-100). Filtrable por cobrador y por cartera, combinables entre sí. Exige rol OWNER o LENDER.',
     }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Las estadísticas del período.',
+      standardSchema: LenderPeriodStatsResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'El cuerpo no cumple el contrato (`VALIDATION_FAILED`).',
+      standardSchema: ApiErrorSchema.extend({
+        code: z.literal('VALIDATION_FAILED'),
+      }).meta({ id: 'LenderStatsValidationError' }),
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiWrongRoleResponse(),
   );

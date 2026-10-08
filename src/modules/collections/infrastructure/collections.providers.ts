@@ -47,11 +47,16 @@ export const collectionsProviders: Provider[] = [
 
 /**
  * Lo que `collections` expone a otros módulos: el saldo de un préstamo, que usa el aviso de
- * mora (D-96), y el resumen del día de un cobrador, que reusa el resumen del Lender (D-99) para
- * "cobrado hoy", "efectividad general" y la alerta de cobradores sin ruta iniciada, sin repetir
- * esa composición.
+ * mora (D-96); el resumen del día de un cobrador, que reusa el resumen del Lender (D-99) para
+ * "cobrado hoy", "efectividad general" y la alerta de cobradores sin ruta iniciada; sus
+ * estadísticas de período, que reusan las estadísticas del Lender (D-100) para el desempeño por
+ * cobrador; y el historial de asignaciones de un préstamo, que esas mismas estadísticas del
+ * Lender reusan para saber a qué cobrador (y a qué cartera, a través de él) tiene asignado hoy —
+ * ninguna repite esa composición.
  */
 export const collectionsExports = [
   GetLoanBalanceUseCase,
   GetCollectorDailySummaryUseCase,
+  GetCollectorStatsUseCase,
+  ListCollectionAssignmentsUseCase,
 ];

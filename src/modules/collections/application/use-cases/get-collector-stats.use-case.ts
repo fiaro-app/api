@@ -21,7 +21,7 @@ import { CLOCK } from '@/shared/application/ports/clock.token.js';
 
 /**
  * Métricas personales de desempeño de un cobrador en un período (PROTOTIPO-FLUJOS.md §4.4, D-98):
- * las mismas que ve el Lender sobre él en `QUERY /lenders/me/stats` (D-99, por construir).
+ * las mismas que ve el Lender sobre él en `QUERY /lenders/me/stats` (D-100).
  *
  * @remarks
  * `expectedAmount` y `overdueAmount` son "de su cartera": los préstamos `ACTIVE` que tiene
