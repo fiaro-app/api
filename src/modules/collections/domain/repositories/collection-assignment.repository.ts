@@ -33,4 +33,28 @@ export interface CollectionAssignmentRepository {
 
   /** @param assignment - La asignación con sus datos ya actualizados (cerrarla con `effectiveTo`). */
   update(assignment: CollectionAssignment): Promise<void>;
+
+  /**
+   * Las asignaciones de un cobrador que todavía no terminaron a la fecha dada: las vigentes y las
+   * programadas, sin repetir. La baja de un cobrador las usa para saber qué préstamos le quedan.
+   *
+   * @param collectorMembershipId - El cobrador.
+   * @param asOf - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  listOpenByCollector(
+    collectorMembershipId: string,
+    asOf: string,
+  ): Promise<readonly CollectionAssignment[]>;
+
+  /**
+   * Cierra unas asignaciones y abre otras en una sola transacción: si una escritura falla, ninguna
+   * queda a medias, y así un préstamo nunca se queda sin cobrador (PRODUCT.md §6).
+   *
+   * @param closed - Las asignaciones que terminan, con su `effectiveTo` ya puesto.
+   * @param opened - Las asignaciones nuevas.
+   */
+  reassign(
+    closed: readonly CollectionAssignment[],
+    opened: readonly CollectionAssignment[],
+  ): Promise<void>;
 }

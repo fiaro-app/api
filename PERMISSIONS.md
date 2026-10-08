@@ -107,7 +107,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | Ruta | Rol | Notas |
 | --- | --- | --- |
 | `POST /memberships` | `OWNER`, `LENDER` | Invita a una persona nueva con los roles y la cartera dados. |
-| `POST /memberships/:id/deactivate` | `OWNER`, `LENDER` | **Nunca sobre la propia membresía** (`scope.membershipId !== id`), ni siquiera para quien tiene esos roles — evita dejar un negocio sin nadie que lo administre. |
+| `POST /memberships/:id/deactivate` | `OWNER`, `LENDER` | **Nunca sobre la propia membresía** (`scope.membershipId !== id`), ni siquiera para quien tiene esos roles — evita dejar un negocio sin nadie que lo administre. **Rechaza además una membresía con el rol `COLLECTOR`** (`400 VALIDATION_FAILED`): un cobrador se da de baja con `POST /collectors/:id/deactivate` (ver abajo, D-97), que reasigna sus préstamos antes de desactivarlo. |
 | `PATCH /memberships/:id/roles` | `OWNER`, `LENDER` | Misma regla: nunca sobre la propia. |
 
 ## Clientes — `/clients` (`ClientController`)
@@ -132,7 +132,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `QUERY /loans` | Cualquiera | — |
 | `POST /loans/:id/cancel` | `OWNER`, `LENDER` | Mismo rol que crear (D-79): anulación por error, antes de recibir pagos. |
 
-## Cobro en campo — `collections` (5 controllers)
+## Cobro en campo — `collections` (6 controllers)
 
 `LenderScopeGuard` en toda clase.
 
@@ -143,6 +143,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /loans/:loanId/collection-visits` | `COLLECTOR` | `collectorMembershipId` siempre `scope.membershipId`, nunca del body — el cobrador solo registra sus propias visitas. Además exige **"modo cobrador"**, ver abajo (D-89). |
 | `GET /loans/:loanId/collection-visits` | Cualquiera | Ve todas las visitas del préstamo, no solo las propias. |
 | `QUERY /collectors/me/route` | `COLLECTOR` | El `me` del path lo exige el código (`scope.membershipId`), no es solo convención. |
+| `POST /collectors/:id/deactivate` | `OWNER`, `LENDER` | Da de baja a un cobrador reasignando, en el mismo paso, cada préstamo activo que tiene asignado hoy (D-97). Mismo chequeo que `/memberships`: **nunca sobre la propia membresía**. `reassignments` debe cubrir exactamente sus préstamos activos (`400 VALIDATION_FAILED` si no), y ningún destino puede ser el cobrador que se da de baja. Vive aquí y no en `memberships` porque solo este módulo conoce las asignaciones de cobro. |
 | `GET /loans/:loanId/balance` | Cualquiera | Vive en `collections`, no en `loans`, para no crear un ciclo de módulos (D-84) — detalle arquitectónico, no de permisos. |
 | `POST /payments/:id/reversals` | `OWNER`, `LENDER` | Única forma de corregir un pago (D-85). `reversedByMembershipId` siempre de la sesión. |
 
@@ -196,14 +197,13 @@ notificaciones de todos a la vez, así que no hay "un" prestamista por el que fi
   `PATCH /memberships/:id/roles` rechazan `id === scope.membershipId` aunque quien llama tenga
   `OWNER`/`LENDER` — ni la dueña del negocio puede desactivarse o cambiarse los roles a sí misma
   por esta ruta.
-- **Hueco real, no solo de documentación: desactivar no reasigna préstamos.** PRODUCT.md §6 exige
-  que desactivar un cobrador reasigne sus préstamos en el mismo flujo ("nunca quedan préstamos sin
-  cobrador"); `DeactivateMembershipUseCase` no lo hace — quedó pendiente desde antes de que
-  `CollectionAssignment` existiera (D-82) y nunca se retomó. Hoy, desactivar una membresía con
-  asignaciones vigentes las deja huérfanas: ningún `COLLECTOR` puede registrarles visitas hasta que
-  alguien cree una asignación nueva a mano (D-89 lo exige). Falta además una decisión de producto
-  que PRODUCT.md no resuelve: a quién se reasignan — ver el comentario en
-  `deactivate-membership.use-case.ts`.
+- **Un cobrador nunca se desactiva sin reasignar (D-97).** PRODUCT.md §6 exige que desactivar un
+  cobrador reasigne sus préstamos en el mismo flujo ("nunca quedan préstamos sin cobrador");
+  `POST /collectors/:id/deactivate` (`DeactivateCollectorUseCase`, en `collections`) lo hace:
+  reasigna primero, en una sola transacción, y solo después marca la membresía `INACTIVE` — si algo
+  falla a medio camino, ningún préstamo queda huérfano, y repetir la petición es seguro. Por eso
+  `POST /memberships/:id/deactivate` rechaza una membresía `COLLECTOR`: dejarla pasar por ahí
+  directamente dejaría sus préstamos sin cobrador.
 - **Contraseña temporal.** Con `mustChangePassword: true`, toda ruta que no sea `@Public()`
   responde `403 PASSWORD_CHANGE_REQUIRED` (`AuthGuard`) — en la práctica, solo
   `GET /auth/get-session`, `POST /auth/change-password` y `POST /auth/sign-out` quedan alcanzables

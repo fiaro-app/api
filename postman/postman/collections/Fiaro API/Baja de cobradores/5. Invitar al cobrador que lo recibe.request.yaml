@@ -1,0 +1,34 @@
+$kind: http-request
+description: El destino de la reasignación, activo y con el rol COLLECTOR.
+url: "{{baseUrl}}/memberships"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phone": "{{deactivateCollectorNewPhone}}",
+      "fullName": "Cobrador Entrante (prueba de baja de cobradores)",
+      "nationalId": "{{deactivateCollectorNewNationalId}}",
+      "roles": ["COLLECTOR"],
+      "portfolioId": "{{deactivateCollectorPortfolioId}}"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      const suffix = Math.floor(100000000 + Math.random() * 900000000);
+      pm.collectionVariables.set('deactivateCollectorNewPhone', `+573${suffix}`);
+      const nationalId = Math.floor(10000000 + Math.random() * 90000000);
+      pm.collectionVariables.set('deactivateCollectorNewNationalId', `${nationalId}`);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('deactivateCollectorNewMembershipId', pm.response.json().membership.id);
+    language: text/javascript
+order: 5000

@@ -59,6 +59,8 @@ function setup(
     Promise.resolve(options.assigned ?? []),
   );
   const assignments: CollectionAssignmentRepository = {
+    listOpenByCollector: vi.fn(() => Promise.resolve([])),
+    reassign: vi.fn(() => Promise.resolve()),
     create: vi.fn(),
     findOpenByLoan: vi.fn(),
     listByLoan: vi.fn(),

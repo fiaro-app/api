@@ -15,9 +15,11 @@ import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
+import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
 import {
   ApiChangeMembershipRoles,
   ApiDeactivateMembership,
@@ -74,6 +76,7 @@ export class MembershipController {
     private readonly changeMembershipRolesUseCase: ChangeMembershipRolesUseCase,
     private readonly listMembershipsUseCase: ListMembershipsUseCase,
     private readonly resetMembershipPasswordUseCase: ResetMembershipPasswordUseCase,
+    private readonly getMembershipUseCase: GetMembershipUseCase,
   ) {}
 
   /**
@@ -133,6 +136,20 @@ export class MembershipController {
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof MembershipResponseSchema>> {
     this.assertCanAdminister(scope, id);
+    const membership = await this.getMembershipUseCase.execute(
+      id,
+      scope.lenderId,
+    );
+    if (membership.roles.includes('COLLECTOR')) {
+      throw new InvalidMembershipDataError([
+        {
+          path: ['id'],
+          message:
+            'Un cobrador se da de baja con POST /collectors/:id/deactivate, que reasigna sus préstamos antes de darlo de baja.',
+          params: {},
+        },
+      ]);
+    }
     return toMembershipResponse(
       await this.deactivateMembershipUseCase.execute(id, scope.lenderId),
     );

@@ -15,13 +15,12 @@ import { CLOCK } from '@/shared/application/ports/clock.token.js';
  * @remarks
  * Idempotente: si ya estaba `INACTIVE`, no vuelve a tocar `deactivatedAt` ni escribe nada,
  * simplemente devuelve la membresía tal como está — desactivar dos veces no es un error, es la
- * misma operación con el mismo resultado. Sin reasignar los préstamos que el colaborador tenía
- * asignados todavía (PRODUCT.md §6: "exige reasignar sus préstamos en el mismo flujo"):
- * `CollectionAssignment` ya existe desde D-82, pero falta decidir a quién se reasignan (PRODUCT.md
- * no lo dice) y por eso sigue sin construirse — ver PERMISSIONS.md. Una membresía desactivada con
- * asignaciones vigentes hoy las deja huérfanas: ningún `COLLECTOR` puede registrar visitas sobre
- * esos préstamos hasta que alguien cree una asignación nueva a mano (D-89, "modo cobrador"). El
- * controller (no este caso de uso) impide que una sesión se desactive a sí misma.
+ * misma operación con el mismo resultado. No sabe nada de `CollectionAssignment` ni reasigna
+ * préstamos: eso es cosa de `collections` (`DeactivateCollectorUseCase`, D-97), que primero
+ * reasigna y solo después llama aquí. Por eso `POST /memberships/:id/deactivate` rechaza una
+ * membresía con el rol `COLLECTOR` (`MembershipController`, 400): dejarla pasar por aquí
+ * directamente dejaría sus préstamos sin cobrador. El controller (no este caso de uso) también
+ * impide que una sesión se desactive a sí misma.
  */
 @Injectable()
 export class DeactivateMembershipUseCase {

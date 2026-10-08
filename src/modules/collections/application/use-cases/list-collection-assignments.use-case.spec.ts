@@ -9,6 +9,8 @@ const CREATED_AT = new Date('2026-09-30T00:00:00Z');
 function setup(found: readonly CollectionAssignment[]) {
   const listByLoan = vi.fn(() => Promise.resolve(found));
   const assignments: CollectionAssignmentRepository = {
+    listOpenByCollector: vi.fn(() => Promise.resolve([])),
+    reassign: vi.fn(() => Promise.resolve()),
     create: vi.fn(),
     update: vi.fn(),
     findOpenByLoan: vi.fn(),

@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Sin effectiveTo: permanente. El cobrador saliente queda con un préstamo activo asignado, lo que la baja (paso 10) debe reasignar."
+url: "{{baseUrl}}/loans/{{deactivateCollectorLoanId}}/collection-assignments"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "collectorMembershipId": "{{deactivateCollectorOldMembershipId}}",
+      "effectiveFrom": "2026-10-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('queda vigente, sin fecha de fin', () => pm.expect(body.effectiveTo).to.be.null);
+    language: text/javascript
+order: 8000

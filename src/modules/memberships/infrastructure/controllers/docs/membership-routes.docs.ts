@@ -110,13 +110,19 @@ export const ApiDeactivateMembership = () =>
     ApiOperation({
       summary: 'Desactivar una membresía',
       description:
-        'Baja lógica: quita el acceso de inmediato sin borrar el historial. Idempotente: desactivar una que ya está `INACTIVE` no falla, devuelve la membresía tal como está. Nadie puede desactivar su propia membresía por esta ruta. Exige rol `OWNER` o `LENDER` en la membresía activa.',
+        'Baja lógica: quita el acceso de inmediato sin borrar el historial. Idempotente: desactivar una que ya está `INACTIVE` no falla, devuelve la membresía tal como está. Rechaza una membresía con el rol `COLLECTOR`: se da de baja con `POST /collectors/:id/deactivate`, que antes reasigna sus préstamos (D-97). Nadie puede desactivar su propia membresía por esta ruta. Exige rol `OWNER` o `LENDER` en la membresía activa.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
       status: 200,
       description: 'Membresía desactivada.',
       standardSchema: MembershipResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'La membresía tiene el rol `COLLECTOR`: se da de baja con `POST /collectors/:id/deactivate` (`VALIDATION_FAILED`).',
+      standardSchema: MembershipValidationErrorSchema,
     }),
     ApiUnauthenticatedResponse(),
     ApiWrongRoleResponse(),

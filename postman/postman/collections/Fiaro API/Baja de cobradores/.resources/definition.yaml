@@ -1,0 +1,9 @@
+$kind: collection
+description: |-
+  Da de baja a un cobrador reasignando, en el mismo paso, el préstamo activo que tiene asignado
+  (D-97): `POST /collectors/:id/deactivate`, protegida por `LenderScopeGuard`. También muestra que
+  la baja genérica de colaboradores (`POST /memberships/:id/deactivate`) rechaza a un cobrador y
+  remite aquí. Autocontenida: registra su propio negocio en el paso 1 y a los dos cobradores en
+  los pasos 4 y 5, todos con celular y cédula al azar, para poder repetir la carpeta sin chocar
+  con una corrida anterior.
+order: 1991
