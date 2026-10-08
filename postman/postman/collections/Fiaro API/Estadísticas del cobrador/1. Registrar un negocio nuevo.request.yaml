@@ -1,0 +1,31 @@
+$kind: http-request
+description: "Público, sin sesión. Esta carpeta es autocontenida: registra su propio negocio. El script previo genera un celular y una cédula al azar, para poder repetir la carpeta sin chocar con una corrida anterior."
+url: "{{baseUrl}}/register"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "phone": "{{statsOwnerPhone}}",
+      "fullName": "Rosa Delgado (dueña de prueba de estadísticas)",
+      "password": "{{statsOwnerPassword}}",
+      "nationalId": "{{statsOwnerNationalId}}",
+      "businessName": "Créditos Rosa (prueba de estadísticas)"
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      const ownerSuffix = Math.floor(100000000 + Math.random() * 900000000);
+      pm.collectionVariables.set('statsOwnerPhone', `+573${ownerSuffix}`);
+      const ownerNationalId = Math.floor(10000000 + Math.random() * 90000000);
+      pm.collectionVariables.set('statsOwnerNationalId', `${ownerNationalId}`);
+      pm.collectionVariables.set('statsOwnerPassword', 'Colombia-Fiaro-2026-prueba');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 1000

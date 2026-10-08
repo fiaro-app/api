@@ -38,4 +38,19 @@ export interface CollectionVisitRepository {
     collectorMembershipId: string,
     promisedDate: string,
   ): Promise<readonly CollectionVisit[]>;
+
+  /**
+   * Las visitas de un cobrador en un rango de fechas (por `occurredAt`, D-98), con sus pagos y
+   * reversiones, de la más antigua a la más nueva. La fecha es la de calendario del cobrador
+   * (hora de Bogotá), no un corte UTC a medianoche.
+   *
+   * @param collectorMembershipId - El cobrador.
+   * @param from - Primera fecha del rango (`AAAA-MM-DD`), inclusive.
+   * @param to - Última fecha del rango (`AAAA-MM-DD`), inclusive.
+   */
+  listByCollectorAndDateRange(
+    collectorMembershipId: string,
+    from: string,
+    to: string,
+  ): Promise<readonly CollectionVisitRecord[]>;
 }

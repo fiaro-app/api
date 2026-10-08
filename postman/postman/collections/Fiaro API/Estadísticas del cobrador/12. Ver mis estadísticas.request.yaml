@@ -1,0 +1,28 @@
+$kind: http-request
+description: "Sin dateRange, es el mes actual (desde el día 1 hasta hoy). Mismas métricas que ve el Lender sobre este cobrador en Admin — Estadísticas (PROTOTIPO-FLUJOS.md §4.9), pero para su propia cartera."
+url: "{{baseUrl}}/collectors/me/stats"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('termina hoy', () => pm.expect(body.to).to.eql(pm.collectionVariables.get('statsToday')));
+      pm.test('cuenta la visita de hoy', () => {
+        pm.expect(body.collectedAmount).to.eql(30000);
+        pm.expect(body.visitsCount).to.eql(1);
+      });
+      pm.test('la efectividad es null, o un número 0 o mayor', () => {
+        pm.expect(body.effectiveness === null || body.effectiveness >= 0).to.be.true;
+      });
+    language: text/javascript
+order: 12000
