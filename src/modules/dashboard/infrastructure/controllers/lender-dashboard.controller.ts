@@ -7,20 +7,26 @@ import {
   HttpCode,
   HttpStatus,
   QueryMethod,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { GetLenderDashboardUseCase } from '@/modules/dashboard/application/use-cases/get-lender-dashboard.use-case.js';
+import { GetLenderStatsExportUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats-export.use-case.js';
 import { GetLenderStatsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats.use-case.js';
 import {
   ApiGetLenderDashboard,
   ApiGetLenderStats,
+  ApiGetLenderStatsExport,
 } from '@/modules/dashboard/infrastructure/controllers/docs/lender-dashboard-routes.docs.js';
+import { renderLenderStatsPdf } from '@/modules/dashboard/infrastructure/pdf/lender-stats-pdf.js';
 import {
   toLenderDashboardResponse,
   type LenderDashboardResponseSchema,
 } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-dashboard-responses.schema.js';
+import { GetLenderStatsExportRequestSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-export-requests.schema.js';
 import { GetLenderStatsRequestSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-requests.schema.js';
 import {
   toLenderPeriodStatsResponse,
@@ -36,9 +42,9 @@ import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 const VIEWER_ROLES = ['OWNER', 'LENDER'];
 
 /**
- * Las vistas agregadas del Lender sobre todo su negocio: el resumen (D-99) y las estadísticas de
- * cartera y mora (D-100). Exige `LenderScopeGuard`, así que corre después de `AuthGuard` y ya
- * sabe con qué Lender operar.
+ * Las vistas agregadas del Lender sobre todo su negocio: el resumen (D-99), las estadísticas de
+ * cartera y mora (D-100) y su exportación a PDF (D-101). Exige `LenderScopeGuard`, así que corre
+ * después de `AuthGuard` y ya sabe con qué Lender operar.
  *
  * @remarks
  * Un `COLLECTOR` tiene sus propias vistas en `CollectorStatsController`
@@ -53,6 +59,7 @@ export class LenderDashboardController {
   constructor(
     private readonly getLenderDashboardUseCase: GetLenderDashboardUseCase,
     private readonly getLenderStatsUseCase: GetLenderStatsUseCase,
+    private readonly getLenderStatsExportUseCase: GetLenderStatsExportUseCase,
   ) {}
 
   /** @param scope - El Lender con el que opera la sesión. */
@@ -94,5 +101,43 @@ export class LenderDashboardController {
         portfolioId: query.portfolioId,
       }),
     );
+  }
+
+  /**
+   * Responde el PDF directo por `@Res()`, sin pasar por el pipeline normal de Nest: es la única
+   * ruta de la API que no devuelve JSON.
+   *
+   * @param query - El período, los filtros y el formato, ya validados.
+   * @param scope - El Lender con el que opera la sesión.
+   * @param res - Respuesta de Express, para escribir el PDF directamente.
+   */
+  @QueryMethod('stats/export')
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLenderStatsExport()
+  async getLenderStatsExport(
+    @Body({ schema: GetLenderStatsExportRequestSchema })
+    query: z.output<typeof GetLenderStatsExportRequestSchema>,
+    @CurrentLenderScope() scope: LenderScope,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    const { stats, lenderName } =
+      await this.getLenderStatsExportUseCase.execute({
+        lenderId: scope.lenderId,
+        from: query.dateRange?.from,
+        to: query.dateRange?.to,
+        collectorMembershipId: query.collectorMembershipId,
+        portfolioId: query.portfolioId,
+      });
+    const pdf = await renderLenderStatsPdf(stats, lenderName);
+    res.status(HttpStatus.OK);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="estadisticas-${stats.from}-a-${stats.to}.pdf"`,
+    );
+    res.end(pdf);
   }
 }

@@ -258,3 +258,67 @@ describe('QUERY /lenders/me/stats', () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe('QUERY /lenders/me/stats/export', () => {
+  it('responde un PDF con los encabezados correctos', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedAssignedLoan(app);
+
+    const response = await httpQuery(app.http, '/lenders/me/stats/export')
+      .set(HEADERS)
+      .set('Cookie', business.ownerCookie)
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+        res.on('end', () => {
+          callback(null, Buffer.concat(chunks));
+        });
+      })
+      .send({ format: 'pdf' });
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toBe('application/pdf');
+    expect(response.headers['content-disposition']).toContain('attachment');
+    const body = response.body as Buffer;
+    expect(body.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  });
+
+  it('rechaza un cuerpo sin format', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedAssignedLoan(app);
+
+    const response = await httpQuery(app.http, '/lenders/me/stats/export')
+      .set(HEADERS)
+      .set('Cookie', business.ownerCookie)
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'VALIDATION_FAILED' });
+  });
+
+  it('con solo el rol COLLECTOR responde 403', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedBusinessWithCollector(app);
+
+    const response = await httpQuery(app.http, '/lenders/me/stats/export')
+      .set(HEADERS)
+      .set('Cookie', business.collectorCookie)
+      .send({ format: 'pdf' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('sin sesión responde 401', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+
+    const response = await httpQuery(app.http, '/lenders/me/stats/export')
+      .set(HEADERS)
+      .send({ format: 'pdf' });
+
+    expect(response.status).toBe(401);
+  });
+});

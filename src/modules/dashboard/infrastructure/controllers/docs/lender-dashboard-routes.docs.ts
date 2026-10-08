@@ -69,3 +69,30 @@ export const ApiGetLenderStats = () =>
     ApiUnauthenticatedResponse(),
     ApiWrongRoleResponse(),
   );
+
+/** Documenta `QUERY /lenders/me/stats/export`. */
+export const ApiGetLenderStatsExport = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Exportar las estadísticas del negocio en PDF',
+      description:
+        'El mismo reporte de `QUERY /lenders/me/stats`, en un PDF de una página (D-101). Mismos filtros, más `format: "pdf"`. Exige rol OWNER o LENDER.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'El PDF del reporte.',
+      content: {
+        'application/pdf': { schema: { type: 'string', format: 'binary' } },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'El cuerpo no cumple el contrato (`VALIDATION_FAILED`).',
+      standardSchema: ApiErrorSchema.extend({
+        code: z.literal('VALIDATION_FAILED'),
+      }).meta({ id: 'LenderStatsExportValidationError' }),
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiWrongRoleResponse(),
+  );

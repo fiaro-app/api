@@ -1,7 +1,8 @@
 $kind: collection
 description: |-
   Las vistas agregadas del Lender sobre todo su negocio: `GET /lenders/me/dashboard` (resumen,
-  D-99) y `QUERY /lenders/me/stats` (salud de cartera y mora, D-100). Las dos protegidas por
+  D-99), `QUERY /lenders/me/stats` (salud de cartera y mora, D-100) y
+  `QUERY /lenders/me/stats/export` (el mismo reporte en PDF, D-101). Las tres protegidas por
   `LenderScopeGuard` y el rol `OWNER`/`LENDER`. El resumen trae cartera, cobro de hoy, cobradores,
   mora, alertas de texto y los cuadres `PENDING` por revisar; las estadísticas, cartera en riesgo,
   % en mora, mora por antigüedad (4 buckets fijos), el ranking de mayor mora y el desempeño por

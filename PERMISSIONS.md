@@ -169,6 +169,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
 | `QUERY /lenders/me/stats` | `OWNER`, `LENDER` | Cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), ranking de mayor mora y desempeño por cobrador, filtrable por `collectorMembershipId`/`portfolioId` (D-100). Misma forma que `QUERY /collectors/me/stats` (D-98) le muestra a un cobrador sobre sí mismo. |
+| `QUERY /lenders/me/stats/export` | `OWNER`, `LENDER` | El mismo reporte anterior, en un PDF de una página (D-101). Única ruta de la API que no responde JSON: usa `@Res()` directo. |
 
 ## Notificaciones — `/notifications` (`NotificationController`)
 
