@@ -37,6 +37,14 @@ describe('loadEnv', () => {
         expoAccessToken: undefined,
       },
       moraAlerts: { enabled: true },
+      s3: {
+        endpoint: 'http://localhost:8333',
+        region: 'auto',
+        bucket: 'fiaro-dev',
+        accessKeyId: 'fiaro',
+        secretAccessKey: 'fiaro-secret',
+        publicUrlBase: 'http://localhost:8333/fiaro-dev',
+      },
     });
   });
 
@@ -88,6 +96,14 @@ describe('loadEnv', () => {
         expoAccessToken: undefined,
       },
       moraAlerts: { enabled: true },
+      s3: {
+        endpoint: PRODUCTION_ENV.S3_ENDPOINT,
+        region: 'auto',
+        bucket: PRODUCTION_ENV.S3_BUCKET,
+        accessKeyId: PRODUCTION_ENV.S3_ACCESS_KEY_ID,
+        secretAccessKey: PRODUCTION_ENV.S3_SECRET_ACCESS_KEY,
+        publicUrlBase: PRODUCTION_ENV.S3_PUBLIC_URL_BASE,
+      },
     });
   });
 

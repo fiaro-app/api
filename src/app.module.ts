@@ -21,6 +21,7 @@ import { AuthGuard } from '@/shared/infrastructure/http/auth.guard.js';
 import { I18nModule } from '@/shared/infrastructure/i18n/i18n.module.js';
 import { RecordsModule } from '@/shared/infrastructure/records/records.module.js';
 import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js';
+import { StorageModule } from '@/shared/infrastructure/storage/storage.module.js';
 
 /**
  * Módulo raíz. Registra la configuración, los textos traducidos (`I18nModule`), el filtro global
@@ -41,6 +42,7 @@ import { RuntimeModule } from '@/shared/infrastructure/runtime/runtime.module.js
     AuditModule,
     ApiErrorsModule,
     RuntimeModule,
+    StorageModule,
     AuthModule,
     NotificationsModule,
     TenantsModule,
