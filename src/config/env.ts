@@ -42,12 +42,12 @@ function buildPushConfig(env: {
 
 /** Credenciales S3/R2 de `POST /lender/logo-upload-url` (D-102), con los valores de `pnpm docker:dev`. */
 function buildS3Config(env: {
-  readonly S3_ENDPOINT?: string | undefined;
+  readonly S3_ENDPOINT?: string;
   readonly S3_REGION: string;
-  readonly S3_BUCKET?: string | undefined;
-  readonly S3_ACCESS_KEY_ID?: string | undefined;
-  readonly S3_SECRET_ACCESS_KEY?: string | undefined;
-  readonly S3_PUBLIC_URL_BASE?: string | undefined;
+  readonly S3_BUCKET?: string;
+  readonly S3_ACCESS_KEY_ID?: string;
+  readonly S3_SECRET_ACCESS_KEY?: string;
+  readonly S3_PUBLIC_URL_BASE?: string;
 }) {
   return {
     endpoint: env.S3_ENDPOINT ?? 'http://localhost:8333',
