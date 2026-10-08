@@ -156,6 +156,11 @@ jobs:
             -e MOBILE_MIN_SUPPORTED_VERSION=1.0.0 \
             -e MOBILE_LATEST_VERSION=1.0.0 \
             -e MOBILE_DOWNLOAD_URL=https://fiaro.example/prueba-de-humo.apk \
+            -e S3_ENDPOINT=https://example.r2.cloudflarestorage.com \
+            -e S3_BUCKET=fiaro-prueba-de-humo \
+            -e S3_ACCESS_KEY_ID=solo-para-la-prueba-de-humo \
+            -e S3_SECRET_ACCESS_KEY=solo-para-la-prueba-de-humo \
+            -e S3_PUBLIC_URL_BASE=https://assets.fiaro.example \
             fiaro-api:ci
           for _ in $(seq 1 30); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0
