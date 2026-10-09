@@ -16,6 +16,10 @@ const EMPTY_STATS: LenderPeriodStats = {
   ],
   topArrears: [],
   collectorPerformance: [],
+  expectedAmount: 0,
+  collectedAmount: 0,
+  effectiveness: null,
+  previous: null,
 };
 
 describe('renderLenderStatsPdf', () => {
@@ -54,6 +58,10 @@ describe('renderLenderStatsPdf', () => {
           overdueAmount: 100_000,
         },
       ],
+      expectedAmount: 100_000,
+      collectedAmount: 80_000,
+      effectiveness: 0.8,
+      previous: null,
     };
 
     const buffer = await renderLenderStatsPdf(stats, 'Créditos Ana');

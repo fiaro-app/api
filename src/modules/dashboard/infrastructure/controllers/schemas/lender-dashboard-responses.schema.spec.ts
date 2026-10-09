@@ -31,6 +31,10 @@ describe('toLenderDashboardResponse', () => {
           createdAt: new Date('2026-10-07T20:00:00Z'),
         },
       ],
+      period: { from: '2026-10-05', to: '2026-10-07' },
+      collectedInPeriod: 150_000,
+      expectedInPeriod: 200_000,
+      effectivenessInPeriod: 0.75,
     };
 
     expect(toLenderDashboardResponse(dashboard)).toEqual({
@@ -53,6 +57,10 @@ describe('toLenderDashboardResponse', () => {
           collectorNote: 'Cliente pidió plazo.',
         },
       ],
+      period: { from: '2026-10-05', to: '2026-10-07' },
+      collectedInPeriod: 150_000,
+      expectedInPeriod: 200_000,
+      effectivenessInPeriod: 0.75,
     });
   });
 
@@ -66,6 +74,10 @@ describe('toLenderDashboardResponse', () => {
       clientsInArrears: 0,
       alerts: [],
       pendingSettlements: [],
+      period: { from: '2026-10-07', to: '2026-10-07' },
+      collectedInPeriod: 0,
+      expectedInPeriod: 0,
+      effectivenessInPeriod: null,
     };
 
     expect(toLenderDashboardResponse(dashboard).pendingSettlements).toEqual([]);

@@ -6,13 +6,7 @@ describe('GetManagedCollectorStatsQuerySchema', () => {
     expect(GetManagedCollectorStatsQuerySchema.parse({})).toEqual({});
   });
 
-  it('acepta solo from, solo to, o ambos', () => {
-    expect(
-      GetManagedCollectorStatsQuerySchema.parse({ from: '2026-10-01' }),
-    ).toEqual({ from: '2026-10-01' });
-    expect(
-      GetManagedCollectorStatsQuerySchema.parse({ to: '2026-10-09' }),
-    ).toEqual({ to: '2026-10-09' });
+  it('acepta from y to juntos, incluso el mismo día', () => {
     expect(
       GetManagedCollectorStatsQuerySchema.parse({
         from: '2026-10-01',
@@ -23,6 +17,8 @@ describe('GetManagedCollectorStatsQuerySchema', () => {
 
   it.each([
     ['un rango al revés', { from: '2026-10-09', to: '2026-10-01' }],
+    ['solo from', { from: '2026-10-01' }],
+    ['solo to', { to: '2026-10-09' }],
     ['una fecha mal formada', { from: '09/10/2026' }],
     ['un campo que la ruta no declara', { collectorId: 'x' }],
   ])('rechaza %s', (_name, query) => {

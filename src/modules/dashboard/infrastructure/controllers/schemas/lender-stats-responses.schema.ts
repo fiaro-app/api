@@ -48,6 +48,39 @@ const LenderStatsCollectorPerformanceResponseSchema = z
   })
   .meta({ id: 'LenderStatsCollectorPerformanceResponse' });
 
+/** El período anterior, de la misma duración y justo antes del pedido, para las tendencias. */
+const LenderPreviousPeriodResponseSchema = z
+  .object({
+    from: z.iso
+      .date()
+      .meta({ description: 'Primera fecha del período anterior.' }),
+    to: z.iso
+      .date()
+      .meta({ description: 'Última fecha del período anterior.' }),
+    totalPortfolio: z.int().nonnegative().meta({
+      description:
+        'Cartera total que tenía el negocio al cierre del período anterior.',
+    }),
+    portfolioAtRisk: z.int().nonnegative().meta({
+      description: 'Cartera en riesgo al cierre del período anterior.',
+    }),
+    arrearsRate: z.number().min(0).nullable().meta({
+      description:
+        'portfolioAtRisk / totalPortfolio al cierre. null si la cartera era cero.',
+    }),
+    expectedAmount: z.int().nonnegative().meta({
+      description: 'Lo que vencía en los días del período anterior.',
+    }),
+    collectedAmount: z.int().nonnegative().meta({
+      description: 'Lo que se cobró en los días del período anterior.',
+    }),
+    effectiveness: z.number().min(0).nullable().meta({
+      description:
+        'collectedAmount / expectedAmount. null si no había nada esperado.',
+    }),
+  })
+  .meta({ id: 'LenderPreviousPeriodResponse' });
+
 /** Respuesta de `QUERY /lenders/me/stats`. */
 export const LenderPeriodStatsResponseSchema = z
   .object({
@@ -78,6 +111,22 @@ export const LenderPeriodStatsResponseSchema = z
       .meta({
         description: 'El desempeño de cada cobrador que cumple los filtros.',
       }),
+    expectedAmount: z.int().nonnegative().meta({
+      description:
+        'Lo que vencía en el período, sumado entre los cobradores que cumplen los filtros.',
+    }),
+    collectedAmount: z.int().nonnegative().meta({
+      description:
+        'Lo que esos cobradores cobraron en el período, sin los pagos reversados.',
+    }),
+    effectiveness: z.number().min(0).nullable().meta({
+      description:
+        'collectedAmount / expectedAmount. null si no había nada esperado.',
+    }),
+    previous: LenderPreviousPeriodResponseSchema.nullable().meta({
+      description:
+        'El período anterior, de la misma duración, para calcular tendencias. null si la petición no trae includePrevious: true.',
+    }),
   })
   .meta({ id: 'LenderPeriodStatsResponse' });
 
@@ -94,5 +143,9 @@ export function toLenderPeriodStatsResponse(
     arrearsByAge: [...stats.arrearsByAge],
     topArrears: [...stats.topArrears],
     collectorPerformance: [...stats.collectorPerformance],
+    expectedAmount: stats.expectedAmount,
+    collectedAmount: stats.collectedAmount,
+    effectiveness: stats.effectiveness,
+    previous: stats.previous,
   };
 }

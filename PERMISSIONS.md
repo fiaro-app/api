@@ -175,8 +175,8 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 
 | Ruta | Rol | Notas |
 | --- | --- | --- |
-| `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
-| `QUERY /lenders/me/stats` | `OWNER`, `LENDER` | Cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), ranking de mayor mora y desempeño por cobrador, filtrable por `collectorMembershipId`/`portfolioId` (D-100). Misma forma que `QUERY /collectors/me/stats` (D-98) le muestra a un cobrador sobre sí mismo. |
+| `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). Con `from` y `to` (juntos) suma lo cobrado y lo esperado de ese período (`*InPeriod`, D-111). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
+| `QUERY /lenders/me/stats` | `OWNER`, `LENDER` | Cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), ranking de mayor mora y desempeño por cobrador, filtrable por `collectorMembershipId`/`portfolioId` (D-100); con `includePrevious: true` trae también el período anterior de la misma duración (`previous`, D-111). Misma forma que `QUERY /collectors/me/stats` (D-98) le muestra a un cobrador sobre sí mismo. |
 | `QUERY /lenders/me/stats/export` | `OWNER`, `LENDER` | El mismo reporte anterior, en un PDF de una página (D-101). Única ruta de la API que no responde JSON: usa `@Res()` directo. |
 
 ## Notificaciones — `/notifications` (`NotificationController`)

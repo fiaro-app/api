@@ -1,10 +1,14 @@
 import { toBusinessDate } from '@fiaro-app/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
+import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
 import { toLoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.mapper.js';
-import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
+import {
+  sumNetPayments,
+  sumNetPaymentsAsOf,
+} from '@/modules/collections/application/services/sum-net-payments.js';
 import { toLoanScheduleInput } from '@/modules/collections/application/services/to-loan-schedule-input.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
@@ -40,26 +44,56 @@ export class GetLoanBalanceUseCase {
   ) {}
 
   /**
+   * @remarks
+   * Con `asOf` calcula el saldo que tenía el préstamo al final de esa fecha pasada, para comparar
+   * períodos (D-111): cuenta solo los pagos y las reversiones hasta ese día
+   * ({@link sumNetPaymentsAsOf}) y lo da por cerrado solo si ya se había cerrado entonces. Sin
+   * `asOf`, es el de hoy, con el estado y los pagos actuales. Quien pide un día pasado decide si el
+   * préstamo ya existía entonces: aquí no se comprueba.
+   *
    * @param loanId - El préstamo.
    * @param lenderId - El prestamista dueño, tal como lo resolvió `LenderScopeGuard`.
-   * @returns Su estado financiero, calculado con la fecha de hoy.
+   * @param asOf - Fecha (`AAAA-MM-DD`) para la que se calcula; ausente para hoy.
+   * @returns Su estado financiero.
    * @throws {@link LoanNotFoundError} Si el préstamo no existe, o es de otro prestamista.
    */
-  async execute(loanId: string, lenderId: string): Promise<LoanBalanceDetails> {
+  async execute(
+    loanId: string,
+    lenderId: string,
+    asOf?: string,
+  ): Promise<LoanBalanceDetails> {
     const loan = await this.getLoan.execute(loanId, lenderId);
     const lender = await this.getLender.execute(lenderId);
     const records = await this.visits.listByLoan(loanId);
-    const totalPaid = sumNetPayments(records);
-    const asOf = toBusinessDate(this.clock.now());
+    const today = toBusinessDate(this.clock.now());
+    const calculatedAsOf = asOf ?? today;
 
     const balance = computeLoanBalance({
       ...toLoanScheduleInput(loan, lender),
       totalPayable: loan.totalPayable,
-      totalPaid,
-      asOf,
-      isClosed: loan.status !== 'ACTIVE',
+      totalPaid:
+        asOf === undefined
+          ? sumNetPayments(records)
+          : sumNetPaymentsAsOf(records, asOf),
+      asOf: calculatedAsOf,
+      isClosed: isClosedAsOf(loan, asOf),
     });
 
-    return toLoanBalanceDetails(loanId, asOf, balance);
+    return toLoanBalanceDetails(loanId, calculatedAsOf, balance);
   }
+}
+
+/**
+ * @param loan - El préstamo.
+ * @param asOf - Fecha pasada a la que se mira; ausente para hoy.
+ * @returns Si el préstamo estaba cerrado (`PAID_OFF` o `CANCELED`) en ese momento.
+ */
+function isClosedAsOf(loan: LoanDetails, asOf: string | undefined): boolean {
+  if (loan.status === 'ACTIVE') {
+    return false;
+  }
+  if (asOf === undefined || loan.closedAt === null) {
+    return true;
+  }
+  return toBusinessDate(loan.closedAt) <= asOf;
 }

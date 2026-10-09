@@ -64,6 +64,28 @@ export const LenderDashboardResponseSchema = z
     pendingSettlements: z.array(DashboardSettlementSchema).meta({
       description: 'Los cuadres PENDING del Lender, para revisar.',
     }),
+    period: z
+      .object({
+        from: z.iso.date().meta({ description: 'Primera fecha del período.' }),
+        to: z.iso.date().meta({ description: 'Última fecha del período.' }),
+      })
+      .meta({
+        id: 'LenderDashboardPeriod',
+        description:
+          'El período de las cifras InPeriod: el pedido con from y to, o solo hoy.',
+      }),
+    collectedInPeriod: z.int().nonnegative().meta({
+      description:
+        'Lo cobrado en el período, sumado entre los cobradores activos. Igual a collectedToday si el período es solo hoy.',
+    }),
+    expectedInPeriod: z.int().nonnegative().meta({
+      description:
+        'Lo que el motor de calendario esperaba cobrar en el período, sumado entre los cobradores activos.',
+    }),
+    effectivenessInPeriod: z.number().min(0).nullable().meta({
+      description:
+        'collectedInPeriod sobre expectedInPeriod. null si no había nada esperado.',
+    }),
   })
   .meta({ id: 'LenderDashboardResponse' });
 
@@ -79,6 +101,10 @@ export function toLenderDashboardResponse(
     effectivenessToday: dashboard.effectivenessToday,
     clientsInArrears: dashboard.clientsInArrears,
     alerts: [...dashboard.alerts],
+    period: dashboard.period,
+    collectedInPeriod: dashboard.collectedInPeriod,
+    expectedInPeriod: dashboard.expectedInPeriod,
+    effectivenessInPeriod: dashboard.effectivenessInPeriod,
     pendingSettlements: dashboard.pendingSettlements.map((settlement) => ({
       id: settlement.id,
       collectorMembershipId: settlement.collectorMembershipId,

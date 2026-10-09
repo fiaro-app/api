@@ -12,6 +12,8 @@ export interface GetLenderStatsInput {
   readonly collectorMembershipId?: string;
   /** Solo los cobradores de esta cartera, y los préstamos que tienen asignados hoy; ausente para todas. */
   readonly portfolioId?: string;
+  /** Si es `true`, calcula también el período anterior de la misma duración, para las tendencias. */
+  readonly includePrevious?: boolean;
 }
 
 /** Un cliente en el ranking de mayor mora, con su nombre ya resuelto. */
@@ -32,6 +34,24 @@ export interface LenderStatsCollectorPerformance {
   readonly overdueAmount: number;
 }
 
+/**
+ * El período anterior, de la misma duración y justo antes del pedido, con las cifras que se
+ * comparan para las tendencias (D-111). La cartera y la mora son las que tenía el negocio al
+ * final de ese período; lo cobrado y lo esperado, lo de sus días.
+ */
+export interface LenderPreviousPeriodStats {
+  readonly from: string;
+  readonly to: string;
+  readonly totalPortfolio: number;
+  readonly portfolioAtRisk: number;
+  /** `null` si la cartera era cero. */
+  readonly arrearsRate: number | null;
+  readonly expectedAmount: number;
+  readonly collectedAmount: number;
+  /** `null` si no había nada esperado. */
+  readonly effectiveness: number | null;
+}
+
 /** La salud de cartera y mora del negocio en un período (PROTOTIPO-FLUJOS.md §4.9, D-100). */
 export interface LenderPeriodStats {
   readonly from: string;
@@ -48,4 +68,12 @@ export interface LenderPeriodStats {
   readonly topArrears: readonly LenderStatsTopArrearsEntry[];
   /** El desempeño de cada cobrador que cumple los filtros. */
   readonly collectorPerformance: readonly LenderStatsCollectorPerformance[];
+  /** Lo que el motor de calendario dice que vencía en el período, sumado entre los cobradores que cumplen los filtros. */
+  readonly expectedAmount: number;
+  /** Lo que esos cobradores cobraron de verdad en el período, sin los pagos reversados. */
+  readonly collectedAmount: number;
+  /** `collectedAmount / expectedAmount`, de 0 a 1. `null` si `expectedAmount` es cero. */
+  readonly effectiveness: number | null;
+  /** El período anterior, o `null` si no se pidió (`includePrevious`). */
+  readonly previous: LenderPreviousPeriodStats | null;
 }

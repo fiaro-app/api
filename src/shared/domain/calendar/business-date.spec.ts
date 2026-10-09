@@ -4,6 +4,7 @@ import {
   businessDayInstants,
   businessRangeInstants,
   daysBetween,
+  previousPeriod,
   startOfBusinessMonth,
 } from '@/shared/domain/calendar/business-date.js';
 
@@ -82,5 +83,35 @@ describe('businessRangeInstants', () => {
     const range = businessRangeInstants('2026-10-07', '2026-10-07');
     const day = businessDayInstants('2026-10-07');
     expect(range).toEqual(day);
+  });
+});
+
+describe('previousPeriod', () => {
+  it('es el tramo de la misma duración justo antes del período', () => {
+    expect(previousPeriod({ from: '2026-10-01', to: '2026-10-09' })).toEqual({
+      from: '2026-09-22',
+      to: '2026-09-30',
+    });
+  });
+
+  it('un solo día se compara con el día anterior', () => {
+    expect(previousPeriod({ from: '2026-10-09', to: '2026-10-09' })).toEqual({
+      from: '2026-10-08',
+      to: '2026-10-08',
+    });
+  });
+
+  it('un mes completo se compara con los mismos días justo antes, no con el mes calendario anterior', () => {
+    expect(previousPeriod({ from: '2026-10-01', to: '2026-10-31' })).toEqual({
+      from: '2026-08-31',
+      to: '2026-09-30',
+    });
+  });
+
+  it('cruza el fin de año', () => {
+    expect(previousPeriod({ from: '2027-01-01', to: '2027-01-07' })).toEqual({
+      from: '2026-12-25',
+      to: '2026-12-31',
+    });
   });
 });

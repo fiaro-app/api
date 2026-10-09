@@ -1,9 +1,14 @@
 import { toBusinessDate } from '@fiaro-app/contracts';
 import { Inject, Injectable } from '@nestjs/common';
+import { GetCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-collector-stats.use-case.js';
 import { GetCollectorDailySummaryUseCase } from '@/modules/collections/application/use-cases/get-collector-daily-summary.use-case.js';
 import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
+import { totalCollection } from '@/modules/dashboard/domain/arrears-stats.js';
 import { buildDashboardAlerts } from '@/modules/dashboard/domain/dashboard-alerts.js';
-import type { LenderDashboard } from '@/modules/dashboard/application/dtos/lender-dashboard.dto.js';
+import type {
+  LenderDashboard,
+  LenderDashboardPeriod,
+} from '@/modules/dashboard/application/dtos/lender-dashboard.dto.js';
 import { fetchAllPages } from '@/modules/dashboard/application/services/fetch-all-pages.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
@@ -26,7 +31,9 @@ const PAGE_SIZE = 100;
  * Compone, por la capa de aplicación, `GetCollectorDailySummaryUseCase` (`collections`, D-98) una
  * vez por cobrador activo para "cobrado hoy" y "efectividad general" — nunca se duplica ese
  * cálculo aquí — `ListLoansUseCase`/`GetLoanBalanceUseCase` (`loans`/`collections`) para la
- * cartera y la mora, y `ListSettlementsUseCase` (`settlements`) para los cuadres `PENDING`. No
+ * cartera y la mora, y `ListSettlementsUseCase` (`settlements`) para los cuadres `PENDING`. Con un
+ * período (D-111) suma también lo cobrado y lo esperado de esos días con `GetCollectorStatsUseCase`;
+ * la cartera, la mora y los cuadres siguen siendo los de este momento, no los del período. No
  * compone `notifications`: las alertas son de lectura, no generan un aviso nuevo. Sin caché
  * todavía — cada apertura del resumen recalcula todo; si el número de cobradores o préstamos
  * activos crece mucho, esta es la primera ruta que necesitaría una.
@@ -36,15 +43,23 @@ export class GetLenderDashboardUseCase {
   constructor(
     private readonly listMemberships: ListMembershipsUseCase,
     private readonly getCollectorDailySummary: GetCollectorDailySummaryUseCase,
+    private readonly getCollectorStats: GetCollectorStatsUseCase,
     private readonly listLoans: ListLoansUseCase,
     private readonly getLoanBalance: GetLoanBalanceUseCase,
     private readonly listSettlements: ListSettlementsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** @param lenderId - El prestamista con el que opera la sesión. */
-  async execute(lenderId: string): Promise<LenderDashboard> {
+  /**
+   * @param lenderId - El prestamista con el que opera la sesión.
+   * @param requested - El período de las cifras `InPeriod`; ausente para solo hoy.
+   */
+  async execute(
+    lenderId: string,
+    requested: LenderDashboardPeriod = {},
+  ): Promise<LenderDashboard> {
     const today = toBusinessDate(this.clock.now());
+    const period = { from: requested.from ?? today, to: requested.to ?? today };
     const [
       { total: totalCollectors, activeIds },
       portfolio,
@@ -55,17 +70,13 @@ export class GetLenderDashboardUseCase {
       this.pendingSettlements(lenderId),
     ]);
 
-    const summaries = await Promise.all(
-      activeIds.map((collectorMembershipId) =>
-        this.getCollectorDailySummary.execute({
-          collectorMembershipId,
-          lenderId,
-          date: today,
-        }),
-      ),
-    );
+    const summaries = await this.todaySummaries(activeIds, lenderId, today);
     const collectedToday = sumBy(summaries, (s) => s.collectedAmount);
     const expectedToday = sumBy(summaries, (s) => s.expectedAmount);
+    const inPeriod =
+      period.from === today && period.to === today
+        ? totalCollection(summaries)
+        : await this.collectionInPeriod(activeIds, lenderId, period);
     const settlementsWithDifferences = pendingSettlements.filter(
       (settlement) => settlement.collectedAmount !== settlement.expectedAmount,
     ).length;
@@ -85,7 +96,47 @@ export class GetLenderDashboardUseCase {
         settlementsWithDifferences,
       }),
       pendingSettlements,
+      period,
+      collectedInPeriod: inPeriod.collectedAmount,
+      expectedInPeriod: inPeriod.expectedAmount,
+      effectivenessInPeriod: inPeriod.effectiveness,
     };
+  }
+
+  /** @returns El resumen del día de cada cobrador de `activeIds`. */
+  private async todaySummaries(
+    activeIds: readonly string[],
+    lenderId: string,
+    today: string,
+  ) {
+    return Promise.all(
+      activeIds.map((collectorMembershipId) =>
+        this.getCollectorDailySummary.execute({
+          collectorMembershipId,
+          lenderId,
+          date: today,
+        }),
+      ),
+    );
+  }
+
+  /** @returns Lo esperado y lo cobrado en el período, sumado entre los cobradores `activeIds`. */
+  private async collectionInPeriod(
+    activeIds: readonly string[],
+    lenderId: string,
+    period: { readonly from: string; readonly to: string },
+  ) {
+    const stats = await Promise.all(
+      activeIds.map((collectorMembershipId) =>
+        this.getCollectorStats.execute({
+          collectorMembershipId,
+          lenderId,
+          from: period.from,
+          to: period.to,
+        }),
+      ),
+    );
+    return totalCollection(stats);
   }
 
   /** @returns Cuántas membresías `COLLECTOR` hay en total, y el id de las que están `ACTIVE`. */

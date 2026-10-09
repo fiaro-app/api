@@ -1,0 +1,31 @@
+$kind: http-request
+description: Con includePrevious: true la respuesta trae el período anterior de la misma duración (D-111): cartera y mora a su cierre, más lo esperado y cobrado de sus días. Aquí el período es solo hoy, así que el anterior es ayer.
+url: "{{baseUrl}}/lenders/me/stats"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "dateRange": { "from": "{{dashboardToday}}", "to": "{{dashboardToday}}" },
+      "includePrevious": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('suma lo cobrado del período', () => pm.expect(body.collectedAmount).to.eql(30000));
+      pm.test('trae el período anterior de un día', () => {
+        pm.expect(body.previous.from).to.eql(body.previous.to);
+        pm.expect(body.previous.to < body.to).to.be.true;
+        pm.expect(body.previous.totalPortfolio).to.be.a('number');
+        pm.expect(body.previous.collectedAmount).to.eql(0);
+      });
+    language: text/javascript
+order: 17000

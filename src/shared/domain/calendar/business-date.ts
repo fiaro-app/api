@@ -69,3 +69,28 @@ export function businessRangeInstants(
     end: businessDayInstants(to).end,
   };
 }
+
+/** Un rango de fechas de calendario, ambos extremos incluidos. */
+export interface DatePeriod {
+  /** Primera fecha (`AAAA-MM-DD`). */
+  readonly from: string;
+  /** Última fecha (`AAAA-MM-DD`). */
+  readonly to: string;
+}
+
+/**
+ * El período inmediatamente anterior y de la misma duración: para comparar, por ejemplo, este mes
+ * hasta hoy contra los mismos días del tramo anterior. El de `2026-10-01` a `2026-10-09` (9 días)
+ * es el de `2026-09-22` a `2026-09-30`.
+ *
+ * @remarks
+ * Se mide en días corridos, no en meses calendario: un mes completo se compara con los mismos días
+ * justo antes, no con "el mes pasado", que puede tener otra duración.
+ *
+ * @param period - El período actual (`from <= to`).
+ */
+export function previousPeriod(period: DatePeriod): DatePeriod {
+  const length = daysBetween(period.from, period.to) + 1;
+  const to = addDays(period.from, -1);
+  return { from: addDays(to, -(length - 1)), to };
+}

@@ -1,0 +1,17 @@
+$kind: http-request
+description: El resumen con un período (D-111). from y to van juntos. Lo cobrado de hoy no cambia, pero collectedInPeriod suma todo el rango; la visita de hoy está dentro.
+url: "{{baseUrl}}/lenders/me/dashboard?from=2020-01-01&to={{dashboardToday}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('devuelve el período pedido', () => pm.expect(body.period).to.eql({ from: '2020-01-01', to: pm.collectionVariables.get('dashboardToday') }));
+      pm.test('lo cobrado en el período incluye lo de hoy', () => pm.expect(body.collectedInPeriod).to.be.at.least(body.collectedToday));
+    language: text/javascript
+order: 16000

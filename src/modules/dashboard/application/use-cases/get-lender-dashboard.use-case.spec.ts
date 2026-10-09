@@ -3,6 +3,8 @@ import type { CollectorDailySummary } from '@/modules/collections/application/dt
 import type { GetCollectorDailySummaryUseCase } from '@/modules/collections/application/use-cases/get-collector-daily-summary.use-case.js';
 import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
 import type { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
+import type { CollectorPeriodStats } from '@/modules/collections/application/dtos/collector-period-stats.dto.js';
+import type { GetCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-collector-stats.use-case.js';
 import { GetLenderDashboardUseCase } from '@/modules/dashboard/application/use-cases/get-lender-dashboard.use-case.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
@@ -76,6 +78,7 @@ function setup(options: {
   readonly balanceByLoan?: Record<string, LoanBalanceDetails>;
   readonly summaryByCollector?: Record<string, CollectorDailySummary>;
   readonly settlements?: readonly SettlementDetails[];
+  readonly statsByCollector?: Record<string, Partial<CollectorPeriodStats>>;
 }) {
   const memberships = options.memberships ?? [];
   const activeCollectors = memberships.filter(
@@ -105,6 +108,19 @@ function setup(options: {
     execute: getCollectorDailySummaryExecute,
   } as unknown as GetCollectorDailySummaryUseCase;
 
+  const statsByCollector = options.statsByCollector ?? {};
+  const getCollectorStatsExecute = vi.fn(
+    (input: { collectorMembershipId: string }) =>
+      Promise.resolve({
+        expectedAmount: 0,
+        collectedAmount: 0,
+        ...statsByCollector[input.collectorMembershipId],
+      } as CollectorPeriodStats),
+  );
+  const getCollectorStats = {
+    execute: getCollectorStatsExecute,
+  } as unknown as GetCollectorStatsUseCase;
+
   const loans = options.loans ?? [];
   const listLoansExecute = vi.fn(() =>
     Promise.resolve({ items: loans, total: loans.length }),
@@ -133,12 +149,18 @@ function setup(options: {
   const useCase = new GetLenderDashboardUseCase(
     listMemberships,
     getCollectorDailySummary,
+    getCollectorStats,
     listLoans,
     getLoanBalance,
     listSettlements,
     clock,
   );
-  return { useCase, getCollectorDailySummaryExecute, getLoanBalanceExecute };
+  return {
+    useCase,
+    getCollectorDailySummaryExecute,
+    getLoanBalanceExecute,
+    getCollectorStatsExecute,
+  };
 }
 
 describe('GetLenderDashboardUseCase', () => {
@@ -156,6 +178,10 @@ describe('GetLenderDashboardUseCase', () => {
       clientsInArrears: 0,
       alerts: [],
       pendingSettlements: [],
+      period: { from: TODAY, to: TODAY },
+      collectedInPeriod: 0,
+      expectedInPeriod: 0,
+      effectivenessInPeriod: null,
     });
   });
 

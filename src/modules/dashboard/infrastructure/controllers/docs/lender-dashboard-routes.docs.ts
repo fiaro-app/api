@@ -33,13 +33,21 @@ export const ApiGetLenderDashboard = () =>
     ApiOperation({
       summary: 'Ver el resumen del negocio',
       description:
-        'Cartera total, cobrado hoy, cobradores activos y totales, efectividad general de hoy, clientes en mora, alertas de texto y los cuadres PENDING por revisar, del prestamista con el que opera la sesión (D-99). Exige rol OWNER o LENDER.',
+        'Cartera total, cobrado hoy, cobradores activos y totales, efectividad general de hoy, clientes en mora, alertas de texto y los cuadres PENDING por revisar, del prestamista con el que opera la sesión (D-99). Con `from` y `to` (hora de Colombia; ausentes: solo hoy) suma también lo cobrado y lo esperado de ese período (`collectedInPeriod`, `expectedInPeriod`, `effectivenessInPeriod`); la cartera, la mora, las alertas y los cuadres siguen siendo los de este momento. Exige rol OWNER o LENDER.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
       status: 200,
       description: 'El resumen del negocio.',
       standardSchema: LenderDashboardResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'El período no es válido: una fecha mal formada, o `to` anterior a `from` (`VALIDATION_FAILED`).',
+      standardSchema: ApiErrorSchema.extend({
+        code: z.literal('VALIDATION_FAILED'),
+      }).meta({ id: 'LenderDashboardValidationError' }),
     }),
     ApiUnauthenticatedResponse(),
     ApiWrongRoleResponse(),

@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Query,
   QueryMethod,
   Res,
   UseGuards,
@@ -26,6 +27,7 @@ import {
   toLenderDashboardResponse,
   type LenderDashboardResponseSchema,
 } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-dashboard-responses.schema.js';
+import { GetLenderDashboardQuerySchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-dashboard-requests.schema.js';
 import { GetLenderStatsExportRequestSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-export-requests.schema.js';
 import { GetLenderStatsRequestSchema } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-requests.schema.js';
 import {
@@ -62,18 +64,23 @@ export class LenderDashboardController {
     private readonly getLenderStatsExportUseCase: GetLenderStatsExportUseCase,
   ) {}
 
-  /** @param scope - El Lender con el que opera la sesión. */
+  /**
+   * @param query - El período de lo cobrado, opcional, ya validado.
+   * @param scope - El Lender con el que opera la sesión.
+   */
   @Get('dashboard')
   @HttpCode(HttpStatus.OK)
   @ApiGetLenderDashboard()
   async getLenderDashboard(
+    @Query({ schema: GetLenderDashboardQuerySchema })
+    query: z.output<typeof GetLenderDashboardQuerySchema>,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof LenderDashboardResponseSchema>> {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
     return toLenderDashboardResponse(
-      await this.getLenderDashboardUseCase.execute(scope.lenderId),
+      await this.getLenderDashboardUseCase.execute(scope.lenderId, query),
     );
   }
 
@@ -99,6 +106,7 @@ export class LenderDashboardController {
         to: query.dateRange?.to,
         collectorMembershipId: query.collectorMembershipId,
         portfolioId: query.portfolioId,
+        includePrevious: query.includePrevious,
       }),
     );
   }

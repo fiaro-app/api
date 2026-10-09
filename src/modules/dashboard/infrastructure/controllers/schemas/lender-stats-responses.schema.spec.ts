@@ -32,6 +32,19 @@ describe('toLenderPeriodStatsResponse', () => {
           overdueAmount: 40_000,
         },
       ],
+      expectedAmount: 100_000,
+      collectedAmount: 80_000,
+      effectiveness: 0.8,
+      previous: {
+        from: '2026-09-24',
+        to: '2026-09-30',
+        totalPortfolio: 900_000,
+        portfolioAtRisk: 90_000,
+        arrearsRate: 0.1,
+        expectedAmount: 100_000,
+        collectedAmount: 76_000,
+        effectiveness: 0.76,
+      },
     };
 
     expect(toLenderPeriodStatsResponse(stats)).toEqual(stats);
@@ -52,11 +65,17 @@ describe('toLenderPeriodStatsResponse', () => {
       ],
       topArrears: [],
       collectorPerformance: [],
+      expectedAmount: 0,
+      collectedAmount: 0,
+      effectiveness: null,
+      previous: null,
     };
 
     const response = toLenderPeriodStatsResponse(stats);
     expect(response.arrearsRate).toBeNull();
     expect(response.topArrears).toEqual([]);
     expect(response.collectorPerformance).toEqual([]);
+    expect(response.effectiveness).toBeNull();
+    expect(response.previous).toBeNull();
   });
 });
