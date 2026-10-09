@@ -10,11 +10,14 @@ import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cas
 import { GetLoanInstallmentsUseCase } from '@/modules/collections/application/use-cases/get-loan-installments.use-case.js';
 import { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
 import { ListCollectionVisitsUseCase } from '@/modules/collections/application/use-cases/list-collection-visits.use-case.js';
+import { SearchCollectionVisitsUseCase } from '@/modules/collections/application/use-cases/search-collection-visits.use-case.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
+import { COLLECTION_VISIT_REPORT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-report-repository.token.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
 import { PAYMENT_REVERSAL_REPOSITORY } from '@/modules/collections/domain/tokens/payment-reversal-repository.token.js';
 import { PAYMENT_REPOSITORY } from '@/modules/collections/domain/tokens/payment-repository.token.js';
 import { PrismaCollectionAssignmentRepository } from '@/modules/collections/infrastructure/persistence/prisma-collection-assignment.repository.js';
+import { PrismaCollectionVisitReportRepository } from '@/modules/collections/infrastructure/persistence/prisma-collection-visit-report.repository.js';
 import { PrismaCollectionVisitRepository } from '@/modules/collections/infrastructure/persistence/prisma-collection-visit.repository.js';
 import { PrismaPaymentReversalRepository } from '@/modules/collections/infrastructure/persistence/prisma-payment-reversal.repository.js';
 import { PrismaPaymentRepository } from '@/modules/collections/infrastructure/persistence/prisma-payment.repository.js';
@@ -29,6 +32,10 @@ export const collectionsProviders: Provider[] = [
     provide: COLLECTION_VISIT_REPOSITORY,
     useClass: PrismaCollectionVisitRepository,
   },
+  {
+    provide: COLLECTION_VISIT_REPORT_REPOSITORY,
+    useClass: PrismaCollectionVisitReportRepository,
+  },
   { provide: PAYMENT_REPOSITORY, useClass: PrismaPaymentRepository },
   {
     provide: PAYMENT_REVERSAL_REPOSITORY,
@@ -38,6 +45,7 @@ export const collectionsProviders: Provider[] = [
   ListCollectionAssignmentsUseCase,
   CreateCollectionVisitUseCase,
   ListCollectionVisitsUseCase,
+  SearchCollectionVisitsUseCase,
   GetLoanBalanceUseCase,
   GetLoanInstallmentsUseCase,
   CreatePaymentReversalUseCase,

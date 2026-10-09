@@ -149,6 +149,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /collectors/:id/deactivate` | `OWNER`, `LENDER` | Da de baja a un cobrador reasignando, en el mismo paso, cada préstamo activo que tiene asignado hoy (D-97). Mismo chequeo que `/memberships`: **nunca sobre la propia membresía**. `reassignments` debe cubrir exactamente sus préstamos activos (`400 VALIDATION_FAILED` si no), y ningún destino puede ser el cobrador que se da de baja. Vive aquí y no en `memberships` porque solo este módulo conoce las asignaciones de cobro. |
 | `GET /loans/:loanId/balance` | Cualquiera | Vive en `collections`, no en `loans`, para no crear un ciclo de módulos (D-84) — detalle arquitectónico, no de permisos. |
 | `GET /loans/:loanId/installments` | Cualquiera | Calendario de cuotas (D-103). Mismo motor y mismas fechas que el saldo; vive en `collections` por la misma razón (D-84). |
+| `QUERY /collection-visits` | `OWNER`, `LENDER` | «Cobros del día» (D-105): las visitas de todo el negocio, no de un préstamo. Un `COLLECTOR` recibe `403 FORBIDDEN`; él ve lo suyo por su ruta y su resumen (D-98). |
 | `POST /payments/:id/reversals` | `OWNER`, `LENDER` | Única forma de corregir un pago (D-85). `reversedByMembershipId` siempre de la sesión. |
 
 ## Cuadre diario — `/daily-settlements` (`DailySettlementController`)
