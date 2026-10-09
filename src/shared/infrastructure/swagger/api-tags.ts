@@ -14,6 +14,11 @@ export interface ApiTagDefinition {
  * nombre con `@ApiTags(API_TAGS.<grupo>.name)`.
  */
 export const API_TAGS = {
+  lead: {
+    name: 'Contacto de ventas',
+    description:
+      'Formulario público «Contactar ventas» (`POST /leads`), sin sesión y con un límite de uso propio: guarda el contacto y avisa por correo al equipo de ventas.',
+  },
   registration: {
     name: 'Registro',
     description:

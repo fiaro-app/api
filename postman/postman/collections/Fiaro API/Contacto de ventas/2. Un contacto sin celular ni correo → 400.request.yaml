@@ -1,0 +1,23 @@
+$kind: http-request
+description: Sin ningún medio para responder, el contacto se rechaza (D-114).
+url: "{{baseUrl}}/leads"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Ana Pérez (prueba de contacto)",
+      "message": "Quiero probar Fiaro con mis 3 cobradores."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400, o 429 si ya se pasó del límite por hora', () => pm.expect([400, 429]).to.include(pm.response.code));
+      if (pm.response.code === 400) {
+        pm.test('el error es VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));
+      }
+    language: text/javascript
+order: 2000

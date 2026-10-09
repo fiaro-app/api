@@ -1,0 +1,5 @@
+$kind: collection
+description: |-
+  El formulario público «Contactar ventas» (`POST /leads`, D-114): sin sesión, con un límite propio
+  de 5 contactos por hora por IP. Guarda el contacto y avisa por correo a `LEADS_NOTIFY_EMAIL`.
+order: 950

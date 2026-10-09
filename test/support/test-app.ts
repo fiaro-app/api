@@ -91,7 +91,7 @@ export async function startTestApp(
   // "tenants" arrastra en cascada a lenders/portfolios/clients/loans/memberships/collection_*/
   // payments (todos cuelgan de él, directa o indirectamente); "verifications" no tiene FK a
   // "users" (guarda el identificador como texto, D-68), así que hay que nombrarla aparte.
-  await prisma.$executeRaw`TRUNCATE TABLE "users", "verifications", "tenants", "mora_alert_runs" CASCADE`;
+  await prisma.$executeRaw`TRUNCATE TABLE "users", "verifications", "tenants", "mora_alert_runs", "leads" CASCADE`;
 
   const createUseCase = app.get(CreateUserUseCase, { strict: false });
   return {

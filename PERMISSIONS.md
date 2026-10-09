@@ -85,6 +85,14 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /register` | — | Crea `Tenant` + `Lender` + membresía `OWNER` con los tres roles en una transacción (D-78). No abre sesión después: registrarse e iniciar sesión son dos pasos separados. |
 
+## Contacto de ventas — `/leads` (`LeadController`)
+
+`@Public()`: no exige sesión (es el formulario «Contactar ventas» del sitio de marketing).
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `POST /leads` | — | Guarda el contacto y avisa por correo a `LEADS_NOTIFY_EMAIL` (D-114). **Límite propio de 5 por hora por IP** (`@Throttle`), mucho más estricto que el general (100/min), porque cualquiera en internet puede llamarla y cada llamada guarda una fila y manda un correo. Campo señuelo `website` contra robots. Ninguna ruta lee los contactos guardados: solo ventas, por correo o desde la base. |
+
 ## Prestamista — `/lender` (`LenderController`)
 
 `LenderScopeGuard` en toda la clase.

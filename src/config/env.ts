@@ -81,6 +81,7 @@ const EnvSchema = z
     MOBILE_APP_SCHEMES: commaSeparated(MobileSchemeSchema),
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().optional(),
+    LEADS_NOTIFY_EMAIL: z.email().optional(),
     MOBILE_MIN_SUPPORTED_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_DOWNLOAD_URL: z.url().optional(),
@@ -187,6 +188,7 @@ const EnvSchema = z
       resendApiKey: env.RESEND_API_KEY,
       fromAddress: env.RESEND_FROM_EMAIL,
     },
+    leads: { notifyEmail: env.LEADS_NOTIFY_EMAIL },
     maintenanceMode: env.MAINTENANCE_MODE ?? false,
     mobile: {
       minimumSupportedVersion: env.MOBILE_MIN_SUPPORTED_VERSION ?? '0.0.0',

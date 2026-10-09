@@ -327,6 +327,7 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `RESEND_API_KEY` | opcional; **obligatoria en producción** | API key de [Resend](https://resend.com) para enviar correos (`ResendEmailSender`, módulo `notifications`). Sin ella, en desarrollo el correo solo se escribe en el log (`LoggingEmailSender`): no hace falta cuenta de Resend ni dominio verificado para trabajar en local |
 | `PUSH_DELIVERY` | `expo` en producción, `log` en el resto | Cómo se mandan las notificaciones push (D-95): `expo` las manda a la API de Expo y `log` solo las escribe en el log. Así el desarrollo y las pruebas no mandan push reales |
 | `EXPO_ACCESS_TOKEN` | opcional | Token de acceso de Expo, solo si la cuenta tiene activada la seguridad mejorada de las notificaciones push; se manda como `Authorization: Bearer` |
+| `LEADS_NOTIFY_EMAIL` | — (opcional) | Correo del equipo de ventas al que llega el aviso de cada contacto de `POST /leads` (D-114). Sin ella, el contacto igual se guarda y se deja una advertencia en el log |
 | `MORA_ALERTS` | `true` salvo en `test` | Activa el aviso diario de mora a las 08:00 de Bogotá (D-96). En las pruebas no corre, para que ningún caso reciba avisos que no pidió |
 | `RESEND_FROM_EMAIL` | opcional; **obligatoria en producción** | Dirección remitente verificada en Resend (por ejemplo `Fiaro <no-reply@tu-dominio.com>`). Sin ella pasa lo mismo que sin `RESEND_API_KEY` |
 
