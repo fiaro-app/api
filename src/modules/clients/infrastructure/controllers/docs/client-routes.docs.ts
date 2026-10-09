@@ -8,10 +8,7 @@ import {
   ClientNotFoundSchema,
   ClientValidationErrorSchema,
 } from '@/modules/clients/infrastructure/controllers/schemas/client-errors.schema.js';
-import {
-  ClientResponseSchema,
-  ClientsPageResponseSchema,
-} from '@/modules/clients/infrastructure/controllers/schemas/client-responses.schema.js';
+import { ClientResponseSchema } from '@/modules/clients/infrastructure/controllers/schemas/client-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
 /** `401 UNAUTHENTICATED`: sin sesión vigente. */
@@ -109,24 +106,6 @@ export const ApiGetClient = () =>
     ApiUnauthenticatedResponse(),
     ApiNoActiveMembershipResponse(),
     ApiClientNotFoundResponse(),
-  );
-
-/** Documenta `QUERY /clients`. */
-export const ApiListClients = () =>
-  applyDecorators(
-    ApiOperation({
-      summary: 'Buscar clientes',
-      description:
-        'Clientes del prestamista con el que opera la sesión, paginados y con búsqueda opcional por nombre o cédula. Cualquier rol puede verla.',
-    }),
-    ApiCookieAuth(SESSION_SECURITY_SCHEME),
-    ApiResponse({
-      status: 200,
-      description: 'Página de clientes.',
-      standardSchema: ClientsPageResponseSchema,
-    }),
-    ApiUnauthenticatedResponse(),
-    ApiNoActiveMembershipResponse(),
   );
 
 /** Documenta `PATCH /clients/:id`. */

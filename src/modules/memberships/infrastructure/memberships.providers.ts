@@ -49,7 +49,8 @@ export const membershipsProviders: Provider[] = [
  * los préstamos del cobrador: el cambio de estado es el mismo para cualquier membresía, cobrador o
  * no (D-97). `ListMembershipsUseCase` lo usa `dashboard` para contar cobradores activos y totales
  * del resumen del Lender (D-99). `CountActiveMembershipsByPortfolioUseCase` lo usa `lenders`
- * para no dejar borrar una cartera con cobradores activos (D-109).
+ * para no dejar borrar una cartera con cobradores activos (D-109). `GetMembershipEntryUseCase` lo
+ * usa `collections` para el nombre del cobrador de cada préstamo de la lista (D-113).
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
@@ -58,5 +59,6 @@ export const membershipsExports = [
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
   CountActiveMembershipsByPortfolioUseCase,
+  GetMembershipEntryUseCase,
   LENDER_SCOPE_RESOLVER,
 ];

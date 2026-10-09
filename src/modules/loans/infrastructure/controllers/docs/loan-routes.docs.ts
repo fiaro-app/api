@@ -8,10 +8,7 @@ import {
   LoanNotFoundSchema,
   LoanValidationErrorSchema,
 } from '@/modules/loans/infrastructure/controllers/schemas/loan-errors.schema.js';
-import {
-  LoanResponseSchema,
-  LoansPageResponseSchema,
-} from '@/modules/loans/infrastructure/controllers/schemas/loan-responses.schema.js';
+import { LoanResponseSchema } from '@/modules/loans/infrastructure/controllers/schemas/loan-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
 /** `401 UNAUTHENTICATED`: sin sesión vigente. */
@@ -99,24 +96,6 @@ export const ApiGetLoan = () =>
     ApiNotFoundResponse(
       'El préstamo no existe, o es de otro prestamista (`NOT_FOUND`).',
     ),
-  );
-
-/** Documenta `QUERY /loans`. */
-export const ApiListLoans = () =>
-  applyDecorators(
-    ApiOperation({
-      summary: 'Buscar préstamos',
-      description:
-        'Préstamos del prestamista con el que opera la sesión, paginados y con filtro opcional por cliente o estado. Cualquier rol puede verla.',
-    }),
-    ApiCookieAuth(SESSION_SECURITY_SCHEME),
-    ApiResponse({
-      status: 200,
-      description: 'Página de préstamos.',
-      standardSchema: LoansPageResponseSchema,
-    }),
-    ApiUnauthenticatedResponse(),
-    ApiNoActiveMembershipResponse(),
   );
 
 /** Documenta `POST /loans/:id/cancel`. */

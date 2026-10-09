@@ -1,9 +1,5 @@
-import { paginated } from '@fiaro-app/contracts';
 import { z } from 'zod';
-import type {
-  ClientDetails,
-  ClientsPageResult,
-} from '@/modules/clients/application/dtos/client-details.dto.js';
+import type { ClientDetails } from '@/modules/clients/application/dtos/client-details.dto.js';
 
 /** Respuesta con los datos públicos de un cliente. */
 export const ClientResponseSchema = z
@@ -26,11 +22,6 @@ export const ClientResponseSchema = z
   })
   .meta({ id: 'ClientResponse' });
 
-/** Respuesta de `QUERY /clients`: una página de clientes. */
-export const ClientsPageResponseSchema = paginated(ClientResponseSchema).meta({
-  id: 'ClientsPageResponse',
-});
-
 /** @param details - Los datos del cliente, tal como los devuelve el caso de uso. */
 export function toClientResponse(
   details: ClientDetails,
@@ -43,23 +34,5 @@ export function toClientResponse(
     phone: details.phone,
     address: details.address,
     createdAt: details.createdAt.toISOString(),
-  };
-}
-
-/**
- * @param page - La página de clientes, tal como la devuelve el caso de uso.
- * @param pageQuery - La página y el tamaño pedidos.
- */
-export function toClientsPageResponse(
-  page: ClientsPageResult,
-  pageQuery: { page: number; pageSize: number },
-): z.output<typeof ClientsPageResponseSchema> {
-  return {
-    data: page.items.map(toClientResponse),
-    meta: {
-      page: pageQuery.page,
-      pageSize: pageQuery.pageSize,
-      total: page.total,
-    },
   };
 }

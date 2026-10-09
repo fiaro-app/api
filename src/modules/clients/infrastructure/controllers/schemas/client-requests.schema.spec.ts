@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   CreateClientRequestSchema,
-  ListClientsRequestSchema,
   UpdateClientRequestSchema,
 } from '@/modules/clients/infrastructure/controllers/schemas/client-requests.schema.js';
 
@@ -53,27 +52,6 @@ describe('UpdateClientRequestSchema', () => {
 
   it('rechaza un campo que la ruta no declara', () => {
     expect(UpdateClientRequestSchema.safeParse({ cedula: 'x' }).success).toBe(
-      false,
-    );
-  });
-});
-
-describe('ListClientsRequestSchema', () => {
-  it('aplica los valores por defecto de paginación', () => {
-    expect(ListClientsRequestSchema.parse({})).toEqual({
-      page: 1,
-      pageSize: 20,
-    });
-  });
-
-  it('acepta una búsqueda opcional', () => {
-    expect(ListClientsRequestSchema.parse({ search: 'Gómez' }).search).toBe(
-      'Gómez',
-    );
-  });
-
-  it('rechaza un campo que la ruta no declara', () => {
-    expect(ListClientsRequestSchema.safeParse({ sort: 'name' }).success).toBe(
       false,
     );
   });

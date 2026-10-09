@@ -126,7 +126,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /clients` | `OWNER`, `LENDER` | — |
 | `GET /clients/:id` | Cualquiera | `COLLECTOR` lo necesita en campo. |
-| `QUERY /clients` | Cualquiera | — |
+| `QUERY /clients` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays` y `activeLoans`, sumados sobre sus préstamos activos (D-113). Vive en `collections` (`PortfolioListController`), no en `ClientController`, porque el saldo sale de los pagos de las visitas y `clients` no puede depender de `collections`. |
 | `PATCH /clients/:id` | `OWNER`, `LENDER` | — |
 
 ## Préstamos — `/loans` (`LoanController`)
@@ -137,7 +137,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /loans` | `OWNER`, `LENDER` | — |
 | `GET /loans/:id` | Cualquiera | — |
-| `QUERY /loans` | Cualquiera | — |
+| `QUERY /loans` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays`, `nextDueDate` y el `collector` vigente (D-113). Vive en `collections` (`PortfolioListController`) por la misma razón que `/loans/:loanId/balance` (D-84). |
 | `POST /loans/:id/cancel` | `OWNER`, `LENDER` | Mismo rol que crear (D-79): anulación por error, antes de recibir pagos. |
 
 ## Cobro en campo — `collections` (7 controllers)

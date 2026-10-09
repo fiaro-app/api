@@ -156,6 +156,28 @@ describe('PrismaLoanRepository.list', () => {
   });
 });
 
+describe('PrismaLoanRepository.listActiveByClients', () => {
+  it('trae en una sola consulta los préstamos ACTIVE de esos clientes, dentro del prestamista', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([row]);
+
+    const found = await repository.listActiveByClients('lender-1', [
+      'client-1',
+      'client-2',
+    ]);
+
+    expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        lenderId: 'lender-1',
+        clientId: { in: ['client-1', 'client-2'] },
+        status: 'ACTIVE',
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(found).toEqual([loan]);
+  });
+});
+
 describe('PrismaLoanRepository.update', () => {
   it('reemplaza los datos del préstamo, con su lenderId en el where', async () => {
     const { repository, update } = setup();

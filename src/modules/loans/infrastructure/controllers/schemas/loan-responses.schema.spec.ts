@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
-import {
-  toLoanResponse,
-  toLoansPageResponse,
-} from '@/modules/loans/infrastructure/controllers/schemas/loan-responses.schema.js';
+import { toLoanResponse } from '@/modules/loans/infrastructure/controllers/schemas/loan-responses.schema.js';
 
 const DETAILS: LoanDetails = {
   id: 'loan-1',
@@ -46,19 +43,5 @@ describe('toLoanResponse', () => {
     };
 
     expect(toLoanResponse(closed).closedAt).toBe('2026-09-30T12:00:00.000Z');
-  });
-});
-
-describe('toLoansPageResponse', () => {
-  it('envuelve los préstamos con sus metadatos de paginación', () => {
-    expect(
-      toLoansPageResponse(
-        { items: [DETAILS], total: 1 },
-        { page: 1, pageSize: 20 },
-      ),
-    ).toEqual({
-      data: [toLoanResponse(DETAILS)],
-      meta: { page: 1, pageSize: 20, total: 1 },
-    });
   });
 });

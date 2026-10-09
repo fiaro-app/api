@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CancelLoanUseCase } from '@/modules/loans/application/use-cases/cancel-loan.use-case.js';
 import type { CreateLoanUseCase } from '@/modules/loans/application/use-cases/create-loan.use-case.js';
 import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
-import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import { LoanController } from '@/modules/loans/infrastructure/controllers/loan.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -26,9 +25,6 @@ const DETAILS = {
 function setup() {
   const createLoanUseCase = { execute: vi.fn(() => Promise.resolve(DETAILS)) };
   const getLoanUseCase = { execute: vi.fn(() => Promise.resolve(DETAILS)) };
-  const listLoansUseCase = {
-    execute: vi.fn(() => Promise.resolve({ items: [DETAILS], total: 1 })),
-  };
   const cancelLoanUseCase = {
     execute: vi.fn(() =>
       Promise.resolve({ ...DETAILS, status: 'CANCELED' as const }),
@@ -37,14 +33,12 @@ function setup() {
   const controller = new LoanController(
     createLoanUseCase as unknown as CreateLoanUseCase,
     getLoanUseCase as unknown as GetLoanUseCase,
-    listLoansUseCase as unknown as ListLoansUseCase,
     cancelLoanUseCase as unknown as CancelLoanUseCase,
   );
   return {
     controller,
     createLoanUseCase,
     getLoanUseCase,
-    listLoansUseCase,
     cancelLoanUseCase,
   };
 }
@@ -66,7 +60,7 @@ const CREATE_BODY = {
 };
 
 describe('LoanController', () => {
-  it('publica POST, GET, QUERY y POST /:id/cancel, todas colgando de /loans', () => {
+  it('publica POST, GET y POST /:id/cancel, todas colgando de /loans', () => {
     const publishedRoutes = Object.getOwnPropertyNames(LoanController.prototype)
       .flatMap((name) => {
         const handler = Reflect.get(LoanController.prototype, name) as object;
@@ -76,7 +70,7 @@ describe('LoanController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['GET', 'POST', 'QUERY', 'POST'].sort());
+    expect(publishedRoutes).toEqual(['GET', 'POST', 'POST'].sort());
     expect(Reflect.getMetadata(PATH_METADATA, LoanController)).toBe('loans');
   });
 
@@ -145,25 +139,6 @@ describe('LoanController', () => {
         'lender-1',
       );
       expect(response.id).toBe('loan-1');
-    });
-  });
-
-  describe('listLoans', () => {
-    it('devuelve la página de préstamos del prestamista de la sesión', async () => {
-      const { controller, listLoansUseCase } = setup();
-
-      const response = await controller.listLoans(
-        { page: 1, pageSize: 20 },
-        scopeWith(['COLLECTOR']),
-      );
-
-      expect(listLoansUseCase.execute).toHaveBeenCalledExactlyOnceWith({
-        lenderId: 'lender-1',
-        page: 1,
-        pageSize: 20,
-      });
-      expect(response.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
-      expect(response.data).toHaveLength(1);
     });
   });
 

@@ -6,40 +6,12 @@ import type { CollectionVisitRepository } from '@/modules/collections/domain/rep
 import {
   toCollectionVisit,
   toCollectionVisitCreateInput,
-  toPayment,
+  toCollectionVisitRecord,
   toPaymentCreateInput,
-  toPaymentReversal,
+  WITH_PAYMENT_AND_REVERSAL,
 } from '@/modules/collections/infrastructure/persistence/collection-visit.mapper.js';
 import { businessRangeInstants } from '@/shared/domain/calendar/business-date.js';
-import type { CollectionVisitModel } from '@/shared/infrastructure/persistence/generated/models.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
-
-/** A qué nivel de detalle se piden las visitas: su pago, y la reversión de ese pago. */
-const WITH_PAYMENT_AND_REVERSAL = {
-  payment: { include: { reversal: true } },
-} as const;
-
-/**
- * Fila de `collection_visits` con su `payment` (y la `reversal` de ese pago, si tiene una), tal
- * como la trae `WITH_PAYMENT_AND_REVERSAL`.
- */
-type CollectionVisitRowWithPayment = CollectionVisitModel & {
-  payment:
-    | (Parameters<typeof toPayment>[0] & {
-        reversal: Parameters<typeof toPaymentReversal>[0] | null;
-      })
-    | null;
-};
-
-/** @param row - Fila con su pago y la reversión de ese pago, si los trae. */
-function toRecord(row: CollectionVisitRowWithPayment): CollectionVisitRecord {
-  const reversalRow = row.payment?.reversal ?? null;
-  return {
-    visit: toCollectionVisit(row),
-    payment: row.payment === null ? null : toPayment(row.payment),
-    reversal: reversalRow === null ? null : toPaymentReversal(reversalRow),
-  };
-}
 
 /** Guarda a las visitas de cobro y sus pagos en PostgreSQL con Prisma. */
 @Injectable()
@@ -76,7 +48,7 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
       where: { id, loanId },
       include: WITH_PAYMENT_AND_REVERSAL,
     });
-    return row === null ? null : toRecord(row);
+    return row === null ? null : toCollectionVisitRecord(row);
   }
 
   /** @param loanId - El préstamo. */
@@ -86,7 +58,7 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
       include: WITH_PAYMENT_AND_REVERSAL,
       orderBy: { occurredAt: 'asc' },
     });
-    return rows.map(toRecord);
+    return rows.map(toCollectionVisitRecord);
   }
 
   /**
@@ -123,6 +95,6 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
       include: WITH_PAYMENT_AND_REVERSAL,
       orderBy: { occurredAt: 'asc' },
     });
-    return rows.map(toRecord);
+    return rows.map(toCollectionVisitRecord);
   }
 }

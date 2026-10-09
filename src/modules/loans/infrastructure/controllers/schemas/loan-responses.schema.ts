@@ -1,13 +1,6 @@
-import {
-  LoanFrequencySchema,
-  LoanStatusSchema,
-  paginated,
-} from '@fiaro-app/contracts';
+import { LoanFrequencySchema, LoanStatusSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
-import type {
-  LoanDetails,
-  LoansPageResult,
-} from '@/modules/loans/application/dtos/loan-details.dto.js';
+import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 
 /** Respuesta con los datos públicos de un préstamo. */
 export const LoanResponseSchema = z
@@ -44,11 +37,6 @@ export const LoanResponseSchema = z
   })
   .meta({ id: 'LoanResponse' });
 
-/** Respuesta de `QUERY /loans`: una página de préstamos. */
-export const LoansPageResponseSchema = paginated(LoanResponseSchema).meta({
-  id: 'LoansPageResponse',
-});
-
 /** @param details - Los datos del préstamo, tal como los devuelve el caso de uso. */
 export function toLoanResponse(
   details: LoanDetails,
@@ -66,23 +54,5 @@ export function toLoanResponse(
     createdByMembershipId: details.createdByMembershipId,
     createdAt: details.createdAt.toISOString(),
     closedAt: details.closedAt?.toISOString() ?? null,
-  };
-}
-
-/**
- * @param page - La página de préstamos, tal como la devuelve el caso de uso.
- * @param pageQuery - La página y el tamaño pedidos.
- */
-export function toLoansPageResponse(
-  page: LoansPageResult,
-  pageQuery: { page: number; pageSize: number },
-): z.output<typeof LoansPageResponseSchema> {
-  return {
-    data: page.items.map(toLoanResponse),
-    meta: {
-      page: pageQuery.page,
-      pageSize: pageQuery.pageSize,
-      total: page.total,
-    },
   };
 }

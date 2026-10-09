@@ -1,4 +1,3 @@
-import { PageQuerySchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
 
 /** Cuerpo de `POST /clients`. */
@@ -64,12 +63,3 @@ export const UpdateClientRequestSchema = z
       body.address !== undefined,
     { message: 'Debes enviar al menos un campo para actualizar.' },
   );
-
-/** Cuerpo de `QUERY /clients`: paginación y búsqueda opcional. */
-export const ListClientsRequestSchema = PageQuerySchema.extend({
-  search: z.string().trim().min(1).optional().meta({
-    description:
-      'Texto libre contra el nombre o la cédula. Ausente para listar todos.',
-    example: 'Gómez',
-  }),
-});

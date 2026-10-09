@@ -35,6 +35,7 @@ function setup(current: Loan | null = activeLoan()) {
   });
   const loans: LoanRepository = {
     listLenderIdsWithStatus: vi.fn(() => Promise.resolve([])),
+    listActiveByClients: vi.fn(() => Promise.resolve([])),
     create: vi.fn(() => Promise.resolve()),
     findById: vi.fn(() => Promise.resolve(current)),
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
