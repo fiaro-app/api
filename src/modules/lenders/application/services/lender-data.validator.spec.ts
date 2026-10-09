@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validateLenderData } from '@/modules/lenders/application/services/lender-data.validator.js';
+import {
+  validateBrandColor,
+  validateLenderData,
+} from '@/modules/lenders/application/services/lender-data.validator.js';
 import { InvalidLenderDataError } from '@/modules/lenders/domain/errors/invalid-lender-data.error.js';
 
 const VALID = {
@@ -59,5 +62,28 @@ describe('validateLenderData', () => {
     expect((error as InvalidLenderDataError).issues[0]?.params).toEqual({
       minimum: '2',
     });
+  });
+});
+
+describe('validateBrandColor', () => {
+  it('deja null como está: el color de Fiaro', () => {
+    expect(validateBrandColor(null)).toBeNull();
+  });
+
+  it('devuelve el color en mayúsculas', () => {
+    expect(validateBrandColor('#ff8800')).toBe('#FF8800');
+  });
+
+  it('rechaza lo que no es #RRGGBB, con un issue en brandColor', () => {
+    let error: unknown;
+    try {
+      validateBrandColor('#F80');
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(InvalidLenderDataError);
+    expect((error as InvalidLenderDataError).issues[0]?.path).toEqual([
+      'brandColor',
+    ]);
   });
 });

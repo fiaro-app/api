@@ -35,4 +35,27 @@ describe('UpdateLenderRequestSchema', () => {
       false,
     );
   });
+
+  describe('brandColor', () => {
+    it.each(['#FF8800', '#ff8800'])('acepta %s', (brandColor) => {
+      expect(UpdateLenderRequestSchema.safeParse({ brandColor }).success).toBe(
+        true,
+      );
+    });
+
+    it('acepta null (vuelve al color de Fiaro) y cuenta como un campo a actualizar', () => {
+      expect(
+        UpdateLenderRequestSchema.safeParse({ brandColor: null }).success,
+      ).toBe(true);
+    });
+
+    it.each(['FF8800', '#F80', 'naranja', '#GG8800', ''])(
+      'rechaza %j',
+      (brandColor) => {
+        expect(
+          UpdateLenderRequestSchema.safeParse({ brandColor }).success,
+        ).toBe(false);
+      },
+    );
+  });
 });

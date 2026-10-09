@@ -11,6 +11,7 @@ const CURRENT = Lender.create({
   tenantId: 'tenant-1',
   name: 'Préstamos Ana',
   logoUrl: null,
+  brandColor: null,
   nonWorkingWeekdays: ['SUNDAY'],
   skipNationalHolidays: false,
   createdAt: CREATED_AT,
@@ -50,6 +51,7 @@ describe('UpdateLenderUseCase', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: 'https://example.com/logo.png',
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       createdAt: CREATED_AT,
@@ -91,5 +93,62 @@ describe('UpdateLenderUseCase', () => {
     await expect(
       useCase.execute({ lenderId: 'lender-1', name: 'Nuevo nombre' }),
     ).rejects.toThrow('El prestamista lender-1 no existe.');
+  });
+
+  describe('brandColor', () => {
+    const withColor = () =>
+      Lender.create({
+        id: 'lender-1',
+        tenantId: 'tenant-1',
+        name: 'Préstamos Ana',
+        logoUrl: null,
+        brandColor: '#112233',
+        nonWorkingWeekdays: ['SUNDAY'],
+        skipNationalHolidays: false,
+        createdAt: CREATED_AT,
+      });
+
+    it('lo guarda en mayúsculas', async () => {
+      const { useCase, saved } = setup();
+
+      const updated = await useCase.execute({
+        lenderId: 'lender-1',
+        brandColor: '#ff8800',
+      });
+
+      expect(updated.brandColor).toBe('#FF8800');
+      expect(saved[0]?.brandColor).toBe('#FF8800');
+    });
+
+    it('null vuelve al color de Fiaro', async () => {
+      const { useCase } = setup(withColor());
+
+      const updated = await useCase.execute({
+        lenderId: 'lender-1',
+        brandColor: null,
+      });
+
+      expect(updated.brandColor).toBeNull();
+    });
+
+    it('si no llega, conserva el que tenía', async () => {
+      const { useCase } = setup(withColor());
+
+      const updated = await useCase.execute({
+        lenderId: 'lender-1',
+        name: 'Préstamos Ana Pérez',
+      });
+
+      expect(updated.brandColor).toBe('#112233');
+    });
+
+    it('rechaza un color que no es #RRGGBB sin guardar nada', async () => {
+      const { useCase, update } = setup();
+
+      await expect(
+        useCase.execute({ lenderId: 'lender-1', brandColor: 'naranja' }),
+      ).rejects.toBeInstanceOf(InvalidLenderDataError);
+      expect(update).not.toHaveBeenCalled();
+    });
   });
 });

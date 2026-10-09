@@ -43,6 +43,7 @@ describe('CreateLenderUseCase', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       defaultPortfolioId: 'id-2',

@@ -8,6 +8,7 @@ export function toLenderDetails(lender: Lender): LenderDetails {
     tenantId: lender.tenantId,
     name: lender.name,
     logoUrl: lender.logoUrl,
+    brandColor: lender.brandColor,
     nonWorkingWeekdays: lender.nonWorkingWeekdays,
     skipNationalHolidays: lender.skipNationalHolidays,
     createdAt: lender.createdAt,

@@ -22,6 +22,7 @@ const LENDER: LenderDetails = {
   tenantId: 'tenant-1',
   name: 'Créditos de prueba',
   logoUrl: null,
+  brandColor: null,
   nonWorkingWeekdays: [],
   skipNationalHolidays: false,
   createdAt: CREATED_AT,

@@ -13,6 +13,7 @@ const lender = Lender.create({
   tenantId: 'tenant-1',
   name: 'Préstamos Ana',
   logoUrl: null,
+  brandColor: null,
   nonWorkingWeekdays: ['SUNDAY'],
   skipNationalHolidays: false,
   createdAt: CREATED_AT,
@@ -25,6 +26,7 @@ describe('toLenderCreateInput', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       createdAt: CREATED_AT,
@@ -45,6 +47,7 @@ describe('toLenderUpdateInput', () => {
     expect(toLenderUpdateInput(lender)).toEqual({
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
     });
@@ -58,6 +61,7 @@ describe('toLender', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: 'https://example.com/logo.png',
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: true,
       createdAt: CREATED_AT,

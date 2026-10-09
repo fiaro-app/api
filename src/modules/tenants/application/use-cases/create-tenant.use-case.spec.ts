@@ -18,6 +18,7 @@ const CREATED_LENDER: CreatedLender = {
   tenantId: 'tenant-1',
   name: 'Préstamos Ana',
   logoUrl: null,
+  brandColor: null,
   nonWorkingWeekdays: ['SUNDAY'],
   skipNationalHolidays: false,
   defaultPortfolioId: 'portfolio-1',

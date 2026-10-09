@@ -16,6 +16,8 @@ model Lender {
   tenantId             String    @map("tenant_id") @db.Uuid
   name                 String
   logoUrl              String?   @map("logo_url")
+  /// Color de marca del negocio, `#RRGGBB` en mayúsculas; la web tematiza con él. null: el de Fiaro.
+  brandColor           String?   @map("brand_color")
   nonWorkingWeekdays   Weekday[] @default([SUNDAY]) @map("non_working_weekdays")
   skipNationalHolidays Boolean   @default(false) @map("skip_national_holidays")
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)

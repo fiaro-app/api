@@ -18,6 +18,7 @@ export interface CreatedLender {
   readonly name: string;
   /** URL del logo, o `null`: no hay carga de archivos al dar de alta. */
   readonly logoUrl: string | null;
+  readonly brandColor: string | null;
   /** Días de la semana en que no se cobra. */
   readonly nonWorkingWeekdays: readonly Weekday[];
   /** Si los festivos nacionales de Colombia tampoco cuentan como días de cobro. */

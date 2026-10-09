@@ -13,6 +13,11 @@ export const LenderResponseSchema = z
     logoUrl: z.url().nullable().meta({
       description: 'URL del logo, o `null` si no tiene uno.',
     }),
+    brandColor: z.string().nullable().meta({
+      description:
+        'Color de marca del negocio, `#RRGGBB` en mayúsculas, con el que la web tematiza la interfaz; `null` para el de Fiaro.',
+      example: '#FF8800',
+    }),
     nonWorkingWeekdays: z.array(WeekdaySchema).meta({
       description: 'Días de la semana en que no se cobra.',
     }),
@@ -35,6 +40,7 @@ export function toLenderResponse(
     tenantId: details.tenantId,
     name: details.name,
     logoUrl: details.logoUrl,
+    brandColor: details.brandColor,
     nonWorkingWeekdays: [...details.nonWorkingWeekdays],
     skipNationalHolidays: details.skipNationalHolidays,
     createdAt: details.createdAt.toISOString(),
