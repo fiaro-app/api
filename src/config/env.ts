@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import {
+  buildMoraAlertsConfig,
+  buildPushConfig,
+  buildS3Config,
+  buildSubscriptionConfig,
+} from '@/config/env-builders.js';
+import {
   AuthSecretSchema,
   commaSeparated,
   DatabaseUrlSchema,
@@ -12,52 +18,6 @@ import {
   QueuePrefixSchema,
   RedisUrlSchema,
 } from '@/config/env-fields.js';
-
-/**
- * Si corre el aviso diario de mora (D-96). Por defecto, sí, salvo en las pruebas: un aviso programado
- * dentro de una prueba enviaría correos y crearía notificaciones que los demás casos no esperan.
- */
-function buildMoraAlertsConfig(env: {
-  readonly NODE_ENV: 'development' | 'test' | 'production';
-  readonly MORA_ALERTS?: boolean;
-}) {
-  return { enabled: env.MORA_ALERTS ?? env.NODE_ENV !== 'test' };
-}
-
-/**
- * Cómo se mandan las notificaciones push (D-95): con Expo, o solo al log. Por defecto, con Expo en
- * producción y solo al log en el resto, para que ni las pruebas ni el desarrollo manden push reales.
- */
-function buildPushConfig(env: {
-  readonly NODE_ENV: 'development' | 'test' | 'production';
-  readonly PUSH_DELIVERY?: 'expo' | 'log';
-  readonly EXPO_ACCESS_TOKEN?: string;
-}) {
-  return {
-    delivery:
-      env.PUSH_DELIVERY ?? (env.NODE_ENV === 'production' ? 'expo' : 'log'),
-    expoAccessToken: env.EXPO_ACCESS_TOKEN,
-  };
-}
-
-/** Credenciales S3/R2 de `POST /lender/logo-upload-url` (D-102), con los valores de `pnpm docker:dev`. */
-function buildS3Config(env: {
-  readonly S3_ENDPOINT?: string;
-  readonly S3_REGION: string;
-  readonly S3_BUCKET?: string;
-  readonly S3_ACCESS_KEY_ID?: string;
-  readonly S3_SECRET_ACCESS_KEY?: string;
-  readonly S3_PUBLIC_URL_BASE?: string;
-}) {
-  return {
-    endpoint: env.S3_ENDPOINT ?? 'http://localhost:8333',
-    region: env.S3_REGION,
-    bucket: env.S3_BUCKET ?? 'fiaro-dev',
-    accessKeyId: env.S3_ACCESS_KEY_ID ?? 'fiaro',
-    secretAccessKey: env.S3_SECRET_ACCESS_KEY ?? 'fiaro-secret',
-    publicUrlBase: env.S3_PUBLIC_URL_BASE ?? 'http://localhost:8333/fiaro-dev',
-  };
-}
 
 /** Variables de entorno de la API, validadas una sola vez al arrancar. */
 const EnvSchema = z
@@ -82,6 +42,9 @@ const EnvSchema = z
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().optional(),
     LEADS_NOTIFY_EMAIL: z.email().optional(),
+    SUBSCRIPTION_TRIAL_DAYS: integer(1, 3650).default(30),
+    SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: integer(1, 1000).default(1),
+    SUBSCRIPTION_TRIAL_MAX_COLLECTORS: integer(1, 100_000).default(5),
     MOBILE_MIN_SUPPORTED_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_DOWNLOAD_URL: z.url().optional(),
@@ -189,6 +152,7 @@ const EnvSchema = z
       fromAddress: env.RESEND_FROM_EMAIL,
     },
     leads: { notifyEmail: env.LEADS_NOTIFY_EMAIL },
+    subscription: buildSubscriptionConfig(env),
     maintenanceMode: env.MAINTENANCE_MODE ?? false,
     mobile: {
       minimumSupportedVersion: env.MOBILE_MIN_SUPPORTED_VERSION ?? '0.0.0',

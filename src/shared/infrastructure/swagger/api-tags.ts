@@ -78,6 +78,11 @@ export const API_TAGS = {
     description:
       'Cierre diario de un cobrador del prestamista con el que opera la sesión (`LenderScopeGuard`): lo esperado contra lo cobrado, declarado por él mismo al cerrar, con desglose por medio de pago. Uno por cobrador y día; reenviarlo lo actualiza y lo devuelve a `PENDING`. Verlo no pide un rol específico; enviarlo exige `COLLECTOR`; aprobarlo o rechazarlo exige `OWNER` o `LENDER`.',
   },
+  subscription: {
+    name: 'Suscripción',
+    description:
+      'El plan del negocio del prestamista con el que opera la sesión (`LenderScopeGuard`): estado, fechas, límites y uso. Cualquier rol puede verlo; solo informa, no bloquea nada.',
+  },
   notification: {
     name: 'Notificaciones',
     description:

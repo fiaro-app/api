@@ -27,6 +27,11 @@ describe('loadEnv', () => {
         fromAddress: undefined,
       },
       leads: { notifyEmail: undefined },
+      subscription: {
+        trialDays: 30,
+        trialMaxActiveLenders: 1,
+        trialMaxCollectors: 5,
+      },
       maintenanceMode: false,
       mobile: {
         minimumSupportedVersion: '0.0.0',
@@ -88,6 +93,11 @@ describe('loadEnv', () => {
         fromAddress: PRODUCTION_ENV.RESEND_FROM_EMAIL,
       },
       leads: { notifyEmail: 'ventas@fiaro.co' },
+      subscription: {
+        trialDays: 30,
+        trialMaxActiveLenders: 1,
+        trialMaxCollectors: 5,
+      },
       maintenanceMode: true,
       mobile: {
         minimumSupportedVersion: PRODUCTION_ENV.MOBILE_MIN_SUPPORTED_VERSION,

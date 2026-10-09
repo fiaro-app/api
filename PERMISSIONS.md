@@ -93,6 +93,14 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /leads` | — | Guarda el contacto y avisa por correo a `LEADS_NOTIFY_EMAIL` (D-114). **Límite propio de 5 por hora por IP** (`@Throttle`), mucho más estricto que el general (100/min), porque cualquiera en internet puede llamarla y cada llamada guarda una fila y manda un correo. Campo señuelo `website` contra robots. Ninguna ruta lee los contactos guardados: solo ventas, por correo o desde la base. |
 
+## Suscripción — `/subscription` (`SubscriptionController`)
+
+`LenderScopeGuard`: opera con el prestamista de la membresía activa.
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `GET /subscription` | cualquiera con membresía activa | El plan del Tenant: estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`), fechas, límites y uso (D-115). Solo informa: no bloquea ninguna operación. |
+
 ## Prestamista — `/lender` (`LenderController`)
 
 `LenderScopeGuard` en toda la clase.

@@ -1,4 +1,5 @@
 import type { Provider } from '@nestjs/common';
+import { CountLendersByTenantUseCase } from '@/modules/lenders/application/use-cases/count-lenders-by-tenant.use-case.js';
 import { CreateLenderUseCase } from '@/modules/lenders/application/use-cases/create-lender.use-case.js';
 import { CreatePortfolioUseCase } from '@/modules/lenders/application/use-cases/create-portfolio.use-case.js';
 import { DeletePortfolioUseCase } from '@/modules/lenders/application/use-cases/delete-portfolio.use-case.js';
@@ -18,6 +19,7 @@ export const lendersProviders: Provider[] = [
   { provide: PORTFOLIO_REPOSITORY, useClass: PrismaPortfolioRepository },
   CreateLenderUseCase,
   GetLenderUseCase,
+  CountLendersByTenantUseCase,
   UpdateLenderUseCase,
   GetLenderLogoUploadUrlUseCase,
   CreatePortfolioUseCase,
@@ -28,10 +30,12 @@ export const lendersProviders: Provider[] = [
 
 /**
  * Lo que el módulo ofrece a los demás: el repositorio de prestamistas, su alta y su consulta
- * (`GetLenderUseCase`, que `collections` usa para los días sin cobro del saldo/mora, D-84).
+ * (`GetLenderUseCase`, que `collections` usa para los días sin cobro del saldo/mora, D-84) y su
+ * conteo por Tenant (`CountLendersByTenantUseCase`, para el uso del plan, D-115).
  */
 export const lendersExports = [
   LENDER_REPOSITORY,
   CreateLenderUseCase,
   GetLenderUseCase,
+  CountLendersByTenantUseCase,
 ];

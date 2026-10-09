@@ -9,6 +9,7 @@ function setup(found: Lender | null) {
   const findById = vi.fn(() => Promise.resolve(found));
   const lenders: LenderRepository = {
     create: vi.fn(),
+    countByTenant: vi.fn(),
     findById,
     update: vi.fn(),
   };

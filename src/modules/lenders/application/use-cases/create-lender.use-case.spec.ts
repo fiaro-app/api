@@ -16,6 +16,7 @@ function setup() {
   });
   const lenders: LenderRepository = {
     create,
+    countByTenant: vi.fn(),
     findById: vi.fn(() => Promise.resolve(null)),
     update: vi.fn(() => Promise.resolve()),
   };

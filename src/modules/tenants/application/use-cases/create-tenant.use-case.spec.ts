@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CreatedLender } from '@/modules/lenders/application/dtos/create-lender.dto.js';
 import { CreateLenderUseCase } from '@/modules/lenders/application/use-cases/create-lender.use-case.js';
 import { InvalidLenderDataError } from '@/modules/lenders/domain/errors/invalid-lender-data.error.js';
+import { StartTrialSubscriptionUseCase } from '@/modules/subscriptions/application/use-cases/start-trial-subscription.use-case.js';
 import type { CreatedMembership } from '@/modules/memberships/application/dtos/create-membership.dto.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import { CreateTenantUseCase } from '@/modules/tenants/application/use-cases/create-tenant.use-case.js';
@@ -46,6 +47,10 @@ function setup(options: { lenderError?: Error; membershipError?: Error } = {}) {
     findById: vi.fn(() => Promise.resolve(null)),
     findByName: vi.fn(() => Promise.resolve(null)),
   };
+  const startTrialExecute = vi.fn(() => Promise.resolve());
+  const startTrial = {
+    execute: startTrialExecute,
+  } as unknown as StartTrialSubscriptionUseCase;
   const createLenderExecute = vi.fn(() =>
     options.lenderError
       ? Promise.reject(options.lenderError)
@@ -68,12 +73,14 @@ function setup(options: { lenderError?: Error; membershipError?: Error } = {}) {
     tenants,
     ids,
     clock,
+    startTrial,
     createLender,
     createMembership,
   );
   return {
     useCase,
     create,
+    startTrialExecute,
     createLenderExecute,
     createMembershipExecute,
     saved,
@@ -82,8 +89,13 @@ function setup(options: { lenderError?: Error; membershipError?: Error } = {}) {
 
 describe('CreateTenantUseCase', () => {
   it('crea el Tenant, con su id el primer prestamista, y con el de ambos la membresía de dueño', async () => {
-    const { useCase, createLenderExecute, createMembershipExecute, saved } =
-      setup();
+    const {
+      useCase,
+      startTrialExecute,
+      createLenderExecute,
+      createMembershipExecute,
+      saved,
+    } = setup();
 
     const created = await useCase.execute({
       businessName: 'Préstamos Ana',
@@ -96,6 +108,7 @@ describe('CreateTenantUseCase', () => {
       ownerMembership: OWNER_MEMBERSHIP,
     });
     expect(saved).toHaveLength(1);
+    expect(startTrialExecute).toHaveBeenCalledExactlyOnceWith('tenant-1');
     expect(createLenderExecute).toHaveBeenCalledExactlyOnceWith({
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
@@ -120,13 +133,19 @@ describe('CreateTenantUseCase', () => {
   });
 
   it('rechaza un nombre demasiado corto sin guardar nada ni pedir el prestamista ni la membresía', async () => {
-    const { useCase, create, createLenderExecute, createMembershipExecute } =
-      setup();
+    const {
+      useCase,
+      create,
+      startTrialExecute,
+      createLenderExecute,
+      createMembershipExecute,
+    } = setup();
 
     await expect(
       useCase.execute({ businessName: 'A', ownerUserId: 'user-1' }),
     ).rejects.toBeInstanceOf(InvalidTenantDataError);
     expect(create).not.toHaveBeenCalled();
+    expect(startTrialExecute).not.toHaveBeenCalled();
     expect(createLenderExecute).not.toHaveBeenCalled();
     expect(createMembershipExecute).not.toHaveBeenCalled();
   });

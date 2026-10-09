@@ -1,0 +1,17 @@
+/// Plan del Tenant (PRODUCT.md §7): hasta cuántos prestamistas y cobradores activos puede tener y
+/// hasta cuándo está pagado el período. El estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`) no se
+/// guarda: se calcula a partir de `currentPeriodEndsAt` y los días de gracia.
+model Subscription {
+  id                  String   @id @db.Uuid
+  tenantId            String   @unique @map("tenant_id") @db.Uuid
+  /// Qué plan es. Hoy solo existe `TRIAL`, la prueba con la que nace todo negocio.
+  planCode            String   @map("plan_code")
+  maxActiveLenders    Int      @map("max_active_lenders")
+  maxCollectors       Int      @map("max_collectors")
+  currentPeriodEndsAt DateTime @map("current_period_ends_at") @db.Timestamptz(3)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}

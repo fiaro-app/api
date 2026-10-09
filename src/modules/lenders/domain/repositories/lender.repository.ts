@@ -17,6 +17,12 @@ export interface LenderRepository {
    */
   findById(id: string): Promise<Lender | null>;
 
+  /**
+   * @param tenantId - El Tenant.
+   * @returns Cuántos prestamistas tiene.
+   */
+  countByTenant(tenantId: string): Promise<number>;
+
   /** @param lender - El prestamista con sus datos ya actualizados. */
   update(lender: Lender): Promise<void>;
 }

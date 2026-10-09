@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateLenderUseCase } from '@/modules/lenders/application/use-cases/create-lender.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
+import { StartTrialSubscriptionUseCase } from '@/modules/subscriptions/application/use-cases/start-trial-subscription.use-case.js';
 import type {
   CreateTenantInput,
   CreatedTenant,
@@ -16,15 +17,15 @@ import type { IdGenerator } from '@/shared/application/ports/id-generator.port.j
 import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 
 /**
- * Da de alta a un Tenant con su primer prestamista y la membresía de dueño de quien lo registra
+ * Da de alta a un Tenant con su suscripción de prueba (D-115), su primer prestamista y la membresía de dueño de quien lo registra
  * (D-73). Es el único camino para crear uno: no hay registro público todavía
  * (`tenant-lender-membership-scope`), así que lo usa el seed de desarrollo y, más adelante, el
  * registro del Owner.
  *
  * @remarks
- * El Tenant, el Lender y la membresía se crean en tres escrituras seguidas, no en una
- * transacción atómica: son agregados de módulos distintos (`tenants`, `lenders`,
- * `memberships`), y la regla de fronteras del proyecto prohíbe que uno importe el dominio del
+ * El Tenant, su suscripción, el Lender y la membresía se crean en escrituras seguidas, no en una
+ * transacción atómica: son agregados de módulos distintos (`tenants`, `subscriptions`,
+ * `lenders`, `memberships`), y la regla de fronteras del proyecto prohíbe que uno importe el dominio del
  * otro — se componen por la capa de aplicación (`CreateLenderUseCase`, `CreateMembershipUseCase`),
  * nunca por una escritura de Prisma compartida. Riesgo asumido: si el proceso se cae a mitad de
  * camino, queda un Tenant sin Lender o sin membresía de dueño; es una operación de alta rara, no
@@ -36,6 +37,7 @@ export class CreateTenantUseCase {
     @Inject(TENANT_REPOSITORY) private readonly tenants: TenantRepository,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly startTrialSubscription: StartTrialSubscriptionUseCase,
     private readonly createLender: CreateLenderUseCase,
     private readonly createMembership: CreateMembershipUseCase,
   ) {}
@@ -54,6 +56,7 @@ export class CreateTenantUseCase {
       createdAt: this.clock.now(),
     });
     await this.tenants.create(tenant);
+    await this.startTrialSubscription.execute(tenant.id);
     const lender = await this.createLender.execute({
       tenantId: tenant.id,
       name: input.businessName,

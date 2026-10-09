@@ -24,10 +24,13 @@ function setup() {
   const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(),
   );
+  const count = vi.fn<(args: unknown) => Promise<number>>(() =>
+    Promise.resolve(0),
+  );
   const repository = new PrismaLenderRepository({
-    lender: { create, findUnique, update },
+    lender: { create, findUnique, update, count },
   } as unknown as PrismaService);
-  return { repository, create, findUnique, update };
+  return { repository, create, findUnique, update, count };
 }
 
 describe('PrismaLenderRepository.create', () => {
@@ -86,6 +89,19 @@ describe('PrismaLenderRepository.findById', () => {
     findUnique.mockResolvedValueOnce(null);
 
     await expect(repository.findById('lender-1')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaLenderRepository.countByTenant', () => {
+  it('cuenta los prestamistas del Tenant', async () => {
+    const { repository, count } = setup();
+    count.mockResolvedValueOnce(2);
+
+    await expect(repository.countByTenant('tenant-1')).resolves.toBe(2);
+
+    expect(count).toHaveBeenCalledExactlyOnceWith({
+      where: { tenantId: 'tenant-1' },
+    });
   });
 });
 
