@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 import type { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import type { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import type { GetMembershipEntryUseCase } from '@/modules/memberships/application/use-cases/get-membership-entry.use-case.js';
 import type { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import type { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
@@ -69,6 +70,15 @@ function setup() {
       (id: string, lenderId: string) => Promise<MembershipDetails>
     >(() => Promise.resolve({ ...MEMBERSHIP_DETAILS, roles: ['LENDER'] })),
   };
+  const getMembershipEntryUseCase = {
+    execute: vi.fn(() =>
+      Promise.resolve({
+        ...MEMBERSHIP_DETAILS,
+        fullName: 'Luis Gómez',
+        phone: '+573109998877',
+      }),
+    ),
+  };
   const controller = new MembershipController(
     inviteMembershipUseCase as unknown as InviteMembershipUseCase,
     deactivateMembershipUseCase as unknown as DeactivateMembershipUseCase,
@@ -76,6 +86,7 @@ function setup() {
     listMembershipsUseCase as unknown as ListMembershipsUseCase,
     resetMembershipPasswordUseCase as unknown as ResetMembershipPasswordUseCase,
     getMembershipUseCase as unknown as GetMembershipUseCase,
+    getMembershipEntryUseCase as unknown as GetMembershipEntryUseCase,
   );
   return {
     controller,
@@ -85,6 +96,7 @@ function setup() {
     listMembershipsUseCase,
     resetMembershipPasswordUseCase,
     getMembershipUseCase,
+    getMembershipEntryUseCase,
   };
 }
 
@@ -98,7 +110,7 @@ const scopeWith = (
 });
 
 describe('MembershipController', () => {
-  it('publica QUERY, POST y PATCH, colgando de /memberships', () => {
+  it('publica QUERY, GET, POST y PATCH, colgando de /memberships', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       MembershipController.prototype,
     )
@@ -113,7 +125,9 @@ describe('MembershipController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['PATCH', 'POST', 'POST', 'POST', 'QUERY']);
+    expect(publishedRoutes).toEqual(
+      'GET PATCH POST POST POST QUERY'.split(' '),
+    );
     expect(Reflect.getMetadata(PATH_METADATA, MembershipController)).toBe(
       'memberships',
     );

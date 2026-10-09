@@ -103,10 +103,12 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 
 ## Membresías — `/memberships` (`MembershipController`)
 
-`LenderScopeGuard` en toda la clase. No hay `GET /memberships` (listar) todavía.
+`LenderScopeGuard` en toda la clase.
 
 | Ruta | Rol | Notas |
 | --- | --- | --- |
+| `QUERY /memberships` | `OWNER`, `LENDER` | Lista paginada de colaboradores con nombre y celular (D-92). Puede traer la propia membresía. |
+| `GET /memberships/:id` | `OWNER`, `LENDER` | Detalle de un colaborador, con la misma forma que una fila del listado (D-106). A diferencia de las demás rutas con `:id`, **sí permite ver la propia membresía**: ver no tiene el riesgo de dejar un negocio sin administrador. Otro prestamista da `404 NOT_FOUND`. |
 | `POST /memberships` | `OWNER`, `LENDER` | Invita a una persona nueva con los roles y la cartera dados. |
 | `POST /memberships/:id/deactivate` | `OWNER`, `LENDER` | **Nunca sobre la propia membresía** (`scope.membershipId !== id`), ni siquiera para quien tiene esos roles — evita dejar un negocio sin nadie que lo administre. **Rechaza además una membresía con el rol `COLLECTOR`** (`400 VALIDATION_FAILED`): un cobrador se da de baja con `POST /collectors/:id/deactivate` (ver abajo, D-97), que reasigna sus préstamos antes de desactivarlo. |
 | `PATCH /memberships/:id/roles` | `OWNER`, `LENDER` | Misma regla: nunca sobre la propia. |

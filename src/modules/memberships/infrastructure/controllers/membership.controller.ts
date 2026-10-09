@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -15,6 +16,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { GetMembershipEntryUseCase } from '@/modules/memberships/application/use-cases/get-membership-entry.use-case.js';
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
@@ -23,6 +25,7 @@ import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/
 import {
   ApiChangeMembershipRoles,
   ApiDeactivateMembership,
+  ApiGetMembership,
   ApiInviteMembership,
   ApiListMemberships,
   ApiResetMembershipPassword,
@@ -34,9 +37,11 @@ import {
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-requests.schema.js';
 import {
   toInvitedMembershipResponse,
+  toMembershipListEntryResponse,
   toMembershipResponse,
   toMembershipsPageResponse,
   type InvitedMembershipResponseSchema,
+  type MembershipListEntryResponseSchema,
   type MembershipResponseSchema,
   type MembershipsPageResponseSchema,
   type ResetMembershipPasswordResponseSchema,
@@ -57,7 +62,7 @@ const MembershipIdParamSchema = z.uuid();
  * `LenderScopeGuard`, así que corre después de `AuthGuard` y ya sabe con qué Lender operar.
  *
  * @remarks
- * Las cinco rutas exigen `OWNER` o `LENDER`, el mismo criterio que crear/editar en el resto del
+ * Las seis rutas exigen `OWNER` o `LENDER`, el mismo criterio que crear/editar en el resto del
  * sistema: administrar quién entra a un negocio (y ver quién ya está) es tan sensible como crear
  * un cliente o un préstamo. Las cuatro que actúan sobre una membresía puntual, además, nunca
  * dejan que una sesión actúe sobre la propia (`scope.membershipId === id`): desactivarse,
@@ -77,6 +82,7 @@ export class MembershipController {
     private readonly listMembershipsUseCase: ListMembershipsUseCase,
     private readonly resetMembershipPasswordUseCase: ResetMembershipPasswordUseCase,
     private readonly getMembershipUseCase: GetMembershipUseCase,
+    private readonly getMembershipEntryUseCase: GetMembershipEntryUseCase,
   ) {}
 
   /**
@@ -99,6 +105,25 @@ export class MembershipController {
       ...query,
     });
     return toMembershipsPageResponse(page, query);
+  }
+
+  /**
+   * @param id - La membresía.
+   * @param scope - El Lender con el que opera la sesión.
+   */
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiGetMembership()
+  async getMembership(
+    @Param('id', { schema: MembershipIdParamSchema }) id: string,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<z.output<typeof MembershipListEntryResponseSchema>> {
+    if (!hasAnyRole(scope.roles, EDITOR_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    return toMembershipListEntryResponse(
+      await this.getMembershipEntryUseCase.execute(id, scope.lenderId),
+    );
   }
 
   /**

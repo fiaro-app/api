@@ -2,6 +2,8 @@ import type { Provider } from '@nestjs/common';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { MembershipEntryAssembler } from '@/modules/memberships/application/services/membership-entry.assembler.js';
+import { GetMembershipEntryUseCase } from '@/modules/memberships/application/use-cases/get-membership-entry.use-case.js';
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { ListActiveMembershipsByRolesUseCase } from '@/modules/memberships/application/use-cases/list-active-memberships-by-roles.use-case.js';
@@ -24,6 +26,8 @@ export const membershipsProviders: Provider[] = [
   { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
   CreateMembershipUseCase,
   GetMembershipUseCase,
+  MembershipEntryAssembler,
+  GetMembershipEntryUseCase,
   InviteMembershipUseCase,
   DeactivateMembershipUseCase,
   ChangeMembershipRolesUseCase,
