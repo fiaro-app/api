@@ -125,7 +125,13 @@ export class DailySettlementController {
   ): Promise<z.output<typeof SettlementsPageResponseSchema>> {
     const page = await this.listSettlementsUseCase.execute({
       lenderId: scope.lenderId,
-      ...query,
+      page: query.page,
+      pageSize: query.pageSize,
+      collectorMembershipId: query.collectorMembershipId,
+      status: query.status,
+      portfolioId: query.portfolioId,
+      from: query.dateRange?.from,
+      to: query.dateRange?.to,
     });
     return toSettlementsPageResponse(page, query);
   }

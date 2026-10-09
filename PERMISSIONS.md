@@ -99,7 +99,9 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | Ruta | Rol | Notas |
 | --- | --- | --- |
 | `POST /portfolios` | `OWNER`, `LENDER` | — |
-| `GET /portfolios` | Cualquiera | Sin editar ni borrar todavía: nada lo necesita aún. |
+| `GET /portfolios` | Cualquiera | — |
+| `PATCH /portfolios/:id` | `OWNER`, `LENDER` | Renombra (D-109). Se puede renombrar también la cartera por defecto. Nombre repetido en el prestamista: `409 CONFLICT`. Otro prestamista o inexistente: `404 NOT_FOUND`. |
+| `DELETE /portfolios/:id` | `OWNER`, `LENDER` | Borra (D-109), `204`. `409 CONFLICT` si es la cartera por defecto o si tiene cobradores **activos** asignados; las membresías inactivas que la tenían quedan sin cartera (`ON DELETE SET NULL`). |
 
 ## Membresías — `/memberships` (`MembershipController`)
 
@@ -163,7 +165,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /daily-settlements` | `COLLECTOR` | Siempre el propio cuadre (`scope.membershipId`). |
 | `GET /daily-settlements/:id` | Cualquiera | Cualquier rol ve cualquier cuadre del prestamista, no solo el propio. |
-| `QUERY /daily-settlements` | Cualquiera | Igual. |
+| `QUERY /daily-settlements` | Cualquiera | Igual. Filtros combinables: `collectorMembershipId`, `portfolioId`, `status` y `dateRange` sobre la fecha del cuadre (D-108). |
 | `POST /daily-settlements/:id/approve` | `OWNER`, `LENDER` | — |
 | `POST /daily-settlements/:id/reject` | `OWNER`, `LENDER` | — |
 

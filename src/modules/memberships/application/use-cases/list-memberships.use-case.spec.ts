@@ -31,6 +31,7 @@ function setup(
     findById: vi.fn(),
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
+    countActiveByPortfolio: vi.fn(),
     update: vi.fn(),
     list,
   };

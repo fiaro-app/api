@@ -40,4 +40,18 @@ export class Portfolio {
       props.createdAt,
     );
   }
+
+  /**
+   * @param name - El nombre nuevo, ya validado.
+   * @returns La misma cartera con otro nombre; la cartera original no cambia.
+   */
+  rename(name: string): Portfolio {
+    return new Portfolio(
+      this.id,
+      this.lenderId,
+      name,
+      this.isDefault,
+      this.createdAt,
+    );
+  }
 }

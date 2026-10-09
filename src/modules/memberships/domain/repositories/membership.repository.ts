@@ -58,6 +58,16 @@ export interface MembershipRepository {
     roles: readonly Role[],
   ): Promise<readonly Membership[]>;
 
+  /**
+   * @param portfolioId - La cartera.
+   * @param lenderId - El prestamista dueño: una cartera de otro prestamista cuenta cero.
+   * @returns Cuántas membresías `ACTIVE` la tienen asignada.
+   */
+  countActiveByPortfolio(
+    portfolioId: string,
+    lenderId: string,
+  ): Promise<number>;
+
   /** @param membership - La membresía con sus datos ya actualizados. */
   update(membership: Membership): Promise<void>;
 

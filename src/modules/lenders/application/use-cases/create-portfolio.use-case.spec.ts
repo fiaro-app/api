@@ -17,6 +17,9 @@ function setup() {
   const portfolios: PortfolioRepository = {
     create,
     listByLender: vi.fn(() => Promise.resolve([])),
+    findById: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   };
   const ids: IdGenerator = { next: () => 'id-1' };
   const clock: Clock = { now: () => NOW };

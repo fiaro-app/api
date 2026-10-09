@@ -46,10 +46,13 @@ function setup() {
   const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(),
   );
+  const count = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve(0),
+  );
   const repository = new PrismaMembershipRepository({
-    membership: { create, findFirst, findMany, update },
+    membership: { create, findFirst, findMany, update, count },
   } as unknown as PrismaService);
-  return { repository, create, findFirst, findMany, update };
+  return { repository, create, findFirst, findMany, update, count };
 }
 
 describe('PrismaMembershipRepository.create', () => {
@@ -154,6 +157,27 @@ describe('PrismaMembershipRepository.findActiveByLenderAndRoles', () => {
       orderBy: { createdAt: 'asc' },
     });
     expect(found).toHaveLength(1);
+  });
+});
+
+describe('PrismaMembershipRepository.countActiveByPortfolio', () => {
+  it('cuenta solo las activas de esa cartera, dentro del prestamista', async () => {
+    const { repository, count } = setup();
+    count.mockResolvedValueOnce(2);
+
+    const total = await repository.countActiveByPortfolio(
+      'portfolio-1',
+      'lender-1',
+    );
+
+    expect(total).toBe(2);
+    expect(count).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        portfolioId: 'portfolio-1',
+        lenderId: 'lender-1',
+        status: 'ACTIVE',
+      },
+    });
   });
 });
 

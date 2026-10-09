@@ -1,5 +1,6 @@
 import {
   CopAmountSchema,
+  DateRangeSchema,
   IdSchema,
   NoteSchema,
   PageQuerySchema,
@@ -46,5 +47,13 @@ export const ListSettlementsRequestSchema = PageQuerySchema.extend({
   }),
   status: SettlementStatusSchema.optional().meta({
     description: 'Solo los cuadres en este estado. Ausente para listar todos.',
+  }),
+  portfolioId: IdSchema.optional().meta({
+    description:
+      'Solo los cuadres de los cobradores de esta cartera. Ausente para listar los de todas.',
+  }),
+  dateRange: DateRangeSchema.optional().meta({
+    description:
+      'Solo los cuadres de estas fechas (la fecha del cuadre, ambos extremos incluidos). Ausente para no acotar.',
   }),
 });

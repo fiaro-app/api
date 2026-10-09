@@ -1,0 +1,25 @@
+$kind: http-request
+description: Cambia el nombre de la cartera creada arriba (D-109). Exige rol OWNER o LENDER. Un nombre que ya usa otra cartera del prestamista da 409.
+url: "{{baseUrl}}/portfolios/{{portfolioId}}"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "name": "Zona Sur {{$timestamp}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae el nombre nuevo', () => pm.expect(body.name).to.match(/^Zona Sur /));
+      pm.test('sigue sin ser la cartera por defecto', () => pm.expect(body.isDefault).to.be.false);
+    language: text/javascript
+order: 5000

@@ -10,6 +10,9 @@ function setup(found: readonly Portfolio[]) {
   const portfolios: PortfolioRepository = {
     create: vi.fn(),
     listByLender,
+    findById: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   };
   return { useCase: new ListPortfoliosUseCase(portfolios), listByLender };
 }

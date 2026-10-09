@@ -1,10 +1,12 @@
 import type { Provider } from '@nestjs/common';
 import { CreateLenderUseCase } from '@/modules/lenders/application/use-cases/create-lender.use-case.js';
 import { CreatePortfolioUseCase } from '@/modules/lenders/application/use-cases/create-portfolio.use-case.js';
+import { DeletePortfolioUseCase } from '@/modules/lenders/application/use-cases/delete-portfolio.use-case.js';
 import { GetLenderLogoUploadUrlUseCase } from '@/modules/lenders/application/use-cases/get-lender-logo-upload-url.use-case.js';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import { ListPortfoliosUseCase } from '@/modules/lenders/application/use-cases/list-portfolios.use-case.js';
 import { UpdateLenderUseCase } from '@/modules/lenders/application/use-cases/update-lender.use-case.js';
+import { UpdatePortfolioUseCase } from '@/modules/lenders/application/use-cases/update-portfolio.use-case.js';
 import { LENDER_REPOSITORY } from '@/modules/lenders/domain/tokens/lender-repository.token.js';
 import { PORTFOLIO_REPOSITORY } from '@/modules/lenders/domain/tokens/portfolio-repository.token.js';
 import { PrismaLenderRepository } from '@/modules/lenders/infrastructure/persistence/prisma-lender.repository.js';
@@ -20,6 +22,8 @@ export const lendersProviders: Provider[] = [
   GetLenderLogoUploadUrlUseCase,
   CreatePortfolioUseCase,
   ListPortfoliosUseCase,
+  UpdatePortfolioUseCase,
+  DeletePortfolioUseCase,
 ];
 
 /**

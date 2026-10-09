@@ -1,5 +1,6 @@
 import type { Provider } from '@nestjs/common';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
+import { CountActiveMembershipsByPortfolioUseCase } from '@/modules/memberships/application/use-cases/count-active-memberships-by-portfolio.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import { MembershipEntryAssembler } from '@/modules/memberships/application/services/membership-entry.assembler.js';
@@ -34,6 +35,7 @@ export const membershipsProviders: Provider[] = [
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
   ResetMembershipPasswordUseCase,
+  CountActiveMembershipsByPortfolioUseCase,
 ];
 
 /**
@@ -46,7 +48,8 @@ export const membershipsProviders: Provider[] = [
  * `DeactivateMembershipUseCase` lo usa `collections` para la baja en sí, una vez que ya reasignó
  * los préstamos del cobrador: el cambio de estado es el mismo para cualquier membresía, cobrador o
  * no (D-97). `ListMembershipsUseCase` lo usa `dashboard` para contar cobradores activos y totales
- * del resumen del Lender (D-99).
+ * del resumen del Lender (D-99). `CountActiveMembershipsByPortfolioUseCase` lo usa `lenders`
+ * para no dejar borrar una cartera con cobradores activos (D-109).
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
@@ -54,5 +57,6 @@ export const membershipsExports = [
   DeactivateMembershipUseCase,
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
+  CountActiveMembershipsByPortfolioUseCase,
   LENDER_SCOPE_RESOLVER,
 ];

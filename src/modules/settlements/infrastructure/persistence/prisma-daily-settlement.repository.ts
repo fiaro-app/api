@@ -34,11 +34,22 @@ export class PrismaDailySettlementRepository implements DailySettlementRepositor
   /** @param criteria - Prestamista, paginación y filtros opcionales. */
   async list(criteria: ListSettlementsCriteria): Promise<SettlementsPage> {
     const where: Prisma.DailySettlementWhereInput = {
-      collectorMembership: { lenderId: criteria.lenderId },
+      collectorMembership: {
+        lenderId: criteria.lenderId,
+        ...(criteria.portfolioId ? { portfolioId: criteria.portfolioId } : {}),
+      },
       ...(criteria.collectorMembershipId
         ? { collectorMembershipId: criteria.collectorMembershipId }
         : {}),
       ...(criteria.status ? { status: criteria.status } : {}),
+      ...(criteria.from || criteria.to
+        ? {
+            date: {
+              ...(criteria.from ? { gte: criteria.from } : {}),
+              ...(criteria.to ? { lte: criteria.to } : {}),
+            },
+          }
+        : {}),
     };
 
     const [rows, total] = await this.prisma.$transaction([

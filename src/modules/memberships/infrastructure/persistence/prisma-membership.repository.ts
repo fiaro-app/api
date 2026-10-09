@@ -83,6 +83,19 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return rows.map(toMembership);
   }
 
+  /**
+   * @param portfolioId - La cartera.
+   * @param lenderId - El prestamista dueño.
+   */
+  async countActiveByPortfolio(
+    portfolioId: string,
+    lenderId: string,
+  ): Promise<number> {
+    return await this.prisma.membership.count({
+      where: { portfolioId, lenderId, status: 'ACTIVE' },
+    });
+  }
+
   /** @param membership - La membresía con sus datos ya actualizados. */
   async update(membership: Membership): Promise<void> {
     await this.prisma.membership.update({

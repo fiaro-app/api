@@ -13,6 +13,7 @@ function setup(found: Membership | null) {
     findById,
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
+    countActiveByPortfolio: vi.fn(),
     list: vi.fn(),
     update: vi.fn(),
   };

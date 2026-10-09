@@ -42,6 +42,51 @@ export class PrismaPortfolioRepository implements PortfolioRepository {
     }
   }
 
+  /**
+   * @param id - Identificador de la cartera.
+   * @param lenderId - El prestamista dueño.
+   */
+  async findById(id: string, lenderId: string): Promise<Portfolio | null> {
+    const row = await this.prisma.portfolio.findFirst({
+      where: { id, lenderId },
+    });
+    return row === null ? null : toPortfolio(row);
+  }
+
+  /**
+   * @remarks
+   * Como en `create`, la única restricción de unicidad es `(lenderId, name)`: un `P2002` aquí
+   * significa que el nombre nuevo ya lo usa otra cartera del mismo prestamista.
+   *
+   * @param portfolio - La cartera con su nombre ya cambiado.
+   * @throws {@link PortfolioNameTakenError} Si el nombre ya lo usa otra cartera del mismo
+   * prestamista.
+   */
+  async update(portfolio: Portfolio): Promise<void> {
+    try {
+      await this.prisma.portfolio.update({
+        where: { id: portfolio.id, lenderId: portfolio.lenderId },
+        data: { name: portfolio.name },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        throw new PortfolioNameTakenError();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * @param id - Identificador de la cartera.
+   * @param lenderId - El prestamista dueño.
+   */
+  async delete(id: string, lenderId: string): Promise<void> {
+    await this.prisma.portfolio.deleteMany({ where: { id, lenderId } });
+  }
+
   /** @param lenderId - El prestamista dueño. */
   async listByLender(lenderId: string): Promise<readonly Portfolio[]> {
     const rows = await this.prisma.portfolio.findMany({
