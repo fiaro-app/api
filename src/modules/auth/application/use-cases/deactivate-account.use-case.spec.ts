@@ -48,7 +48,11 @@ function setup(
   const verify = vi.fn(() => Promise.resolve(verifies));
   const passwordHasher: PasswordHasher = { hash: vi.fn(), verify };
   const revokeAllForUser = vi.fn(() => Promise.resolve(2));
-  const sessions: SessionRepository = { revokeAllForUser };
+  const sessions: SessionRepository = {
+    revokeAllForUser,
+    listActiveForUser: vi.fn(),
+    revokeOne: vi.fn(),
+  };
   const clock: Clock = { now: () => NOW };
   const useCase = new DeactivateAccountUseCase(
     users,

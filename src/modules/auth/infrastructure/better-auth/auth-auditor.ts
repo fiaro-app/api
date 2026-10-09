@@ -11,8 +11,8 @@ export interface RequestOrigin {
   readonly userAgent?: string;
 }
 
-/** Qué sesiones cerró la persona: `others` (las demás) o `all` (todas, la actual incluida). */
-export type RevocationScope = 'others' | 'all';
+/** Qué sesiones cerró la persona: `one` (una puntual), `others` (las demás) o `all` (todas, la actual incluida). */
+export type RevocationScope = 'one' | 'others' | 'all';
 
 /** La persona de un evento de autenticación. */
 export interface AuditedPerson {

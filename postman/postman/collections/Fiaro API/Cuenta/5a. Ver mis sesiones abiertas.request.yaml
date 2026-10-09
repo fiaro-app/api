@@ -1,0 +1,24 @@
+$kind: http-request
+description: Las sesiones abiertas de la persona (D-112), la usada más recientemente primero. `isCurrent` marca la desde la que se consulta, y `device.label` es lo que se muestra («Chrome en Windows»). Nunca trae el token. Guarda el id de la sesión actual para el paso siguiente.
+url: "{{baseUrl}}/account/sessions"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const sessions = pm.response.json();
+      const current = sessions.find((session) => session.isCurrent);
+      pm.test('marca exactamente una sesión como la actual', () => pm.expect(sessions.filter((s) => s.isCurrent)).to.have.lengthOf(1));
+      pm.test('cada sesión trae su dispositivo y nunca el token', () => {
+        sessions.forEach((session) => {
+          pm.expect(session.device.label).to.be.a('string');
+          pm.expect(session).to.not.have.property('token');
+        });
+      });
+      pm.collectionVariables.set('currentSessionId', current.id);
+    language: text/javascript
+order: 5100

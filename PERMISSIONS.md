@@ -39,8 +39,9 @@ activa pasa. `Ninguna (propia)` quiere decir que la ruta no tiene ni guard de pr
 chequeo de rol — solo exige sesión y actúa siempre sobre el propio usuario (ver "Autoservicio",
 abajo). Un `—` en Rol quiere decir que la ruta es pública: el concepto de rol no aplica.
 
-Dos detalles transversales: **no existe ninguna ruta `DELETE` ni `PUT`** todavía (todo lo que
-"borra" es un estado, como desactivar una membresía o cancelar un préstamo); y `QUERY` en la
+Dos detalles transversales: **casi nada se borra**: las únicas rutas `DELETE` son las de carteras
+(`/portfolios/:id`, D-109) y las de sesiones (`/account/sessions/:id`, D-112); todo lo demás "borra"
+un estado, como desactivar una membresía o cancelar un préstamo (no existe ninguna ruta `PUT`); y `QUERY` en la
 columna Ruta es el verbo HTTP `QUERY` (`@QueryMethod()`), no `GET` — lo usan las búsquedas que
 necesitan filtros en el cuerpo del request.
 
@@ -72,6 +73,8 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /account/contact-email/verify` | Ninguna (propia) | Antifuerza bruta sobre el código (D-69). |
 | `PATCH /account/profile` | Ninguna (propia) | Nombre y correo de contacto propios (D-70). |
 | `POST /account/deactivate` | Ninguna (propia) | Exige la contraseña en el cuerpo como reconfirmación; cierra todas las sesiones propias (D-71, irreversible). |
+| `GET /account/sessions` | Ninguna (propia) | Las sesiones vigentes de la persona, con `isCurrent`, dispositivo (de su `User-Agent`), IP y último uso; sin token (D-112). |
+| `DELETE /account/sessions/:id` | Ninguna (propia) | Cierra una sesión puntual propia, `204` (D-112). La actual da `409` (para eso está `POST /auth/sign-out`); una ajena o vencida, `404`. Queda en la auditoría como `auth.session.revoked` con `scope: 'one'`. |
 
 ## Registro — `/register` (`RegistrationController`)
 

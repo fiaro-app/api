@@ -24,7 +24,11 @@ function setup() {
     next: vi.fn(() => 'TempAbc23456'),
   };
   const revokeAllForUser = vi.fn(() => Promise.resolve(1));
-  const sessions: SessionRepository = { revokeAllForUser };
+  const sessions: SessionRepository = {
+    revokeAllForUser,
+    listActiveForUser: vi.fn(),
+    revokeOne: vi.fn(),
+  };
   return {
     useCase: new AdminResetPasswordUseCase(
       users,
