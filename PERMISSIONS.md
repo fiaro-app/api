@@ -182,6 +182,8 @@ notificaciones de todos a la vez, así que no hay "un" prestamista por el que fi
 | --- | --- | --- |
 | `QUERY /notifications` | Ninguna (propia) | Siempre las propias (`recipientUserId` de `@CurrentUser()`). |
 | `POST /notifications/:id/read` | Ninguna (propia) | El filtro por dueño vive en la consulta al repositorio (`findById(id, recipientUserId)`): marcar la de otra persona da `404 NOT_FOUND`, no `403`. |
+| `POST /notifications/read-all` | Ninguna (propia) | Marca en una sola operación todas las propias sin leer; `lenderId` opcional en el cuerpo (D-104). Repetirla devuelve `{ marked: 0 }`, no falla. |
+| `GET /notifications/unread-count` | Ninguna (propia) | `{ count }` de las propias sin leer; `lenderId` opcional en la query (D-104). |
 
 ## Sistema — `/health`, `/mobile/version` (`SystemController`)
 

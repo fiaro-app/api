@@ -1,0 +1,15 @@
+$kind: http-request
+description: La cifra de la insignia de la barra lateral (D-104). Antes de marcarlas, la cuenta tiene al menos las que no se leyeron arriba.
+url: "{{baseUrl}}/notifications/unread-count"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('devuelve un contador entero', () => pm.expect(pm.response.json().count).to.be.a('number').and.to.be.at.least(0));
+    language: text/javascript
+order: 15000

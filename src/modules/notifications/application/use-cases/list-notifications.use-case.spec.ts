@@ -25,6 +25,8 @@ function setup() {
     findById: vi.fn(() => Promise.resolve(null)),
     list,
     markAsRead: vi.fn(() => Promise.reject(new Error('no usado'))),
+    countUnread: vi.fn(() => Promise.reject(new Error('no usado'))),
+    markAllAsRead: vi.fn(() => Promise.reject(new Error('no usado'))),
   };
   return { useCase: new ListNotificationsUseCase(notifications), list };
 }

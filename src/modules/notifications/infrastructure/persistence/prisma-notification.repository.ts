@@ -4,6 +4,7 @@ import type {
   ListNotificationsCriteria,
   NotificationRepository,
   NotificationsPage,
+  UnreadNotificationsCriteria,
 } from '@/modules/notifications/domain/repositories/notification.repository.js';
 import { toNotification } from '@/modules/notifications/infrastructure/persistence/notification.mapper.js';
 import type { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
@@ -77,4 +78,37 @@ export class PrismaNotificationRepository implements NotificationRepository {
     });
     return toNotification(row);
   }
+
+  /** @param criteria - Quién las recibe y, opcionalmente, de qué prestamista. */
+  async countUnread(criteria: UnreadNotificationsCriteria): Promise<number> {
+    return await this.prisma.notification.count({
+      where: unreadWhere(criteria),
+    });
+  }
+
+  /**
+   * @param criteria - Quién las recibe y, opcionalmente, de qué prestamista.
+   * @param readAt - Cuándo se marcaron como leídas.
+   */
+  async markAllAsRead(
+    criteria: UnreadNotificationsCriteria,
+    readAt: Date,
+  ): Promise<number> {
+    const result = await this.prisma.notification.updateMany({
+      where: unreadWhere(criteria),
+      data: { readAt },
+    });
+    return result.count;
+  }
+}
+
+/** @param criteria - Quién las recibe y, opcionalmente, de qué prestamista. */
+function unreadWhere(
+  criteria: UnreadNotificationsCriteria,
+): Prisma.NotificationWhereInput {
+  return {
+    recipientUserId: criteria.recipientUserId,
+    readAt: null,
+    ...(criteria.lenderId ? { lenderId: criteria.lenderId } : {}),
+  };
 }

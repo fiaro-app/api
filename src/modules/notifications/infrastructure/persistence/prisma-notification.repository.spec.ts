@@ -45,14 +45,25 @@ function setup() {
   const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(row),
   );
+  const updateMany = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve({ count: 0 }),
+  );
   const $transaction = vi.fn((operations: Promise<unknown>[]) =>
     Promise.all(operations),
   );
   const repository = new PrismaNotificationRepository({
-    notification: { create, findFirst, findMany, count, update },
+    notification: { create, findFirst, findMany, count, update, updateMany },
     $transaction,
   } as unknown as PrismaService);
-  return { repository, create, findFirst, findMany, count, update };
+  return {
+    repository,
+    create,
+    findFirst,
+    findMany,
+    count,
+    update,
+    updateMany,
+  };
 }
 
 describe('PrismaNotificationRepository.create', () => {
@@ -160,5 +171,64 @@ describe('PrismaNotificationRepository.markAsRead', () => {
       data: { readAt },
     });
     expect(read.readAt).toEqual(readAt);
+  });
+});
+
+describe('PrismaNotificationRepository.countUnread', () => {
+  it('cuenta solo las sin leer de esa persona', async () => {
+    const { repository, count } = setup();
+    count.mockResolvedValueOnce(3);
+
+    const unread = await repository.countUnread({ recipientUserId: 'user-1' });
+
+    expect(unread).toBe(3);
+    expect(count).toHaveBeenCalledExactlyOnceWith({
+      where: { recipientUserId: 'user-1', readAt: null },
+    });
+  });
+
+  it('agrega el filtro por prestamista cuando llega', async () => {
+    const { repository, count } = setup();
+
+    await repository.countUnread({
+      recipientUserId: 'user-1',
+      lenderId: 'lender-1',
+    });
+
+    expect(count).toHaveBeenCalledExactlyOnceWith({
+      where: { recipientUserId: 'user-1', lenderId: 'lender-1', readAt: null },
+    });
+  });
+});
+
+describe('PrismaNotificationRepository.markAllAsRead', () => {
+  it('actualiza solo las sin leer, en una sola operación, y devuelve cuántas', async () => {
+    const { repository, updateMany } = setup();
+    updateMany.mockResolvedValueOnce({ count: 4 });
+
+    const marked = await repository.markAllAsRead(
+      { recipientUserId: 'user-1' },
+      CREATED_AT,
+    );
+
+    expect(marked).toBe(4);
+    expect(updateMany).toHaveBeenCalledExactlyOnceWith({
+      where: { recipientUserId: 'user-1', readAt: null },
+      data: { readAt: CREATED_AT },
+    });
+  });
+
+  it('agrega el filtro por prestamista cuando llega', async () => {
+    const { repository, updateMany } = setup();
+
+    await repository.markAllAsRead(
+      { recipientUserId: 'user-1', lenderId: 'lender-1' },
+      CREATED_AT,
+    );
+
+    expect(updateMany).toHaveBeenCalledExactlyOnceWith({
+      where: { recipientUserId: 'user-1', lenderId: 'lender-1', readAt: null },
+      data: { readAt: CREATED_AT },
+    });
   });
 });

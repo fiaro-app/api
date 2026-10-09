@@ -21,6 +21,8 @@ function setup() {
     findById: vi.fn(() => Promise.resolve(null)),
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
     markAsRead: vi.fn(() => Promise.reject(new Error('no usado'))),
+    countUnread: vi.fn(() => Promise.reject(new Error('no usado'))),
+    markAllAsRead: vi.fn(() => Promise.reject(new Error('no usado'))),
   };
   const ids: IdGenerator = { next: () => 'notification-1' };
   const clock: Clock = { now: () => NOW };

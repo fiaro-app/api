@@ -25,6 +25,17 @@ export interface NotificationsPage {
   readonly total: number;
 }
 
+/** Criterio de {@link NotificationRepository.countUnread} y {@link NotificationRepository.markAllAsRead}. */
+export interface UnreadNotificationsCriteria {
+  /** Quién las recibe. */
+  readonly recipientUserId: string;
+  /**
+   * Solo las de este prestamista; ausente para contar o marcar las de todos (una persona puede
+   * trabajar para varios, PRODUCT.md §5).
+   */
+  readonly lenderId?: string;
+}
+
 /** Puerto de persistencia de las notificaciones. */
 export interface NotificationRepository {
   /** @param notification - Notificación nueva. */
@@ -47,4 +58,23 @@ export interface NotificationRepository {
    * @param readAt - Cuándo se marcó como leída.
    */
   markAsRead(id: string, readAt: Date): Promise<Notification>;
+
+  /**
+   * @param criteria - Quién las recibe y, opcionalmente, de qué prestamista.
+   * @returns Cuántas siguen sin leer.
+   */
+  countUnread(criteria: UnreadNotificationsCriteria): Promise<number>;
+
+  /**
+   * Marca como leídas, en una sola operación, todas las que siguen sin leer; las ya leídas
+   * conservan su `readAt` original.
+   *
+   * @param criteria - Quién las recibe y, opcionalmente, de qué prestamista.
+   * @param readAt - Cuándo se marcaron como leídas.
+   * @returns Cuántas marcó.
+   */
+  markAllAsRead(
+    criteria: UnreadNotificationsCriteria,
+    readAt: Date,
+  ): Promise<number>;
 }

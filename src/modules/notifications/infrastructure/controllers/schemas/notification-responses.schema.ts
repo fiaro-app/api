@@ -76,3 +76,21 @@ export function toNotificationsPageResponse(
     },
   };
 }
+
+/** Respuesta de `GET /notifications/unread-count`. */
+export const UnreadCountResponseSchema = z
+  .object({
+    count: z.int().nonnegative().meta({
+      description: 'Cuántas notificaciones siguen sin leer.',
+    }),
+  })
+  .meta({ id: 'UnreadCountResponse' });
+
+/** Respuesta de `POST /notifications/read-all`. */
+export const MarkAllReadResponseSchema = z
+  .object({
+    marked: z.int().nonnegative().meta({
+      description: 'Cuántas notificaciones marcó como leídas.',
+    }),
+  })
+  .meta({ id: 'MarkAllReadResponse' });

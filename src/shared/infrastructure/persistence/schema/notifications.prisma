@@ -34,6 +34,7 @@ model Notification {
   lender    Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
 
   @@index([recipientUserId, lenderId])
+  @@index([recipientUserId, readAt])
   @@map("notifications")
 }
 

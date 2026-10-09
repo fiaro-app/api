@@ -7,8 +7,10 @@ import {
   NotificationValidationErrorSchema,
 } from '@/modules/notifications/infrastructure/controllers/schemas/notification-errors.schema.js';
 import {
+  MarkAllReadResponseSchema,
   NotificationResponseSchema,
   NotificationsPageResponseSchema,
+  UnreadCountResponseSchema,
 } from '@/modules/notifications/infrastructure/controllers/schemas/notification-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
@@ -66,4 +68,48 @@ export const ApiMarkNotificationRead = () =>
       description: 'La notificación no existe, o no es propia (`NOT_FOUND`).',
       standardSchema: NotificationNotFoundSchema,
     }),
+  );
+
+/** Documenta `POST /notifications/read-all`. */
+export const ApiMarkAllNotificationsRead = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Marcar todas mis notificaciones como leídas',
+      description:
+        'Marca, en una sola operación, todas las notificaciones propias que siguen sin leer; con `lenderId`, solo las de ese prestamista. Devuelve cuántas marcó (cero si ya no quedaba ninguna). Las ya leídas conservan su fecha de lectura.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Cuántas se marcaron como leídas.',
+      standardSchema: MarkAllReadResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: '`lenderId` no es un UUID (`VALIDATION_FAILED`).',
+      standardSchema: NotificationValidationErrorSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+  );
+
+/** Documenta `GET /notifications/unread-count`. */
+export const ApiCountUnreadNotifications = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Contar mis notificaciones sin leer',
+      description:
+        'La cifra de la insignia de la barra lateral: cuántas notificaciones propias siguen sin leer; con `lenderId`, solo las de ese prestamista. No trae ninguna fila.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Cuántas siguen sin leer.',
+      standardSchema: UnreadCountResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: '`lenderId` no es un UUID (`VALIDATION_FAILED`).',
+      standardSchema: NotificationValidationErrorSchema,
+    }),
+    ApiUnauthenticatedResponse(),
   );
