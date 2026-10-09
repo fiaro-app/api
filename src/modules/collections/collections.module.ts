@@ -8,6 +8,7 @@ import { CollectionVisitController } from '@/modules/collections/infrastructure/
 import { CollectorRouteController } from '@/modules/collections/infrastructure/controllers/collector-route.controller.js';
 import { CollectorStatsController } from '@/modules/collections/infrastructure/controllers/collector-stats.controller.js';
 import { CollectorController } from '@/modules/collections/infrastructure/controllers/collector.controller.js';
+import { LoanInstallmentsController } from '@/modules/collections/infrastructure/controllers/loan-installments.controller.js';
 import { LoanBalanceController } from '@/modules/collections/infrastructure/controllers/loan-balance.controller.js';
 import { PaymentReversalController } from '@/modules/collections/infrastructure/controllers/payment-reversal.controller.js';
 import { ClientsModule } from '@/modules/clients/clients.module.js';
@@ -23,7 +24,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  * pagos (`PaymentReversal`, D-85), la ruta del día de un cobrador (D-88), su baja con reasignación
  * de préstamos (D-97) y su resumen del día y estadísticas personales (D-98). Publica
  * `POST`/`GET /loans/:loanId/collection-assignments`, `POST`/`GET /loans/:loanId/collection-visits`,
- * `GET /loans/:loanId/balance`, `POST /payments/:id/reversals`, `QUERY /collectors/me/route`,
+ * `GET /loans/:loanId/balance`, `GET /loans/:loanId/installments` (calendario de cuotas, D-103), `POST /payments/:id/reversals`, `QUERY /collectors/me/route`,
  * `POST /collectors/:id/deactivate`, `QUERY /collectors/me/daily-summary` y
  * `QUERY /collectors/me/stats`, todas con `LenderScopeGuard` — de ahí que importe `LoansModule`
  * (`GetLoanUseCase` para validar el préstamo, `ReconcileLoanStatusUseCase` para cerrarlo o
@@ -47,6 +48,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
     CollectionAssignmentController,
     CollectionVisitController,
     LoanBalanceController,
+    LoanInstallmentsController,
     PaymentReversalController,
     CollectorRouteController,
     CollectorController,
