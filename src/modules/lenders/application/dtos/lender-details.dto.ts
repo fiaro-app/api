@@ -10,6 +10,8 @@ export interface LenderDetails {
   readonly name: string;
   /** URL del logo, o `null` si no tiene uno. */
   readonly logoUrl: string | null;
+  /** Color de marca `#RRGGBB` en mayúsculas, o `null` para el de Fiaro. */
+  readonly brandColor: string | null;
   /** Días de la semana en que no se cobra. */
   readonly nonWorkingWeekdays: readonly Weekday[];
   /** Si los festivos nacionales de Colombia tampoco cuentan como días de cobro. */
@@ -26,6 +28,8 @@ export interface UpdateLenderInput {
   readonly name?: string;
   /** URL del logo nueva, o `null` para quitarlo; ausente si no cambia. */
   readonly logoUrl?: string | null;
+  /** Color de marca `#RRGGBB` nuevo, o `null` para volver al de Fiaro; ausente si no cambia. */
+  readonly brandColor?: string | null;
   /** Días sin cobro nuevos, o ausente si no cambian. */
   readonly nonWorkingWeekdays?: readonly Weekday[];
   /** Si se saltan los festivos nacionales, o ausente si no cambia. */

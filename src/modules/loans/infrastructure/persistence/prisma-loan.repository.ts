@@ -54,6 +54,21 @@ export class PrismaLoanRepository implements LoanRepository {
     return { items: rows.map(toLoan), total };
   }
 
+  /**
+   * @param lenderId - El prestamista dueño.
+   * @param clientIds - Los clientes.
+   */
+  async listActiveByClients(
+    lenderId: string,
+    clientIds: readonly string[],
+  ): Promise<readonly Loan[]> {
+    const rows = await this.prisma.loan.findMany({
+      where: { lenderId, clientId: { in: [...clientIds] }, status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map(toLoan);
+  }
+
   /** @param status - El estado de los préstamos. */
   async listLenderIdsWithStatus(
     status: LoanStatus,

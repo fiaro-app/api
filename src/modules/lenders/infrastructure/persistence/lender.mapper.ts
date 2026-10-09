@@ -19,6 +19,7 @@ export function toLenderCreateInput(
     tenantId: lender.tenantId,
     name: lender.name,
     logoUrl: lender.logoUrl,
+    brandColor: lender.brandColor,
     nonWorkingWeekdays: [...lender.nonWorkingWeekdays],
     skipNationalHolidays: lender.skipNationalHolidays,
     createdAt: lender.createdAt,
@@ -38,6 +39,7 @@ export function toLenderUpdateInput(lender: Lender): Prisma.LenderUpdateInput {
   return {
     name: lender.name,
     logoUrl: lender.logoUrl,
+    brandColor: lender.brandColor,
     nonWorkingWeekdays: [...lender.nonWorkingWeekdays],
     skipNationalHolidays: lender.skipNationalHolidays,
   };
@@ -50,6 +52,7 @@ export function toLender(row: LenderModel): Lender {
     tenantId: row.tenantId,
     name: row.name,
     logoUrl: row.logoUrl,
+    brandColor: row.brandColor,
     nonWorkingWeekdays: row.nonWorkingWeekdays,
     skipNationalHolidays: row.skipNationalHolidays,
     createdAt: row.createdAt,

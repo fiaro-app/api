@@ -42,6 +42,20 @@ export interface LoanRepository {
   list(criteria: ListLoansCriteria): Promise<LoansPage>;
 
   /**
+   * Los préstamos `ACTIVE` de un conjunto de clientes, en una sola consulta. Es la base de la
+   * cartera por cliente de la lista de clientes (D-113), que no puede pedir los préstamos de
+   * cada uno por separado.
+   *
+   * @param lenderId - El prestamista dueño.
+   * @param clientIds - Los clientes.
+   * @returns Sus préstamos `ACTIVE`, de los más antiguos a los más nuevos.
+   */
+  listActiveByClients(
+    lenderId: string,
+    clientIds: readonly string[],
+  ): Promise<readonly Loan[]>;
+
+  /**
    * Los prestamistas que tienen préstamos en ese estado, sin repetir. Es la única consulta que
    * cruza prestamistas: la usa el aviso diario de mora (D-96), que recorre a todos, y por eso no
    * pide un `lenderId` como el resto.

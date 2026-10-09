@@ -13,4 +13,8 @@ export const GetLenderStatsRequestSchema = z.strictObject({
   portfolioId: z.uuid().optional().meta({
     description: 'Solo los cobradores de esta cartera, y sus préstamos.',
   }),
+  includePrevious: z.boolean().optional().meta({
+    description:
+      'Si es `true`, la respuesta trae también el período anterior de la misma duración (`previous`), para calcular tendencias. Ausente o `false`: `previous` sale `null`.',
+  }),
 });

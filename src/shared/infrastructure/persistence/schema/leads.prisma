@@ -1,0 +1,15 @@
+/// Un contacto que dejó sus datos en el sitio de marketing («Contactar ventas»). Es un dato de
+/// prospecto, no de ningún negocio: no cuelga de ningún Tenant ni Lender. Alguien de ventas lo lee
+/// y se pone en contacto; la API no lo expone por ninguna ruta.
+model Lead {
+  id        String   @id @db.Uuid
+  name      String
+  /// Celular en formato E.164. Al menos uno de `phone` y `email` viene siempre.
+  phone     String?
+  email     String?
+  message   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("leads")
+}

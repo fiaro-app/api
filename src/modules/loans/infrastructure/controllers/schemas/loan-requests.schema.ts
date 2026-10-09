@@ -2,8 +2,6 @@ import {
   BusinessDateSchema,
   IdSchema,
   LoanFrequencySchema,
-  LoanStatusSchema,
-  PageQuerySchema,
   PositiveCopAmountSchema,
 } from '@fiaro-app/contracts';
 import { z } from 'zod';
@@ -37,17 +35,5 @@ export const CreateLoanRequestSchema = z.strictObject({
   startDate: BusinessDateSchema.meta({
     description: 'Fecha de calendario en que arranca el préstamo.',
     example: '2026-10-01',
-  }),
-});
-
-/** Cuerpo de `QUERY /loans`: paginación y filtros opcionales. */
-export const ListLoansRequestSchema = PageQuerySchema.extend({
-  clientId: IdSchema.optional().meta({
-    description:
-      'Solo los préstamos de este cliente. Ausente para listar los de todos.',
-  }),
-  status: LoanStatusSchema.optional().meta({
-    description:
-      'Solo los préstamos en este estado. Ausente para listar todos.',
   }),
 });

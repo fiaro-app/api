@@ -91,3 +91,21 @@ describe('variables del envío de correos (Resend)', () => {
     });
   });
 });
+
+describe('correo de ventas (LEADS_NOTIFY_EMAIL)', () => {
+  it('es opcional: sin ella, nadie recibe el aviso de un contacto nuevo', () => {
+    expect(load().leads.notifyEmail).toBeUndefined();
+  });
+
+  it('acepta una dirección válida', () => {
+    expect(
+      load({ LEADS_NOTIFY_EMAIL: 'ventas@fiaro.co' }).leads.notifyEmail,
+    ).toBe('ventas@fiaro.co');
+  });
+
+  it('rechaza algo que no es una dirección', () => {
+    expect(() => load({ LEADS_NOTIFY_EMAIL: 'ventas' })).toThrow(
+      /LEADS_NOTIFY_EMAIL/,
+    );
+  });
+});

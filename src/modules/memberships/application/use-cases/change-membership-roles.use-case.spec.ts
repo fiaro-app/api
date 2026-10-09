@@ -30,6 +30,7 @@ function setup(found: Membership | null) {
     findById: vi.fn(() => Promise.resolve(found)),
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
+    countActiveByPortfolio: vi.fn(),
     list: vi.fn(),
     update,
   };

@@ -1,0 +1,15 @@
+$kind: http-request
+description: Cerrar la sesión desde la que se pide se rechaza (D-112): para salir está POST /auth/sign-out, que además limpia la cookie del dispositivo. Cerrar otra sesión devuelve 204; una ajena o inexistente, 404.
+url: "{{baseUrl}}/account/sessions/{{currentSessionId}}"
+method: DELETE
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 409', () => pm.response.to.have.status(409));
+      pm.test('el código de error es CONFLICT', () => pm.expect(pm.response.json().code).to.eql('CONFLICT'));
+    language: text/javascript
+order: 5200

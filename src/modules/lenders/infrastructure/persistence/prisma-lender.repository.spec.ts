@@ -10,6 +10,7 @@ const lender = Lender.create({
   tenantId: 'tenant-1',
   name: 'Préstamos Ana',
   logoUrl: null,
+  brandColor: null,
   nonWorkingWeekdays: ['SUNDAY'],
   skipNationalHolidays: false,
   createdAt: CREATED_AT,
@@ -23,10 +24,13 @@ function setup() {
   const update = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(),
   );
+  const count = vi.fn<(args: unknown) => Promise<number>>(() =>
+    Promise.resolve(0),
+  );
   const repository = new PrismaLenderRepository({
-    lender: { create, findUnique, update },
+    lender: { create, findUnique, update, count },
   } as unknown as PrismaService);
-  return { repository, create, findUnique, update };
+  return { repository, create, findUnique, update, count };
 }
 
 describe('PrismaLenderRepository.create', () => {
@@ -41,6 +45,7 @@ describe('PrismaLenderRepository.create', () => {
         tenantId: 'tenant-1',
         name: 'Préstamos Ana',
         logoUrl: null,
+        brandColor: null,
         nonWorkingWeekdays: ['SUNDAY'],
         skipNationalHolidays: false,
         createdAt: CREATED_AT,
@@ -65,6 +70,7 @@ describe('PrismaLenderRepository.findById', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       createdAt: CREATED_AT,
@@ -86,6 +92,19 @@ describe('PrismaLenderRepository.findById', () => {
   });
 });
 
+describe('PrismaLenderRepository.countByTenant', () => {
+  it('cuenta los prestamistas del Tenant', async () => {
+    const { repository, count } = setup();
+    count.mockResolvedValueOnce(2);
+
+    await expect(repository.countByTenant('tenant-1')).resolves.toBe(2);
+
+    expect(count).toHaveBeenCalledExactlyOnceWith({
+      where: { tenantId: 'tenant-1' },
+    });
+  });
+});
+
 describe('PrismaLenderRepository.update', () => {
   it('actualiza al prestamista', async () => {
     const { repository, update } = setup();
@@ -97,6 +116,7 @@ describe('PrismaLenderRepository.update', () => {
       data: {
         name: 'Préstamos Ana',
         logoUrl: null,
+        brandColor: null,
         nonWorkingWeekdays: ['SUNDAY'],
         skipNationalHolidays: false,
       },

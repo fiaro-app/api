@@ -20,5 +20,13 @@ scripts:
       pm.test('responde 200', () => pm.response.to.have.status(200));
       const body = pm.response.json();
       pm.test('encuentra el préstamo de prueba', () => pm.expect(body.data.some((loan) => loan.id === pm.collectionVariables.get('loanId'))).to.be.true);
+      pm.test('cada fila trae su saldo, su mora y su cobrador (D-113)', () => {
+        body.data.forEach((loan) => {
+          pm.expect(loan.balance).to.be.a('number');
+          pm.expect(loan.overdueAmount).to.be.a('number');
+          pm.expect(loan.overdueDays).to.be.a('number');
+          pm.expect(loan).to.have.property('collector');
+        });
+      });
     language: text/javascript
 order: 5000

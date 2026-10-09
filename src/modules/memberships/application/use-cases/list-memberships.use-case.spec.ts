@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GetUserByIdUseCase } from '@/modules/auth/application/use-cases/get-user-by-id.use-case.js';
+import { MembershipEntryAssembler } from '@/modules/memberships/application/services/membership-entry.assembler.js';
 import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
@@ -30,13 +31,17 @@ function setup(
     findById: vi.fn(),
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
+    countActiveByPortfolio: vi.fn(),
     update: vi.fn(),
     list,
   };
   const execute = vi.fn(() => Promise.resolve(user));
   const getUserById = { execute } as unknown as GetUserByIdUseCase;
   return {
-    useCase: new ListMembershipsUseCase(memberships, getUserById),
+    useCase: new ListMembershipsUseCase(
+      memberships,
+      new MembershipEntryAssembler(getUserById),
+    ),
     list,
     getUserById: execute,
   };

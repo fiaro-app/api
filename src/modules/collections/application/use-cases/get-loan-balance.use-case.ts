@@ -3,12 +3,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
-import { toLoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.mapper.js';
-import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
-import { toLoanScheduleInput } from '@/modules/collections/application/services/to-loan-schedule-input.js';
+import { calculateLoanBalance } from '@/modules/collections/application/services/calculate-loan-balance.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
-import { computeLoanBalance } from '@/shared/domain/calendar/loan-balance.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
 
@@ -40,26 +37,31 @@ export class GetLoanBalanceUseCase {
   ) {}
 
   /**
+   * @remarks
+   * Con `asOf` calcula el saldo histórico de una fecha pasada (D-111); ver
+   * {@link calculateLoanBalance}.
+   *
    * @param loanId - El préstamo.
    * @param lenderId - El prestamista dueño, tal como lo resolvió `LenderScopeGuard`.
-   * @returns Su estado financiero, calculado con la fecha de hoy.
+   * @param asOf - Fecha (`AAAA-MM-DD`) para la que se calcula; ausente para hoy.
+   * @returns Su estado financiero.
    * @throws {@link LoanNotFoundError} Si el préstamo no existe, o es de otro prestamista.
    */
-  async execute(loanId: string, lenderId: string): Promise<LoanBalanceDetails> {
+  async execute(
+    loanId: string,
+    lenderId: string,
+    asOf?: string,
+  ): Promise<LoanBalanceDetails> {
     const loan = await this.getLoan.execute(loanId, lenderId);
     const lender = await this.getLender.execute(lenderId);
     const records = await this.visits.listByLoan(loanId);
-    const totalPaid = sumNetPayments(records);
-    const asOf = toBusinessDate(this.clock.now());
 
-    const balance = computeLoanBalance({
-      ...toLoanScheduleInput(loan, lender),
-      totalPayable: loan.totalPayable,
-      totalPaid,
+    return calculateLoanBalance({
+      loan,
+      lender,
+      records,
+      today: toBusinessDate(this.clock.now()),
       asOf,
-      isClosed: loan.status !== 'ACTIVE',
     });
-
-    return toLoanBalanceDetails(loanId, asOf, balance);
   }
 }

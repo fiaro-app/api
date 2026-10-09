@@ -136,6 +136,62 @@ describe('PrismaDailySettlementRepository.list', () => {
     );
     expect(count).toHaveBeenCalledExactlyOnceWith({ where: expectedWhere });
   });
+
+  it('agrega el filtro por cartera y el rango de fechas, inclusive en ambos extremos', async () => {
+    const { repository, findMany, count } = setup();
+
+    await repository.list({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+      portfolioId: 'portfolio-1',
+      from: '2026-10-01',
+      to: '2026-10-31',
+    });
+
+    const expectedWhere = {
+      collectorMembership: { lenderId: 'lender-1', portfolioId: 'portfolio-1' },
+      date: { gte: '2026-10-01', lte: '2026-10-31' },
+    };
+    expect(findMany).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ where: expectedWhere }),
+    );
+    expect(count).toHaveBeenCalledExactlyOnceWith({ where: expectedWhere });
+  });
+
+  it('acota solo por un lado si llega solo from o solo to', async () => {
+    const { repository, findMany } = setup();
+
+    await repository.list({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+      from: '2026-10-01',
+    });
+    await repository.list({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+      to: '2026-10-31',
+    });
+
+    expect(findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          date: { gte: '2026-10-01' },
+        }) as unknown,
+      }),
+    );
+    expect(findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          date: { lte: '2026-10-31' },
+        }) as unknown,
+      }),
+    );
+  });
 });
 
 describe('PrismaDailySettlementRepository.upsert', () => {

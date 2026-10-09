@@ -103,7 +103,7 @@ export const ApiListSettlements = () =>
     ApiOperation({
       summary: 'Buscar cuadres',
       description:
-        'Cuadres del prestamista con el que opera la sesión, paginados y con filtro opcional por cobrador o estado. Cualquier rol puede verla.',
+        'Cuadres del prestamista con el que opera la sesión, de la fecha más reciente a la más antigua, paginados y con filtros opcionales y combinables por cobrador, cartera, estado y rango de fechas (`dateRange`, sobre la fecha del cuadre). Cualquier rol puede verla.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({

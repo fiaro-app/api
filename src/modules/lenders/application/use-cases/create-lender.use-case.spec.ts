@@ -16,6 +16,7 @@ function setup() {
   });
   const lenders: LenderRepository = {
     create,
+    countByTenant: vi.fn(),
     findById: vi.fn(() => Promise.resolve(null)),
     update: vi.fn(() => Promise.resolve()),
   };
@@ -43,6 +44,7 @@ describe('CreateLenderUseCase', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       defaultPortfolioId: 'id-2',

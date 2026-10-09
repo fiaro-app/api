@@ -7,6 +7,7 @@ import type { GetCollectorStatsUseCase } from '@/modules/collections/application
 import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
 import type { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
 import type { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
+import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
 import { GetLenderStatsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats.use-case.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
@@ -102,9 +103,11 @@ function setup(options: SetupOptions) {
 
   const clock: Clock = { now: () => NOW };
   const useCase = new GetLenderStatsUseCase(
-    listLoans,
-    getLoanBalance,
-    listCollectionAssignments,
+    new LoanPortfolioSnapshotService(
+      listLoans,
+      getLoanBalance,
+      listCollectionAssignments,
+    ),
     listMemberships,
     getCollectorStats,
     getClient,
@@ -150,6 +153,10 @@ describe('GetLenderStatsUseCase', () => {
       ],
       topArrears: [],
       collectorPerformance: [],
+      expectedAmount: 0,
+      collectedAmount: 0,
+      effectiveness: null,
+      previous: null,
     });
   });
 

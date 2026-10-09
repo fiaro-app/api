@@ -4,7 +4,10 @@ import type {
   UpdateLenderInput,
 } from '@/modules/lenders/application/dtos/lender-details.dto.js';
 import { toLenderDetails } from '@/modules/lenders/application/dtos/lender-details.mapper.js';
-import { validateLenderData } from '@/modules/lenders/application/services/lender-data.validator.js';
+import {
+  validateBrandColor,
+  validateLenderData,
+} from '@/modules/lenders/application/services/lender-data.validator.js';
 import { Lender } from '@/modules/lenders/domain/entities/lender.entity.js';
 import type { LenderRepository } from '@/modules/lenders/domain/repositories/lender.repository.js';
 import { LENDER_REPOSITORY } from '@/modules/lenders/domain/tokens/lender-repository.token.js';
@@ -44,6 +47,9 @@ export class UpdateLenderUseCase {
       id: current.id,
       tenantId: current.tenantId,
       ...data,
+      brandColor: validateBrandColor(
+        input.brandColor !== undefined ? input.brandColor : current.brandColor,
+      ),
       createdAt: current.createdAt,
     });
     await this.lenders.update(updated);

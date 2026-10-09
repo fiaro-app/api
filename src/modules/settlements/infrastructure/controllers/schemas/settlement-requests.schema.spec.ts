@@ -113,6 +113,25 @@ describe('ListSettlementsRequestSchema', () => {
     expect(parsed.status).toBe('PENDING');
   });
 
+  it('acepta el filtro por cartera y por rango de fechas', () => {
+    const parsed = ListSettlementsRequestSchema.parse({
+      portfolioId: '01a0f387-97a7-7192-bc0f-4f9d34e0480f',
+      dateRange: { from: '2026-10-01', to: '2026-10-31' },
+    });
+    expect(parsed.portfolioId).toBe('01a0f387-97a7-7192-bc0f-4f9d34e0480f');
+    expect(parsed.dateRange).toEqual({ from: '2026-10-01', to: '2026-10-31' });
+  });
+
+  it.each([
+    [
+      'un rango al revés',
+      { dateRange: { from: '2026-10-31', to: '2026-10-01' } },
+    ],
+    ['una cartera que no es UUID', { portfolioId: 'x' }],
+  ])('rechaza %s', (_name, body) => {
+    expect(ListSettlementsRequestSchema.safeParse(body).success).toBe(false);
+  });
+
   it('rechaza un campo que la ruta no declara', () => {
     expect(
       ListSettlementsRequestSchema.safeParse({ sort: 'date' }).success,

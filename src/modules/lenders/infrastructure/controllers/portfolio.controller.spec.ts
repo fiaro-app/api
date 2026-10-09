@@ -2,7 +2,9 @@ import { ForbiddenException, RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CreatePortfolioUseCase } from '@/modules/lenders/application/use-cases/create-portfolio.use-case.js';
+import type { DeletePortfolioUseCase } from '@/modules/lenders/application/use-cases/delete-portfolio.use-case.js';
 import type { ListPortfoliosUseCase } from '@/modules/lenders/application/use-cases/list-portfolios.use-case.js';
+import type { UpdatePortfolioUseCase } from '@/modules/lenders/application/use-cases/update-portfolio.use-case.js';
 import { PortfolioController } from '@/modules/lenders/infrastructure/controllers/portfolio.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -20,11 +22,25 @@ function setup() {
   const listPortfoliosUseCase = {
     execute: vi.fn(() => Promise.resolve([DETAILS])),
   };
+  const updatePortfolioUseCase = {
+    execute: vi.fn(() => Promise.resolve({ ...DETAILS, name: 'Zona Sur' })),
+  };
+  const deletePortfolioUseCase = {
+    execute: vi.fn(() => Promise.resolve()),
+  };
   const controller = new PortfolioController(
     createPortfolioUseCase as unknown as CreatePortfolioUseCase,
     listPortfoliosUseCase as unknown as ListPortfoliosUseCase,
+    updatePortfolioUseCase as unknown as UpdatePortfolioUseCase,
+    deletePortfolioUseCase as unknown as DeletePortfolioUseCase,
   );
-  return { controller, createPortfolioUseCase, listPortfoliosUseCase };
+  return {
+    controller,
+    createPortfolioUseCase,
+    listPortfoliosUseCase,
+    updatePortfolioUseCase,
+    deletePortfolioUseCase,
+  };
 }
 
 const scopeWith = (roles: readonly string[]): LenderScope => ({
@@ -34,7 +50,7 @@ const scopeWith = (roles: readonly string[]): LenderScope => ({
 });
 
 describe('PortfolioController', () => {
-  it('publica solo POST y GET, colgando de /portfolios', () => {
+  it('publica POST, GET, PATCH y DELETE, colgando de /portfolios', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       PortfolioController.prototype,
     )
@@ -49,7 +65,7 @@ describe('PortfolioController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['GET', 'POST']);
+    expect(publishedRoutes).toEqual(['DELETE', 'GET', 'PATCH', 'POST']);
     expect(Reflect.getMetadata(PATH_METADATA, PortfolioController)).toBe(
       'portfolios',
     );
@@ -116,6 +132,63 @@ describe('PortfolioController', () => {
           createdAt: '2026-09-30T00:00:00.000Z',
         },
       ]);
+    });
+  });
+
+  describe('updatePortfolio', () => {
+    it.each([['OWNER'], ['LENDER']])(
+      'con rol %s renombra la cartera del prestamista de la sesión',
+      async (role) => {
+        const { controller, updatePortfolioUseCase } = setup();
+
+        const response = await controller.updatePortfolio(
+          'portfolio-1',
+          { name: 'Zona Sur' },
+          scopeWith([role]),
+        );
+
+        expect(updatePortfolioUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+          lenderId: 'lender-1',
+          portfolioId: 'portfolio-1',
+          name: 'Zona Sur',
+        });
+        expect(response.name).toBe('Zona Sur');
+      },
+    );
+
+    it('con solo el rol COLLECTOR responde 403 sin llamar al caso de uso', async () => {
+      const { controller, updatePortfolioUseCase } = setup();
+
+      await expect(
+        controller.updatePortfolio(
+          'portfolio-1',
+          { name: 'Zona Sur' },
+          scopeWith(['COLLECTOR']),
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(updatePortfolioUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deletePortfolio', () => {
+    it('con rol OWNER borra la cartera del prestamista de la sesión', async () => {
+      const { controller, deletePortfolioUseCase } = setup();
+
+      await controller.deletePortfolio('portfolio-1', scopeWith(['OWNER']));
+
+      expect(deletePortfolioUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+        'portfolio-1',
+        'lender-1',
+      );
+    });
+
+    it('con solo el rol COLLECTOR responde 403 sin llamar al caso de uso', async () => {
+      const { controller, deletePortfolioUseCase } = setup();
+
+      await expect(
+        controller.deletePortfolio('portfolio-1', scopeWith(['COLLECTOR'])),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(deletePortfolioUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

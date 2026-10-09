@@ -176,6 +176,33 @@ describe('DailySettlementController', () => {
       expect(response.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
       expect(response.data).toHaveLength(1);
     });
+
+    it('traduce dateRange a from y to, y pasa la cartera y el cobrador', async () => {
+      const { controller, listSettlementsUseCase } = setup();
+
+      await controller.listSettlements(
+        {
+          page: 2,
+          pageSize: 10,
+          collectorMembershipId: 'membership-2',
+          portfolioId: 'portfolio-1',
+          status: 'PENDING',
+          dateRange: { from: '2026-10-01', to: '2026-10-31' },
+        },
+        scopeWith(['OWNER']),
+      );
+
+      expect(listSettlementsUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        lenderId: 'lender-1',
+        page: 2,
+        pageSize: 10,
+        collectorMembershipId: 'membership-2',
+        portfolioId: 'portfolio-1',
+        status: 'PENDING',
+        from: '2026-10-01',
+        to: '2026-10-31',
+      });
+    });
   });
 
   describe('approveSettlement', () => {

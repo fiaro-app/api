@@ -1,0 +1,24 @@
+$kind: http-request
+description: "Los filtros de fecha y cartera de los cuadres (D-108): dateRange acota por la fecha del cuadre, ambos extremos incluidos, y portfolioId deja solo los cobradores de esa cartera. Aquí se pide un rango amplio que incluye el cuadre de hoy."
+url: "{{baseUrl}}/daily-settlements"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "dateRange": { "from": "2020-01-01", "to": "2099-12-31" }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('encuentra el cuadre de prueba dentro del rango', () => pm.expect(body.data.some((settlement) => settlement.id === pm.collectionVariables.get('settlementId'))).to.be.true);
+    language: text/javascript
+order: 10000

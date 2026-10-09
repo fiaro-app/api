@@ -9,6 +9,7 @@ function setup(found: Lender | null) {
   const findById = vi.fn(() => Promise.resolve(found));
   const lenders: LenderRepository = {
     create: vi.fn(),
+    countByTenant: vi.fn(),
     findById,
     update: vi.fn(),
   };
@@ -22,6 +23,7 @@ describe('GetLenderUseCase', () => {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       createdAt: CREATED_AT,

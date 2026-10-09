@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   bucketArrearsByAge,
   rankTopArrears,
+  summarizePortfolio,
+  totalCollection,
 } from '@/modules/dashboard/domain/arrears-stats.js';
 
 describe('bucketArrearsByAge', () => {
@@ -100,5 +102,52 @@ describe('rankTopArrears', () => {
 
     expect(ranking).toHaveLength(2);
     expect(ranking.map((entry) => entry.clientId)).toEqual(['c3', 'c2']);
+  });
+});
+
+describe('summarizePortfolio', () => {
+  it('suma la cartera y la cartera en riesgo, y calcula el % en mora', () => {
+    const summary = summarizePortfolio([
+      { balance: 300_000, overdueAmount: 0 },
+      { balance: 100_000, overdueAmount: 20_000 },
+      { balance: 100_000, overdueAmount: 5_000 },
+    ]);
+
+    expect(summary).toEqual({
+      totalPortfolio: 500_000,
+      portfolioAtRisk: 200_000,
+      arrearsRate: 0.4,
+    });
+  });
+
+  it('una cartera vacía no tiene % en mora: no está definido, no es cero', () => {
+    expect(summarizePortfolio([])).toEqual({
+      totalPortfolio: 0,
+      portfolioAtRisk: 0,
+      arrearsRate: null,
+    });
+  });
+});
+
+describe('totalCollection', () => {
+  it('suma lo esperado y lo cobrado, y calcula la efectividad', () => {
+    expect(
+      totalCollection([
+        { expectedAmount: 100_000, collectedAmount: 80_000 },
+        { expectedAmount: 100_000, collectedAmount: 100_000 },
+      ]),
+    ).toEqual({
+      expectedAmount: 200_000,
+      collectedAmount: 180_000,
+      effectiveness: 0.9,
+    });
+  });
+
+  it('sin nada esperado la efectividad es null, no 0 ni 1', () => {
+    expect(totalCollection([])).toEqual({
+      expectedAmount: 0,
+      collectedAmount: 0,
+      effectiveness: null,
+    });
   });
 });

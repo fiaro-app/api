@@ -39,8 +39,9 @@ activa pasa. `Ninguna (propia)` quiere decir que la ruta no tiene ni guard de pr
 chequeo de rol — solo exige sesión y actúa siempre sobre el propio usuario (ver "Autoservicio",
 abajo). Un `—` en Rol quiere decir que la ruta es pública: el concepto de rol no aplica.
 
-Dos detalles transversales: **no existe ninguna ruta `DELETE` ni `PUT`** todavía (todo lo que
-"borra" es un estado, como desactivar una membresía o cancelar un préstamo); y `QUERY` en la
+Dos detalles transversales: **casi nada se borra**: las únicas rutas `DELETE` son las de carteras
+(`/portfolios/:id`, D-109) y las de sesiones (`/account/sessions/:id`, D-112); todo lo demás "borra"
+un estado, como desactivar una membresía o cancelar un préstamo (no existe ninguna ruta `PUT`); y `QUERY` en la
 columna Ruta es el verbo HTTP `QUERY` (`@QueryMethod()`), no `GET` — lo usan las búsquedas que
 necesitan filtros en el cuerpo del request.
 
@@ -72,6 +73,8 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /account/contact-email/verify` | Ninguna (propia) | Antifuerza bruta sobre el código (D-69). |
 | `PATCH /account/profile` | Ninguna (propia) | Nombre y correo de contacto propios (D-70). |
 | `POST /account/deactivate` | Ninguna (propia) | Exige la contraseña en el cuerpo como reconfirmación; cierra todas las sesiones propias (D-71, irreversible). |
+| `GET /account/sessions` | Ninguna (propia) | Las sesiones vigentes de la persona, con `isCurrent`, dispositivo (de su `User-Agent`), IP y último uso; sin token (D-112). |
+| `DELETE /account/sessions/:id` | Ninguna (propia) | Cierra una sesión puntual propia, `204` (D-112). La actual da `409` (para eso está `POST /auth/sign-out`); una ajena o vencida, `404`. Queda en la auditoría como `auth.session.revoked` con `scope: 'one'`. |
 
 ## Registro — `/register` (`RegistrationController`)
 
@@ -82,6 +85,22 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /register` | — | Crea `Tenant` + `Lender` + membresía `OWNER` con los tres roles en una transacción (D-78). No abre sesión después: registrarse e iniciar sesión son dos pasos separados. |
 
+## Contacto de ventas — `/leads` (`LeadController`)
+
+`@Public()`: no exige sesión (es el formulario «Contactar ventas» del sitio de marketing).
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `POST /leads` | — | Guarda el contacto y avisa por correo a `LEADS_NOTIFY_EMAIL` (D-114). **Límite propio de 5 por hora por IP** (`@Throttle`), mucho más estricto que el general (100/min), porque cualquiera en internet puede llamarla y cada llamada guarda una fila y manda un correo. Campo señuelo `website` contra robots. Ninguna ruta lee los contactos guardados: solo ventas, por correo o desde la base. |
+
+## Suscripción — `/subscription` (`SubscriptionController`)
+
+`LenderScopeGuard`: opera con el prestamista de la membresía activa.
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `GET /subscription` | cualquiera con membresía activa | El plan del Tenant: estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`), fechas, límites y uso (D-115). Solo informa: no bloquea ninguna operación. |
+
 ## Prestamista — `/lender` (`LenderController`)
 
 `LenderScopeGuard` en toda la clase.
@@ -89,7 +108,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | Ruta | Rol | Notas |
 | --- | --- | --- |
 | `GET /lender` | Cualquiera | — |
-| `PATCH /lender` | `OWNER`, `LENDER` | — |
+| `PATCH /lender` | `OWNER`, `LENDER` | Nombre, logo, días sin cobro y `brandColor` (`#RRGGBB`, D-110). |
 | `POST /lender/logo-upload-url` | `OWNER`, `LENDER` | URL firmada de subida (PUT) y URL pública del logo (D-102). El archivo va directo al bucket; guardar la URL pública exige, aparte, `PATCH /lender { logoUrl }`. |
 
 ## Carteras — `/portfolios` (`PortfolioController`)
@@ -99,14 +118,18 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | Ruta | Rol | Notas |
 | --- | --- | --- |
 | `POST /portfolios` | `OWNER`, `LENDER` | — |
-| `GET /portfolios` | Cualquiera | Sin editar ni borrar todavía: nada lo necesita aún. |
+| `GET /portfolios` | Cualquiera | — |
+| `PATCH /portfolios/:id` | `OWNER`, `LENDER` | Renombra (D-109). Se puede renombrar también la cartera por defecto. Nombre repetido en el prestamista: `409 CONFLICT`. Otro prestamista o inexistente: `404 NOT_FOUND`. |
+| `DELETE /portfolios/:id` | `OWNER`, `LENDER` | Borra (D-109), `204`. `409 CONFLICT` si es la cartera por defecto o si tiene cobradores **activos** asignados; las membresías inactivas que la tenían quedan sin cartera (`ON DELETE SET NULL`). |
 
 ## Membresías — `/memberships` (`MembershipController`)
 
-`LenderScopeGuard` en toda la clase. No hay `GET /memberships` (listar) todavía.
+`LenderScopeGuard` en toda la clase.
 
 | Ruta | Rol | Notas |
 | --- | --- | --- |
+| `QUERY /memberships` | `OWNER`, `LENDER` | Lista paginada de colaboradores con nombre y celular (D-92). Puede traer la propia membresía. |
+| `GET /memberships/:id` | `OWNER`, `LENDER` | Detalle de un colaborador, con la misma forma que una fila del listado (D-106). A diferencia de las demás rutas con `:id`, **sí permite ver la propia membresía**: ver no tiene el riesgo de dejar un negocio sin administrador. Otro prestamista da `404 NOT_FOUND`. |
 | `POST /memberships` | `OWNER`, `LENDER` | Invita a una persona nueva con los roles y la cartera dados. |
 | `POST /memberships/:id/deactivate` | `OWNER`, `LENDER` | **Nunca sobre la propia membresía** (`scope.membershipId !== id`), ni siquiera para quien tiene esos roles — evita dejar un negocio sin nadie que lo administre. **Rechaza además una membresía con el rol `COLLECTOR`** (`400 VALIDATION_FAILED`): un cobrador se da de baja con `POST /collectors/:id/deactivate` (ver abajo, D-97), que reasigna sus préstamos antes de desactivarlo. |
 | `PATCH /memberships/:id/roles` | `OWNER`, `LENDER` | Misma regla: nunca sobre la propia. |
@@ -119,7 +142,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /clients` | `OWNER`, `LENDER` | — |
 | `GET /clients/:id` | Cualquiera | `COLLECTOR` lo necesita en campo. |
-| `QUERY /clients` | Cualquiera | — |
+| `QUERY /clients` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays` y `activeLoans`, sumados sobre sus préstamos activos (D-113). Vive en `collections` (`PortfolioListController`), no en `ClientController`, porque el saldo sale de los pagos de las visitas y `clients` no puede depender de `collections`. |
 | `PATCH /clients/:id` | `OWNER`, `LENDER` | — |
 
 ## Préstamos — `/loans` (`LoanController`)
@@ -130,7 +153,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /loans` | `OWNER`, `LENDER` | — |
 | `GET /loans/:id` | Cualquiera | — |
-| `QUERY /loans` | Cualquiera | — |
+| `QUERY /loans` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays`, `nextDueDate` y el `collector` vigente (D-113). Vive en `collections` (`PortfolioListController`) por la misma razón que `/loans/:loanId/balance` (D-84). |
 | `POST /loans/:id/cancel` | `OWNER`, `LENDER` | Mismo rol que crear (D-79): anulación por error, antes de recibir pagos. |
 
 ## Cobro en campo — `collections` (7 controllers)
@@ -146,8 +169,11 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `QUERY /collectors/me/route` | `COLLECTOR` | El `me` del path lo exige el código (`scope.membershipId`), no es solo convención. |
 | `QUERY /collectors/me/daily-summary` | `COLLECTOR` | Siempre el propio (`scope.membershipId`). `expectedAmount` lo calcula el motor de calendario, no las visitas ya registradas (D-98). |
 | `QUERY /collectors/me/stats` | `COLLECTOR` | Siempre el propio. Misma forma que `QUERY /lenders/me/stats` (D-100) le muestra al Lender sobre él, pero para su propia cartera (D-98). |
+| `GET /collectors/:id/stats` | `OWNER`, `LENDER` | El desempeño de un cobrador visto por quien administra (D-107): delega en el mismo caso de uso que `/collectors/me/stats`, así las cifras nunca discrepan. `from`/`to` opcionales en la query (ausentes: el mes actual). Admite la propia membresía y a un cobrador dado de baja. Una membresía sin rol `COLLECTOR`, de otro prestamista o inexistente da `404 NOT_FOUND`. |
 | `POST /collectors/:id/deactivate` | `OWNER`, `LENDER` | Da de baja a un cobrador reasignando, en el mismo paso, cada préstamo activo que tiene asignado hoy (D-97). Mismo chequeo que `/memberships`: **nunca sobre la propia membresía**. `reassignments` debe cubrir exactamente sus préstamos activos (`400 VALIDATION_FAILED` si no), y ningún destino puede ser el cobrador que se da de baja. Vive aquí y no en `memberships` porque solo este módulo conoce las asignaciones de cobro. |
 | `GET /loans/:loanId/balance` | Cualquiera | Vive en `collections`, no en `loans`, para no crear un ciclo de módulos (D-84) — detalle arquitectónico, no de permisos. |
+| `GET /loans/:loanId/installments` | Cualquiera | Calendario de cuotas (D-103). Mismo motor y mismas fechas que el saldo; vive en `collections` por la misma razón (D-84). |
+| `QUERY /collection-visits` | `OWNER`, `LENDER` | «Cobros del día» (D-105): las visitas de todo el negocio, no de un préstamo. Un `COLLECTOR` recibe `403 FORBIDDEN`; él ve lo suyo por su ruta y su resumen (D-98). |
 | `POST /payments/:id/reversals` | `OWNER`, `LENDER` | Única forma de corregir un pago (D-85). `reversedByMembershipId` siempre de la sesión. |
 
 ## Cuadre diario — `/daily-settlements` (`DailySettlementController`)
@@ -158,7 +184,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /daily-settlements` | `COLLECTOR` | Siempre el propio cuadre (`scope.membershipId`). |
 | `GET /daily-settlements/:id` | Cualquiera | Cualquier rol ve cualquier cuadre del prestamista, no solo el propio. |
-| `QUERY /daily-settlements` | Cualquiera | Igual. |
+| `QUERY /daily-settlements` | Cualquiera | Igual. Filtros combinables: `collectorMembershipId`, `portfolioId`, `status` y `dateRange` sobre la fecha del cuadre (D-108). |
 | `POST /daily-settlements/:id/approve` | `OWNER`, `LENDER` | — |
 | `POST /daily-settlements/:id/reject` | `OWNER`, `LENDER` | — |
 
@@ -168,8 +194,8 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 
 | Ruta | Rol | Notas |
 | --- | --- | --- |
-| `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
-| `QUERY /lenders/me/stats` | `OWNER`, `LENDER` | Cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), ranking de mayor mora y desempeño por cobrador, filtrable por `collectorMembershipId`/`portfolioId` (D-100). Misma forma que `QUERY /collectors/me/stats` (D-98) le muestra a un cobrador sobre sí mismo. |
+| `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). Con `from` y `to` (juntos) suma lo cobrado y lo esperado de ese período (`*InPeriod`, D-111). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
+| `QUERY /lenders/me/stats` | `OWNER`, `LENDER` | Cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), ranking de mayor mora y desempeño por cobrador, filtrable por `collectorMembershipId`/`portfolioId` (D-100); con `includePrevious: true` trae también el período anterior de la misma duración (`previous`, D-111). Misma forma que `QUERY /collectors/me/stats` (D-98) le muestra a un cobrador sobre sí mismo. |
 | `QUERY /lenders/me/stats/export` | `OWNER`, `LENDER` | El mismo reporte anterior, en un PDF de una página (D-101). Única ruta de la API que no responde JSON: usa `@Res()` directo. |
 
 ## Notificaciones — `/notifications` (`NotificationController`)
@@ -181,6 +207,8 @@ notificaciones de todos a la vez, así que no hay "un" prestamista por el que fi
 | --- | --- | --- |
 | `QUERY /notifications` | Ninguna (propia) | Siempre las propias (`recipientUserId` de `@CurrentUser()`). |
 | `POST /notifications/:id/read` | Ninguna (propia) | El filtro por dueño vive en la consulta al repositorio (`findById(id, recipientUserId)`): marcar la de otra persona da `404 NOT_FOUND`, no `403`. |
+| `POST /notifications/read-all` | Ninguna (propia) | Marca en una sola operación todas las propias sin leer; `lenderId` opcional en el cuerpo (D-104). Repetirla devuelve `{ marked: 0 }`, no falla. |
+| `GET /notifications/unread-count` | Ninguna (propia) | `{ count }` de las propias sin leer; `lenderId` opcional en la query (D-104). |
 
 ## Sistema — `/health`, `/mobile/version` (`SystemController`)
 

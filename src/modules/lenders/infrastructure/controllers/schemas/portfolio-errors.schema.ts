@@ -15,3 +15,8 @@ export const PortfolioForbiddenSchema = ApiErrorSchema.extend({
 export const PortfolioConflictSchema = ApiErrorSchema.extend({
   code: z.literal('CONFLICT'),
 }).meta({ id: 'PortfolioConflict' });
+
+/** `404 NOT_FOUND`: la cartera no existe, o es de otro prestamista. */
+export const PortfolioNotFoundSchema = ApiErrorSchema.extend({
+  code: z.literal('NOT_FOUND'),
+}).meta({ id: 'PortfolioNotFound' });

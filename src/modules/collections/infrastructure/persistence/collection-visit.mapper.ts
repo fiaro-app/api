@@ -7,6 +7,7 @@ import type {
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
 import { PaymentReversal } from '@/modules/collections/domain/entities/payment-reversal.entity.js';
+import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 
 /** @param visit - Visita nueva. */
 export function toCollectionVisitCreateInput(
@@ -88,4 +89,33 @@ export function toPaymentReversal(row: PaymentReversalModel): PaymentReversal {
     reversedByMembershipId: row.reversedByMembershipId,
     createdAt: row.createdAt,
   });
+}
+
+/** A qué nivel de detalle se piden las visitas: su pago, y la reversión de ese pago. */
+export const WITH_PAYMENT_AND_REVERSAL = {
+  payment: { include: { reversal: true } },
+} as const;
+
+/**
+ * Fila de `collection_visits` con su `payment` (y la `reversal` de ese pago, si tiene una), tal
+ * como la trae {@link WITH_PAYMENT_AND_REVERSAL}.
+ */
+export type CollectionVisitRowWithPayment = CollectionVisitModel & {
+  payment:
+    | (Parameters<typeof toPayment>[0] & {
+        reversal: Parameters<typeof toPaymentReversal>[0] | null;
+      })
+    | null;
+};
+
+/** @param row - Fila con su pago y la reversión de ese pago, si los trae. */
+export function toCollectionVisitRecord(
+  row: CollectionVisitRowWithPayment,
+): CollectionVisitRecord {
+  const reversalRow = row.payment?.reversal ?? null;
+  return {
+    visit: toCollectionVisit(row),
+    payment: row.payment === null ? null : toPayment(row.payment),
+    reversal: reversalRow === null ? null : toPaymentReversal(reversalRow),
+  };
 }

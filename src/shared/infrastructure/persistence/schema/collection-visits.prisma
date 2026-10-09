@@ -29,6 +29,7 @@ model CollectionVisit {
 
   @@index([loanId])
   @@index([collectorMembershipId])
+  @@index([occurredAt])
   @@map("collection_visits")
 }
 

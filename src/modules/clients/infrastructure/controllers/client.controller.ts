@@ -9,31 +9,25 @@ import {
   Param,
   Patch,
   Post,
-  QueryMethod,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { CreateClientUseCase } from '@/modules/clients/application/use-cases/create-client.use-case.js';
 import { GetClientUseCase } from '@/modules/clients/application/use-cases/get-client.use-case.js';
-import { ListClientsUseCase } from '@/modules/clients/application/use-cases/list-clients.use-case.js';
 import { UpdateClientUseCase } from '@/modules/clients/application/use-cases/update-client.use-case.js';
 import {
   ApiCreateClient,
   ApiGetClient,
-  ApiListClients,
   ApiUpdateClient,
 } from '@/modules/clients/infrastructure/controllers/docs/client-routes.docs.js';
 import {
   CreateClientRequestSchema,
-  ListClientsRequestSchema,
   UpdateClientRequestSchema,
 } from '@/modules/clients/infrastructure/controllers/schemas/client-requests.schema.js';
 import {
   toClientResponse,
-  toClientsPageResponse,
   type ClientResponseSchema,
-  type ClientsPageResponseSchema,
 } from '@/modules/clients/infrastructure/controllers/schemas/client-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
@@ -66,7 +60,6 @@ export class ClientController {
   constructor(
     private readonly createClientUseCase: CreateClientUseCase,
     private readonly getClientUseCase: GetClientUseCase,
-    private readonly listClientsUseCase: ListClientsUseCase,
     private readonly updateClientUseCase: UpdateClientUseCase,
   ) {}
 
@@ -107,25 +100,6 @@ export class ClientController {
     return toClientResponse(
       await this.getClientUseCase.execute(id, scope.lenderId),
     );
-  }
-
-  /**
-   * @param query - Página, tamaño y búsqueda opcional, ya validados.
-   * @param scope - El Lender con el que opera la sesión.
-   */
-  @QueryMethod()
-  @HttpCode(HttpStatus.OK)
-  @ApiListClients()
-  async listClients(
-    @Body({ schema: ListClientsRequestSchema })
-    query: z.output<typeof ListClientsRequestSchema>,
-    @CurrentLenderScope() scope: LenderScope,
-  ): Promise<z.output<typeof ClientsPageResponseSchema>> {
-    const page = await this.listClientsUseCase.execute({
-      lenderId: scope.lenderId,
-      ...query,
-    });
-    return toClientsPageResponse(page, query);
   }
 
   /**

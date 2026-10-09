@@ -100,3 +100,63 @@ export function rankTopArrears(
     )
     .slice(0, limit);
 }
+
+/** Un préstamo de la cartera, lo mínimo para sumar su saldo y su mora. */
+export interface PortfolioLoanRecord {
+  readonly balance: number;
+  readonly overdueAmount: number;
+}
+
+/** La salud de la cartera: cuánto hay, cuánto está en riesgo y la razón entre ambos. */
+export interface PortfolioSummary {
+  /** Suma del saldo de los préstamos. */
+  readonly totalPortfolio: number;
+  /** Suma del saldo de los que tienen algo vencido sin pagar. */
+  readonly portfolioAtRisk: number;
+  /** `portfolioAtRisk / totalPortfolio`, de 0 a 1. `null` si `totalPortfolio` es cero. */
+  readonly arrearsRate: number | null;
+}
+
+/**
+ * Resume una cartera: cartera total, cartera en riesgo y % en mora.
+ *
+ * @param records - Los préstamos de la cartera, con su saldo y lo que tienen vencido.
+ */
+export function summarizePortfolio(
+  records: readonly PortfolioLoanRecord[],
+): PortfolioSummary {
+  const totalPortfolio = records.reduce((sum, r) => sum + r.balance, 0);
+  const portfolioAtRisk = records
+    .filter((record) => record.overdueAmount > 0)
+    .reduce((sum, record) => sum + record.balance, 0);
+  return {
+    totalPortfolio,
+    portfolioAtRisk,
+    arrearsRate: totalPortfolio === 0 ? null : portfolioAtRisk / totalPortfolio,
+  };
+}
+
+/** Lo esperado y lo cobrado de un cobrador (o de varios) en un período. */
+export interface CollectionAmounts {
+  readonly expectedAmount: number;
+  readonly collectedAmount: number;
+}
+
+/**
+ * Suma lo esperado y lo cobrado, y calcula la efectividad resultante.
+ *
+ * @param parts - Lo esperado y lo cobrado de cada cobrador.
+ * @returns Los totales y `effectiveness = collected / expected` (de 0 a 1; `null` si no había nada esperado).
+ */
+export function totalCollection(
+  parts: readonly CollectionAmounts[],
+): CollectionAmounts & { readonly effectiveness: number | null } {
+  const expectedAmount = parts.reduce((sum, p) => sum + p.expectedAmount, 0);
+  const collectedAmount = parts.reduce((sum, p) => sum + p.collectedAmount, 0);
+  return {
+    expectedAmount,
+    collectedAmount,
+    effectiveness:
+      expectedAmount === 0 ? null : collectedAmount / expectedAmount,
+  };
+}

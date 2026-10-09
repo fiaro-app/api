@@ -1,0 +1,26 @@
+$kind: http-request
+description: Calendario de cuotas del préstamo (D-103). Tras el pago registrado en la visita PAID, la primera cuota debe aparecer cubierta; el resto de estados depende de la fecha de hoy, así que solo se comprueba su forma.
+url: "{{baseUrl}}/loans/{{visitsLoanId}}/installments"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae una fila por cuota, numeradas desde 1', () => {
+        pm.expect(body.installments).to.be.an('array').that.is.not.empty;
+        pm.expect(body.installments[0].number).to.eql(1);
+      });
+      pm.test('cada cuota trae fecha, montos y un estado válido', () => {
+        body.installments.forEach((row) => {
+          pm.expect(row.dueDate).to.match(/^\d{4}-\d{2}-\d{2}$/);
+          pm.expect(row.paidAmount).to.be.within(0, row.expectedAmount);
+          pm.expect(['PAID', 'PARTIAL', 'OVERDUE', 'PENDING']).to.include(row.status);
+        });
+      });
+    language: text/javascript
+order: 14000

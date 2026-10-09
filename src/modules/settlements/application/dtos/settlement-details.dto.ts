@@ -82,6 +82,12 @@ export interface ListSettlementsInput {
   readonly collectorMembershipId?: string;
   /** Solo los cuadres en este estado; ausente para listar todos. */
   readonly status?: SettlementStatus;
+  /** Solo los cuadres de los cobradores de esta cartera; ausente para listar los de todas. */
+  readonly portfolioId?: string;
+  /** Primera fecha del cuadre (`AAAA-MM-DD`), inclusive; ausente para no acotar por abajo. */
+  readonly from?: string;
+  /** Última fecha del cuadre (`AAAA-MM-DD`), inclusive; ausente para no acotar por arriba. */
+  readonly to?: string;
 }
 
 /** Una página de cuadres. */

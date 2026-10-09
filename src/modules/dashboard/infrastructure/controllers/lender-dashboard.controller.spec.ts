@@ -20,6 +20,10 @@ const DASHBOARD: LenderDashboard = {
   clientsInArrears: 1,
   alerts: ['1 cobrador aún no ha iniciado su ruta hoy.'],
   pendingSettlements: [],
+  period: { from: '2026-10-07', to: '2026-10-07' },
+  collectedInPeriod: 0,
+  expectedInPeriod: 0,
+  effectivenessInPeriod: null,
 };
 
 const STATS: LenderPeriodStats = {
@@ -36,6 +40,10 @@ const STATS: LenderPeriodStats = {
   ],
   topArrears: [],
   collectorPerformance: [],
+  expectedAmount: 0,
+  collectedAmount: 0,
+  effectiveness: null,
+  previous: null,
 };
 
 const STATS_EXPORT: LenderStatsExport = {
@@ -116,20 +124,40 @@ describe('LenderDashboardController', () => {
       async (role) => {
         const { controller, getLenderDashboardUseCase } = setup();
 
-        const response = await controller.getLenderDashboard(scopeWith([role]));
+        const response = await controller.getLenderDashboard(
+          {},
+          scopeWith([role]),
+        );
 
         expect(
           getLenderDashboardUseCase.execute,
-        ).toHaveBeenCalledExactlyOnceWith('lender-1');
+        ).toHaveBeenCalledExactlyOnceWith('lender-1', {});
         expect(response).toEqual(DASHBOARD);
       },
     );
+
+    it('pasa el período al caso de uso', async () => {
+      const { controller, getLenderDashboardUseCase } = setup();
+
+      await controller.getLenderDashboard(
+        { from: '2026-10-01', to: '2026-10-07' },
+        scopeWith(['OWNER']),
+      );
+
+      expect(getLenderDashboardUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+        'lender-1',
+        {
+          from: '2026-10-01',
+          to: '2026-10-07',
+        },
+      );
+    });
 
     it('con solo el rol COLLECTOR responde 403 sin llamar al caso de uso', async () => {
       const { controller, getLenderDashboardUseCase } = setup();
 
       const error = await controller
-        .getLenderDashboard(scopeWith(['COLLECTOR']))
+        .getLenderDashboard({}, scopeWith(['COLLECTOR']))
         .catch((caught: unknown) => caught);
 
       expect(error).toBeInstanceOf(ForbiddenException);
@@ -163,6 +191,19 @@ describe('LenderDashboardController', () => {
       expect(response).toEqual(STATS);
     });
 
+    it('pasa includePrevious al caso de uso', async () => {
+      const { controller, getLenderStatsUseCase } = setup();
+
+      await controller.getLenderStats(
+        { includePrevious: true },
+        scopeWith(['OWNER']),
+      );
+
+      expect(getLenderStatsUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ includePrevious: true }),
+      );
+    });
+
     it('sin dateRange ni filtros, los pasa indefinidos', async () => {
       const { controller, getLenderStatsUseCase } = setup();
 
@@ -174,6 +215,7 @@ describe('LenderDashboardController', () => {
         to: undefined,
         collectorMembershipId: undefined,
         portfolioId: undefined,
+        includePrevious: undefined,
       });
     });
 
@@ -211,6 +253,7 @@ describe('LenderDashboardController', () => {
         to: undefined,
         collectorMembershipId: 'membership-2',
         portfolioId: undefined,
+        includePrevious: undefined,
       });
       expect(headers.get('Content-Type')).toBe('application/pdf');
       expect(headers.get('Content-Disposition')).toContain('2026-10-01');

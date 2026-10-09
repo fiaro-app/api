@@ -26,6 +26,12 @@ describe('loadEnv', () => {
         resendApiKey: undefined,
         fromAddress: undefined,
       },
+      leads: { notifyEmail: undefined },
+      subscription: {
+        trialDays: 30,
+        trialMaxActiveLenders: 1,
+        trialMaxCollectors: 5,
+      },
       maintenanceMode: false,
       mobile: {
         minimumSupportedVersion: '0.0.0',
@@ -61,6 +67,7 @@ describe('loadEnv', () => {
       MOBILE_APP_SCHEMES: 'fiaro',
       QUEUE_PREFIX: 'fiaro-staging',
       MAINTENANCE_MODE: 'true',
+      LEADS_NOTIFY_EMAIL: 'ventas@fiaro.co',
       ...PRODUCTION_ENV,
     });
 
@@ -84,6 +91,12 @@ describe('loadEnv', () => {
       email: {
         resendApiKey: PRODUCTION_ENV.RESEND_API_KEY,
         fromAddress: PRODUCTION_ENV.RESEND_FROM_EMAIL,
+      },
+      leads: { notifyEmail: 'ventas@fiaro.co' },
+      subscription: {
+        trialDays: 30,
+        trialMaxActiveLenders: 1,
+        trialMaxCollectors: 5,
       },
       maintenanceMode: true,
       mobile: {

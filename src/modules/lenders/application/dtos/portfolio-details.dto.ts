@@ -17,3 +17,13 @@ export interface CreatePortfolioInput {
   /** Nombre de la cartera. */
   readonly name: string;
 }
+
+/** Datos con los que se renombra una cartera. */
+export interface UpdatePortfolioInput {
+  /** El prestamista dueño, resuelto por `LenderScopeGuard`. */
+  readonly lenderId: string;
+  /** La cartera. */
+  readonly portfolioId: string;
+  /** Nombre nuevo de la cartera. */
+  readonly name: string;
+}

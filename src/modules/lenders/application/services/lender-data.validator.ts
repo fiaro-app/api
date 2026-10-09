@@ -1,6 +1,10 @@
 import { LenderSchema, type Weekday } from '@fiaro-app/contracts';
 import { InvalidLenderDataError } from '@/modules/lenders/domain/errors/invalid-lender-data.error.js';
 import {
+  isBrandColor,
+  normalizeBrandColor,
+} from '@/modules/lenders/domain/value-objects/brand-color.js';
+import {
   toIssuePath,
   zodIssueParams,
 } from '@/shared/application/validation/zod-issue-params.js';
@@ -62,4 +66,28 @@ export function validateLenderData(input: LenderDataInput): ValidLenderData {
     );
   }
   return result.data;
+}
+
+/**
+ * Valida el color de marca y lo deja en su forma canónica. Vive aparte de {@link validateLenderData}
+ * porque el contrato compartido (`LenderSchema`) todavía no lo conoce.
+ *
+ * @param brandColor - `#RRGGBB` en cualquier combinación de mayúsculas, o `null` para el color de Fiaro.
+ * @returns El color en mayúsculas, o `null`.
+ * @throws {@link InvalidLenderDataError} Si no es un hexadecimal `#RRGGBB`.
+ */
+export function validateBrandColor(brandColor: string | null): string | null {
+  if (brandColor === null) {
+    return null;
+  }
+  if (!isBrandColor(brandColor)) {
+    throw new InvalidLenderDataError([
+      {
+        path: ['brandColor'],
+        message: 'El color de marca debe ser un hexadecimal #RRGGBB.',
+        params: {},
+      },
+    ]);
+  }
+  return normalizeBrandColor(brandColor);
 }

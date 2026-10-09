@@ -1,0 +1,23 @@
+$kind: http-request
+description: "La suscripción del Tenant del prestamista con el que opera la sesión (D-115). Todo negocio nace con una prueba; la API solo informa el estado, no bloquea operaciones."
+url: "{{baseUrl}}/subscription"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae el plan y su estado', () => {
+        pm.expect(body.planCode).to.eql('TRIAL');
+        pm.expect(['ACTIVE', 'GRACE_PERIOD', 'READ_ONLY']).to.include(body.status);
+      });
+      pm.test('trae los límites y el uso', () => {
+        pm.expect(body.limits.maxCollectors).to.be.a('number');
+        pm.expect(body.usage.activeLenders).to.be.a('number');
+      });
+    language: text/javascript
+order: 2000

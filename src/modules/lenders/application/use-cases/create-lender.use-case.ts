@@ -42,6 +42,7 @@ export class CreateLenderUseCase {
       id: this.ids.next(),
       tenantId: input.tenantId,
       ...data,
+      brandColor: null,
       createdAt: this.clock.now(),
     });
     const defaultPortfolioId = this.ids.next();

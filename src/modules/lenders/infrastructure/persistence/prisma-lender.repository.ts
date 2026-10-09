@@ -29,6 +29,11 @@ export class PrismaLenderRepository implements LenderRepository {
     return row === null ? null : toLender(row);
   }
 
+  /** @param tenantId - El Tenant. */
+  async countByTenant(tenantId: string): Promise<number> {
+    return await this.prisma.lender.count({ where: { tenantId } });
+  }
+
   /** @param lender - El prestamista con sus datos ya actualizados. */
   async update(lender: Lender): Promise<void> {
     await this.prisma.lender.update({

@@ -43,6 +43,8 @@ function setup(found: Notification | null) {
     findById: vi.fn(() => Promise.resolve(found)),
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
     markAsRead,
+    countUnread: vi.fn(),
+    markAllAsRead: vi.fn(),
   };
   const clock: Clock = { now: () => READ_AT };
   return {

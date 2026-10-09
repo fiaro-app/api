@@ -3,9 +3,11 @@ import type { Env } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
 import type { PushSender } from '@/modules/notifications/application/ports/push-sender.port.js';
 import { PUSH_SENDER } from '@/modules/notifications/application/ports/push-sender.token.js';
+import { CountUnreadNotificationsUseCase } from '@/modules/notifications/application/use-cases/count-unread-notifications.use-case.js';
 import { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
 import { DeliverNotificationUseCase } from '@/modules/notifications/application/use-cases/deliver-notification.use-case.js';
 import { ListNotificationsUseCase } from '@/modules/notifications/application/use-cases/list-notifications.use-case.js';
+import { MarkAllNotificationsReadUseCase } from '@/modules/notifications/application/use-cases/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from '@/modules/notifications/application/use-cases/mark-notification-read.use-case.js';
 import { RegisterPushTokenUseCase } from '@/modules/notifications/application/use-cases/register-push-token.use-case.js';
 import { RevokePushTokenUseCase } from '@/modules/notifications/application/use-cases/revoke-push-token.use-case.js';
@@ -30,6 +32,8 @@ export const notificationsProviders: Provider[] = [
   CreateNotificationUseCase,
   ListNotificationsUseCase,
   MarkNotificationReadUseCase,
+  MarkAllNotificationsReadUseCase,
+  CountUnreadNotificationsUseCase,
   RegisterPushTokenUseCase,
   RevokePushTokenUseCase,
 ];

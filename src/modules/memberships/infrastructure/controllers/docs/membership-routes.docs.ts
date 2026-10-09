@@ -10,6 +10,7 @@ import {
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-errors.schema.js';
 import {
   InvitedMembershipResponseSchema,
+  MembershipListEntryResponseSchema,
   MembershipResponseSchema,
   MembershipsPageResponseSchema,
   ResetMembershipPasswordResponseSchema,
@@ -77,6 +78,35 @@ export const ApiListMemberships = () =>
         'Sin ninguna membresía activa, o la membresía activa no tiene rol `OWNER` ni `LENDER` (`FORBIDDEN`).',
       standardSchema: MembershipForbiddenSchema,
     }),
+  );
+
+/** Documenta `GET /memberships/:id`. */
+export const ApiGetMembership = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Ver un colaborador',
+      description:
+        'El detalle de un colaborador del prestamista con el que opera la sesión, con la misma forma que cada fila de `QUERY /memberships` (incluye nombre y celular). Puede ser la propia membresía de la sesión. Exige rol `OWNER` o `LENDER` en la membresía activa.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'El colaborador.',
+      standardSchema: MembershipListEntryResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'El id no es un UUID (`VALIDATION_FAILED`).',
+      standardSchema: MembershipValidationErrorSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiResponse({
+      status: 403,
+      description:
+        'Sin ninguna membresía activa, o la membresía activa no tiene rol `OWNER` ni `LENDER` (`FORBIDDEN`).',
+      standardSchema: MembershipForbiddenSchema,
+    }),
+    ApiMembershipNotFoundResponse(),
   );
 
 /** Documenta `POST /memberships`. */

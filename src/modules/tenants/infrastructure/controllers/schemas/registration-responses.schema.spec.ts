@@ -22,6 +22,7 @@ const REGISTERED: RegisteredOwner = {
       tenantId: 'tenant-1',
       name: 'Préstamos Ana',
       logoUrl: null,
+      brandColor: null,
       nonWorkingWeekdays: ['SUNDAY'],
       skipNationalHolidays: false,
       defaultPortfolioId: 'portfolio-1',

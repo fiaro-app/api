@@ -26,8 +26,11 @@ const LENDER = {
   skipNationalHolidays: false,
 } as never;
 
-function paidVisit(id: string, amount: number): CollectionVisitRecord {
-  const occurredAt = NOW;
+function paidVisit(
+  id: string,
+  amount: number,
+  occurredAt: Date = NOW,
+): CollectionVisitRecord {
   return {
     visit: CollectionVisit.create({
       id,
@@ -66,7 +69,10 @@ function reversedVisit(id: string, amount: number): CollectionVisitRecord {
   };
 }
 
-function setup(records: readonly CollectionVisitRecord[] = []) {
+function setup(
+  records: readonly CollectionVisitRecord[] = [],
+  loan: Record<string, unknown> = LOAN,
+) {
   const listByLoan = vi.fn(() => Promise.resolve(records));
   const visits: CollectionVisitRepository = {
     create: vi.fn(() => Promise.resolve()),
@@ -75,7 +81,7 @@ function setup(records: readonly CollectionVisitRecord[] = []) {
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange: vi.fn(),
   };
-  const getLoanExecute = vi.fn(() => Promise.resolve(LOAN));
+  const getLoanExecute = vi.fn(() => Promise.resolve(loan));
   const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
   const getLenderExecute = vi.fn(() => Promise.resolve(LENDER));
   const getLender = {
@@ -174,5 +180,81 @@ describe('GetLoanBalanceUseCase', () => {
 
     expect(result.overdueAmount).toBe(0);
     expect(result.nextDueDate).toBeNull();
+  });
+
+  describe('con asOf (saldo histórico, D-111)', () => {
+    it('calcula con esa fecha, no con la de hoy', async () => {
+      const { useCase } = setup();
+
+      const result = await useCase.execute('loan-1', 'lender-1', '2026-09-25');
+
+      expect(result.asOf).toBe('2026-09-25');
+      // Solo vencía la primera cuota (25 de septiembre) y no se había pagado nada.
+      expect(result.totalExpectedToDate).toBe(10_000);
+      expect(result.overdueAmount).toBe(10_000);
+      expect(result.overdueDays).toBe(0);
+    });
+
+    it('no cuenta los pagos hechos después de esa fecha', async () => {
+      const { useCase } = setup([paidVisit('visit-1', 10_000)]); // pagó el 27
+
+      const before = await useCase.execute('loan-1', 'lender-1', '2026-09-26');
+      const after = await useCase.execute('loan-1', 'lender-1', '2026-09-27');
+
+      expect(before.balance).toBe(50_000);
+      expect(after.balance).toBe(40_000);
+    });
+
+    it('un pago reversado después de esa fecha todavía contaba', async () => {
+      const paidOnThe25th = paidVisit(
+        'visit-1',
+        10_000,
+        new Date('2026-09-25T10:00:00-05:00'),
+      );
+      const { useCase } = setup([
+        {
+          ...paidOnThe25th,
+          reversal: reversedVisit('visit-1', 10_000).reversal,
+        },
+      ]); // pagado el 25, reversado el 27
+
+      const beforeReversal = await useCase.execute(
+        'loan-1',
+        'lender-1',
+        '2026-09-26',
+      );
+      const afterReversal = await useCase.execute(
+        'loan-1',
+        'lender-1',
+        '2026-09-27',
+      );
+
+      expect(beforeReversal.balance).toBe(40_000);
+      expect(afterReversal.balance).toBe(50_000);
+    });
+
+    it('un préstamo que se cerró después de esa fecha todavía estaba abierto', async () => {
+      const closedLater = {
+        ...LOAN,
+        status: 'PAID_OFF',
+        closedAt: new Date('2026-09-27T15:00:00-05:00'),
+      };
+      const { useCase } = setup([], closedLater);
+
+      const whileOpen = await useCase.execute(
+        'loan-1',
+        'lender-1',
+        '2026-09-26',
+      );
+      const afterClose = await useCase.execute(
+        'loan-1',
+        'lender-1',
+        '2026-09-27',
+      );
+
+      expect(whileOpen.overdueAmount).toBe(20_000);
+      expect(afterClose.overdueAmount).toBe(0);
+      expect(afterClose.nextDueDate).toBeNull();
+    });
   });
 });

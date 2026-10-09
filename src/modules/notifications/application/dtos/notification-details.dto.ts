@@ -49,3 +49,14 @@ export interface NotificationsPageResult {
   readonly items: readonly NotificationDetails[];
   readonly total: number;
 }
+
+/** Criterio de {@link CountUnreadNotificationsUseCase} y {@link MarkAllNotificationsReadUseCase}. */
+export interface UnreadNotificationsInput {
+  /** Quién las recibe, resuelto de la sesión. */
+  readonly recipientUserId: string;
+  /**
+   * Solo las de este prestamista; ausente para las de todos (una persona puede trabajar para
+   * varios, PRODUCT.md §5).
+   */
+  readonly lenderId?: string;
+}

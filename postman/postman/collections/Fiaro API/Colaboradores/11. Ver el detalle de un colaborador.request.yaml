@@ -1,0 +1,20 @@
+$kind: http-request
+description: El detalle de un colaborador (D-106), con la misma forma que una fila del listado. Exige rol OWNER o LENDER; a diferencia de desactivar o cambiar roles, admite también la propia membresía.
+url: "{{baseUrl}}/memberships/{{membershipsCollectorMembershipId}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la membresía con nombre y celular', () => {
+        pm.expect(body.id).to.eql(pm.collectionVariables.get('membershipsCollectorMembershipId'));
+        pm.expect(body.fullName).to.be.a('string');
+        pm.expect(body.phone).to.be.a('string');
+      });
+    language: text/javascript
+order: 11000

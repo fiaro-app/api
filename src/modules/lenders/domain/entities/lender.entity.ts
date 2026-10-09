@@ -10,6 +10,8 @@ export interface LenderProps {
   readonly name: string;
   /** URL del logo, o `null` si no tiene uno todavía. */
   readonly logoUrl: string | null;
+  /** Color de marca `#RRGGBB` en mayúsculas, o `null` para el de Fiaro. */
+  readonly brandColor: string | null;
   /** Días de la semana en que no se cobra: no generan cuota esperada ni mora. */
   readonly nonWorkingWeekdays: readonly Weekday[];
   /** Si es `true`, los festivos nacionales de Colombia tampoco cuentan como días de cobro. */
@@ -28,6 +30,7 @@ export class Lender {
     public readonly tenantId: string,
     public readonly name: string,
     public readonly logoUrl: string | null,
+    public readonly brandColor: string | null,
     public readonly nonWorkingWeekdays: readonly Weekday[],
     public readonly skipNationalHolidays: boolean,
     public readonly createdAt: Date,
@@ -44,6 +47,7 @@ export class Lender {
       props.tenantId,
       props.name,
       props.logoUrl,
+      props.brandColor,
       props.nonWorkingWeekdays,
       props.skipNationalHolidays,
       props.createdAt,

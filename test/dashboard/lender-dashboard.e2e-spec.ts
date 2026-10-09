@@ -146,6 +146,10 @@ describe('GET /lenders/me/dashboard', () => {
       clientsInArrears: 0,
       alerts: ['1 cobrador aún no ha iniciado su ruta hoy.'],
       pendingSettlements: [],
+      period: { from: TODAY, to: TODAY },
+      collectedInPeriod: 0,
+      expectedInPeriod: 0,
+      effectivenessInPeriod: null,
     });
   });
 

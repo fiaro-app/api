@@ -8,7 +8,11 @@ import { CollectionVisitController } from '@/modules/collections/infrastructure/
 import { CollectorRouteController } from '@/modules/collections/infrastructure/controllers/collector-route.controller.js';
 import { CollectorStatsController } from '@/modules/collections/infrastructure/controllers/collector-stats.controller.js';
 import { CollectorController } from '@/modules/collections/infrastructure/controllers/collector.controller.js';
+import { LenderCollectionVisitsController } from '@/modules/collections/infrastructure/controllers/lender-collection-visits.controller.js';
+import { LoanInstallmentsController } from '@/modules/collections/infrastructure/controllers/loan-installments.controller.js';
 import { LoanBalanceController } from '@/modules/collections/infrastructure/controllers/loan-balance.controller.js';
+import { ManagedCollectorStatsController } from '@/modules/collections/infrastructure/controllers/managed-collector-stats.controller.js';
+import { PortfolioListController } from '@/modules/collections/infrastructure/controllers/portfolio-list.controller.js';
 import { PaymentReversalController } from '@/modules/collections/infrastructure/controllers/payment-reversal.controller.js';
 import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
@@ -23,9 +27,9 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  * pagos (`PaymentReversal`, D-85), la ruta del día de un cobrador (D-88), su baja con reasignación
  * de préstamos (D-97) y su resumen del día y estadísticas personales (D-98). Publica
  * `POST`/`GET /loans/:loanId/collection-assignments`, `POST`/`GET /loans/:loanId/collection-visits`,
- * `GET /loans/:loanId/balance`, `POST /payments/:id/reversals`, `QUERY /collectors/me/route`,
+ * `GET /loans/:loanId/balance`, `GET /loans/:loanId/installments` (calendario de cuotas, D-103), `QUERY /collection-visits` (cobros de todo el negocio, D-105), `POST /payments/:id/reversals`, `QUERY /collectors/me/route`,
  * `POST /collectors/:id/deactivate`, `QUERY /collectors/me/daily-summary` y
- * `QUERY /collectors/me/stats`, todas con `LenderScopeGuard` — de ahí que importe `LoansModule`
+ * `QUERY /collectors/me/stats` y `GET /collectors/:id/stats` (las de un cobrador, vistas por el prestamista, D-107) y `QUERY /loans` / `QUERY /clients` (las listas con saldo y mora, D-113), todas con `LenderScopeGuard` — de ahí que importe `LoansModule`
  * (`GetLoanUseCase` para validar el préstamo, `ReconcileLoanStatusUseCase` para cerrarlo o
  * reabrirlo), `MembershipsModule` (`GetMembershipUseCase` para validar el cobrador al asignar o al
  * dar de baja, y `DeactivateMembershipUseCase` para la baja en sí, D-97), `LendersModule`
@@ -46,11 +50,15 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
   controllers: [
     CollectionAssignmentController,
     CollectionVisitController,
+    LenderCollectionVisitsController,
     LoanBalanceController,
+    LoanInstallmentsController,
     PaymentReversalController,
     CollectorRouteController,
     CollectorController,
     CollectorStatsController,
+    ManagedCollectorStatsController,
+    PortfolioListController,
   ],
   providers: collectionsProviders,
   exports: collectionsExports,

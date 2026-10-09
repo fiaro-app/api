@@ -12,7 +12,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  * Prestamistas y sus carteras. Ofrece `CreateLenderUseCase` (lo usa `tenants` para el primer
  * prestamista de cada Tenant, ARCHITECTURE.md §3: los módulos no importan el dominio de otro, se
  * componen por su capa de aplicación) y `LENDER_REPOSITORY`, para los módulos futuros que aíslan
- * por `lenderId`. Publica `GET`/`PATCH /lender` (D-75) y `POST`/`GET /portfolios` (D-80), todas
+ * por `lenderId`. Publica `GET`/`PATCH /lender` (D-75) y `POST`/`GET`/`PATCH`/`DELETE /portfolios` (D-80, D-109), todas
  * protegidas por `LenderScopeGuard` — de ahí que importe `MembershipsModule`, dueño del puerto
  * que ese guard necesita.
  */

@@ -25,6 +25,7 @@ function setup(active: readonly Membership[]) {
     findById: vi.fn(),
     findActiveByUserId,
     findActiveByLenderAndRoles: vi.fn(),
+    countActiveByPortfolio: vi.fn(),
     list: vi.fn(),
     update: vi.fn(),
   };
