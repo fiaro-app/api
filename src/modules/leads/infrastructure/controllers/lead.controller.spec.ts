@@ -1,7 +1,9 @@
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
+import { TurnstileVerificationError } from '@/shared/domain/errors/turnstile-verification.error.js';
 import type { CreateLeadUseCase } from '@/modules/leads/application/use-cases/create-lead.use-case.js';
+import type { TurnstileService } from '@/shared/infrastructure/turnstile/turnstile.service.js';
 import {
   LEAD_RATE_LIMIT,
   LEAD_RATE_WINDOW_MS,
@@ -10,10 +12,16 @@ import {
 
 function setup() {
   const execute = vi.fn(() => Promise.resolve());
-  const controller = new LeadController({
-    execute,
-  } as unknown as CreateLeadUseCase);
-  return { controller, execute };
+  const validateToken = vi.fn(() => Promise.resolve(true));
+  const controller = new LeadController(
+    {
+      execute,
+    } as unknown as CreateLeadUseCase,
+    {
+      validateToken,
+    } as unknown as TurnstileService,
+  );
+  return { controller, execute, validateToken };
 }
 
 describe('LeadController', () => {
@@ -36,13 +44,17 @@ describe('LeadController', () => {
   });
 
   it('guarda el contacto y responde que quedó recibido', async () => {
-    const { controller, execute } = setup();
+    const { controller, execute, validateToken } = setup();
 
-    const response = await controller.createLead({
-      name: 'Ana Pérez',
-      phone: '300 123 4567',
-      message: 'Quiero probar Fiaro.',
-    });
+    const response = await controller.createLead(
+      {
+        name: 'Ana Pérez',
+        phone: '300 123 4567',
+        message: 'Quiero probar Fiaro.',
+      },
+      undefined,
+      { ip: '203.0.113.1' } as never,
+    );
 
     expect(execute).toHaveBeenCalledExactlyOnceWith({
       name: 'Ana Pérez',
@@ -51,6 +63,11 @@ describe('LeadController', () => {
       message: 'Quiero probar Fiaro.',
     });
     expect(response).toEqual({ received: true });
+    expect(validateToken).toHaveBeenCalledWith(
+      undefined,
+      '203.0.113.1',
+      'lead',
+    );
   });
 
   it.each(['https://spam.example', '  x '])(
@@ -58,12 +75,16 @@ describe('LeadController', () => {
     async (website) => {
       const { controller, execute } = setup();
 
-      const response = await controller.createLead({
-        name: 'Robot',
-        email: 'robot@spam.example',
-        message: 'Compra ya',
-        website,
-      });
+      const response = await controller.createLead(
+        {
+          name: 'Robot',
+          email: 'robot@spam.example',
+          message: 'Compra ya',
+          website,
+        },
+        undefined,
+        { ip: '203.0.113.1' } as never,
+      );
 
       expect(response).toEqual({ received: true });
       expect(execute).not.toHaveBeenCalled();
@@ -73,13 +94,36 @@ describe('LeadController', () => {
   it('con el señuelo vacío o en blanco, es un contacto normal', async () => {
     const { controller, execute } = setup();
 
-    await controller.createLead({
-      name: 'Ana',
-      email: 'ana@ejemplo.co',
-      message: 'Hola, quiero info',
-      website: '   ',
-    });
+    await controller.createLead(
+      {
+        name: 'Ana',
+        email: 'ana@ejemplo.co',
+        message: 'Hola, quiero info',
+        website: '   ',
+      },
+      undefined,
+      { ip: '203.0.113.1' } as never,
+    );
 
     expect(execute).toHaveBeenCalledOnce();
+  });
+
+  it('no guarda el contacto cuando Turnstile rechaza el token', async () => {
+    const { controller, execute, validateToken } = setup();
+    validateToken.mockResolvedValue(false);
+
+    await expect(
+      controller.createLead(
+        {
+          name: 'Ana',
+          email: 'ana@ejemplo.co',
+          message: 'Hola',
+          turnstileToken: 'token',
+        },
+        undefined,
+        { ip: '203.0.113.1' } as never,
+      ),
+    ).rejects.toBeInstanceOf(TurnstileVerificationError);
+    expect(execute).not.toHaveBeenCalled();
   });
 });

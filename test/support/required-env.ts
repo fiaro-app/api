@@ -22,4 +22,6 @@ export const PRODUCTION_ENV = {
   S3_ACCESS_KEY_ID: 'test-access-key-id',
   S3_SECRET_ACCESS_KEY: 'test-secret-access-key',
   S3_PUBLIC_URL_BASE: 'https://assets.fiaro.example',
+  CLOUDFLARE_TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  CLOUDFLARE_TURNSTILE_HOSTNAMES: 'fiaro.example',
 };

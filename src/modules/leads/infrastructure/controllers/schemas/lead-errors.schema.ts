@@ -10,3 +10,8 @@ export const LeadValidationErrorSchema = ApiErrorSchema.extend({
 export const LeadRateLimitedSchema = ApiErrorSchema.extend({
   code: z.literal('RATE_LIMITED'),
 }).meta({ id: 'LeadRateLimited' });
+
+/** `400 TURNSTILE_FAILED`: no se pudo verificar el desafío contra robots. */
+export const LeadTurnstileFailedSchema = ApiErrorSchema.extend({
+  code: z.literal('TURNSTILE_FAILED'),
+}).meta({ id: 'LeadTurnstileFailed' });

@@ -1,4 +1,4 @@
-import { MobilePhoneSchema } from '@fiaro-app/contracts';
+import { MobilePhoneSchema, TurnstileTokenSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
 
 /**
@@ -41,4 +41,5 @@ export const RegisterOwnerRequestSchema = z.strictObject({
     description: 'Nombre del negocio.',
     example: 'Préstamos Ana Pérez',
   }),
+  turnstileToken: TurnstileTokenSchema.optional(),
 });

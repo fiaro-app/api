@@ -31,6 +31,7 @@
   "ACCOUNT_DEACTIVATED": "Esta cuenta está desactivada.",
   "CLIENT_NATIONAL_ID_TAKEN": "Ya existe un cliente con esa cédula para este prestamista.",
   "LOAN_NOT_CANCELABLE": "Este préstamo ya no está activo, así que no se puede cancelar.",
+  "TURNSTILE_FAILED": "No se pudo verificar la protección contra robots. Intenta de nuevo.",
 
   "INVALID_PHONE_NUMBER_OR_PASSWORD": "El celular o la contraseña no son correctos.",
   "INVALID_PASSWORD": "La contraseña no es correcta.",

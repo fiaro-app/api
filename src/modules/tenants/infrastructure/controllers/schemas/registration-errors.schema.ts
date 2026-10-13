@@ -15,3 +15,8 @@ export const RegistrationValidationErrorSchema = ApiErrorSchema.extend({
 export const RegistrationConflictSchema = ApiErrorSchema.extend({
   code: z.literal('PHONE_ALREADY_REGISTERED'),
 }).meta({ id: 'RegistrationConflict' });
+
+/** `400 TURNSTILE_FAILED`: no se pudo verificar el desafío contra robots. */
+export const RegistrationTurnstileFailedSchema = ApiErrorSchema.extend({
+  code: z.literal('TURNSTILE_FAILED'),
+}).meta({ id: 'RegistrationTurnstileFailed' });
