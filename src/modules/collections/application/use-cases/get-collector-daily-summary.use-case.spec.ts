@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LenderDetails } from '@/modules/lenders/application/dtos/lender-details.dto.js';
 import type { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
-import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
+import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import { GetCollectorDailySummaryUseCase } from '@/modules/collections/application/use-cases/get-collector-daily-summary.use-case.js';
 import { CollectionAssignment } from '@/modules/collections/domain/entities/collection-assignment.entity.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
@@ -114,7 +114,17 @@ function setup(options: {
   const getLoanExecute = vi.fn((loanId: string) =>
     Promise.resolve(loansById[loanId] ?? loan(loanId)),
   );
-  const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
+  const listLoans = {
+    execute: vi.fn(
+      async (input: { ids: readonly string[]; status: string }) => {
+        const found = await Promise.all(
+          input.ids.map((loanId) => getLoanExecute(loanId)),
+        );
+        const active = found.filter((item) => item.status === input.status);
+        return { items: active, total: active.length };
+      },
+    ),
+  } as unknown as ListLoansUseCase;
   const getLender = {
     execute: vi.fn(() => Promise.resolve(LENDER)),
   } as unknown as GetLenderUseCase;
@@ -122,7 +132,7 @@ function setup(options: {
   const useCase = new GetCollectorDailySummaryUseCase(
     assignments,
     visits,
-    getLoan,
+    listLoans,
     getLender,
     clock,
   );

@@ -8,6 +8,9 @@ import { GetLenderDashboardUseCase } from '@/modules/dashboard/application/use-c
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import type { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
+import { batchedBalances } from '@/modules/dashboard/application/use-cases/__fixtures__/batched-balances.js';
+import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
+import type { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
 const NOW = new Date('2026-10-09T15:00:00Z');
@@ -46,8 +49,15 @@ function setup() {
     listMemberships,
     { execute: dailySummary } as unknown as GetCollectorDailySummaryUseCase,
     { execute: stats } as unknown as GetCollectorStatsUseCase,
-    empty as unknown as ListLoansUseCase,
-    { execute: vi.fn() } as unknown as GetLoanBalanceUseCase,
+    new LoanPortfolioSnapshotService(
+      empty as unknown as ListLoansUseCase,
+      batchedBalances(
+        { execute: vi.fn() } as unknown as GetLoanBalanceUseCase,
+        {
+          execute: () => Promise.resolve([]),
+        } as unknown as ListCollectionAssignmentsUseCase,
+      ),
+    ),
     empty as unknown as ListSettlementsUseCase,
     clock,
   );

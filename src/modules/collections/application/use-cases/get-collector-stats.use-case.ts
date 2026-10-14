@@ -6,14 +6,14 @@ import type {
 } from '@/modules/collections/application/dtos/collector-period-stats.dto.js';
 import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import { toLoanScheduleInput } from '@/modules/collections/application/services/to-loan-schedule-input.js';
-import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
+import { ListLoanBalancesUseCase } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
-import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
+import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import { startOfBusinessMonth } from '@/shared/domain/calendar/business-date.js';
 import { computeExpectedAmountInRange } from '@/shared/domain/calendar/period-expected.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
@@ -38,9 +38,9 @@ export class GetCollectorStatsUseCase {
     private readonly assignments: CollectionAssignmentRepository,
     @Inject(COLLECTION_VISIT_REPOSITORY)
     private readonly visits: CollectionVisitRepository,
-    private readonly getLoan: GetLoanUseCase,
+    private readonly listLoans: ListLoansUseCase,
     private readonly getLender: GetLenderUseCase,
-    private readonly getLoanBalance: GetLoanBalanceUseCase,
+    private readonly listLoanBalances: ListLoanBalancesUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -63,12 +63,10 @@ export class GetCollectorStatsUseCase {
       this.getLender.execute(input.lenderId),
     ]);
 
-    const loans = await Promise.all(
-      assigned.map((assignment) =>
-        this.getLoan.execute(assignment.loanId, input.lenderId),
-      ),
+    const activeLoans = await this.activeLoans(
+      assigned.map((assignment) => assignment.loanId),
+      input.lenderId,
     );
-    const activeLoans = loans.filter((loan) => loan.status === 'ACTIVE');
 
     const expectedAmount = activeLoans.reduce(
       (sum, loan) =>
@@ -84,6 +82,7 @@ export class GetCollectorStatsUseCase {
     const overdueAmount = await this.sumOverdueAmount(
       activeLoans,
       input.lenderId,
+      today,
     );
 
     return {
@@ -106,10 +105,39 @@ export class GetCollectorStatsUseCase {
   private async sumOverdueAmount(
     activeLoans: readonly LoanDetails[],
     lenderId: string,
+    today: string,
   ): Promise<number> {
-    const balances = await Promise.all(
-      activeLoans.map((loan) => this.getLoanBalance.execute(loan.id, lenderId)),
+    const balances = await this.listLoanBalances.execute({
+      lenderId,
+      loans: activeLoans,
+      day: today,
+    });
+    return [...balances.values()].reduce(
+      (sum, balance) => sum + balance.overdueAmount,
+      0,
     );
-    return balances.reduce((sum, balance) => sum + balance.overdueAmount, 0);
+  }
+
+  /**
+   * Los préstamos activos entre los asignados, en una sola consulta.
+   *
+   * @param loanIds - Los préstamos que el cobrador tiene asignados hoy.
+   * @param lenderId - El prestamista dueño.
+   */
+  private async activeLoans(
+    loanIds: readonly string[],
+    lenderId: string,
+  ): Promise<readonly LoanDetails[]> {
+    if (loanIds.length === 0) {
+      return [];
+    }
+    const page = await this.listLoans.execute({
+      lenderId,
+      ids: loanIds,
+      status: 'ACTIVE',
+      page: 1,
+      pageSize: loanIds.length,
+    });
+    return page.items;
   }
 }
