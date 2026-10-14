@@ -41,6 +41,7 @@ const EnvSchema = z
     MOBILE_APP_SCHEMES: commaSeparated(MobileSchemeSchema),
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().optional(),
+    MAILPIT_URL: z.url().optional(),
     LEADS_NOTIFY_EMAIL: z.email().optional(),
     SUBSCRIPTION_TRIAL_DAYS: integer(1, 3650).default(30),
     SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: integer(1, 1000).default(1),
@@ -163,6 +164,7 @@ const EnvSchema = z
     email: {
       resendApiKey: env.RESEND_API_KEY,
       fromAddress: env.RESEND_FROM_EMAIL,
+      mailpitUrl: env.MAILPIT_URL,
     },
     leads: { notifyEmail: env.LEADS_NOTIFY_EMAIL },
     subscription: buildSubscriptionConfig(env),
