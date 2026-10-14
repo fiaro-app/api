@@ -21,7 +21,8 @@ export class PostgresLenderLock implements LenderLock {
   async runExclusive<T>(lenderId: string, work: () => Promise<T>): Promise<T> {
     return this.prisma.$transaction(
       async (tx) => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`lender:${lenderId}`}, 0))`;
+        const key = `lender:${lenderId}`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
         return work();
       },
       { timeout: LOCK_TIMEOUT_MS, maxWait: LOCK_TIMEOUT_MS },
