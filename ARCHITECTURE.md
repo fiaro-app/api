@@ -484,7 +484,7 @@ Un solo `Dockerfile` (con un target por entorno) y dos archivos de Compose. Todo
 | `mailpit` | `axllent/mailpit` | 1025 (SMTP), 8025 (interfaz) | Atrapa los correos que envía la API | Servicio de correo (por definir) |
 | `api` | `Dockerfile`, target `dev` | 3040 (HTTP), 9229 (depurador) | La API con recarga en caliente | Fly.io |
 | `prometheus` | `prom/prometheus` | 9090 | Guarda y consulta las métricas | — |
-| `cadvisor` | `ghcr.io/google/cadvisor` | 8081 | Mide CPU, memoria, red y disco de cada contenedor | — |
+| `cadvisor` | `ghcr.io/google/cadvisor` | 8089 | Mide CPU, memoria, red y disco de cada contenedor | — |
 | `loki` | `grafana/loki` | 3100 | Guarda y consulta los logs | — |
 | `alloy` | `grafana/alloy` | 12345 | Recolecta logs y métricas | — |
 | `grafana` | `grafana/grafana` | 3030 | Dashboards | — |
