@@ -13,6 +13,7 @@ interface CloudflareVerifyResponse {
   readonly challenge_ts?: string;
   readonly hostname?: string;
   readonly action?: string;
+  readonly metadata?: { readonly result_with_testing_key?: boolean };
 }
 
 const CLOUDFLARE_VERIFY_URL =
@@ -110,7 +111,9 @@ export class TurnstileService {
       );
       return false;
     }
-    if (expectedAction && data.action !== expectedAction) {
+    // Las llaves de prueba de Cloudflare no devuelven `action`; en producción `hostnames` las rechaza.
+    const isTestingKey = data.metadata?.result_with_testing_key === true;
+    if (expectedAction && !isTestingKey && data.action !== expectedAction) {
       this.logger.warn(
         `Cloudflare Turnstile action inesperada: ${String(data.action)}`,
       );

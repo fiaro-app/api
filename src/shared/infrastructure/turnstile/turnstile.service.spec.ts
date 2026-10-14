@@ -82,6 +82,23 @@ describe('TurnstileService', () => {
     ).resolves.toBe(false);
   });
 
+  it('acepta la respuesta de las llaves de prueba de Cloudflare, que no trae acción', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          success: true,
+          hostname: 'example.com',
+          metadata: { result_with_testing_key: true },
+        }),
+    });
+    const service = new TurnstileService(env({ hostnames: [] }));
+
+    await expect(
+      service.validateToken('XXXX.DUMMY.TOKEN.XXXX', undefined, 'lead'),
+    ).resolves.toBe(true);
+  });
+
   it('rechaza tokens ausentes o de más de 2048 caracteres sin consultar Cloudflare', async () => {
     const service = new TurnstileService(env());
 
