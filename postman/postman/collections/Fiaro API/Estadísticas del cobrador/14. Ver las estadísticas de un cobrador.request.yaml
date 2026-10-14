@@ -1,0 +1,20 @@
+$kind: http-request
+description: La dueña ve el desempeño de su cobrador (D-107), la misma cifra que el cobrador vio de sí mismo en el paso anterior. Sin from ni to, es el mes actual. Exige rol OWNER o LENDER.
+url: "{{baseUrl}}/collectors/{{statsCollectorMembershipId}}/stats"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('termina hoy', () => pm.expect(body.to).to.eql(pm.collectionVariables.get('statsToday')));
+      pm.test('cuenta la visita de hoy del cobrador', () => {
+        pm.expect(body.collectedAmount).to.eql(30000);
+        pm.expect(body.visitsCount).to.eql(1);
+      });
+    language: text/javascript
+order: 14000

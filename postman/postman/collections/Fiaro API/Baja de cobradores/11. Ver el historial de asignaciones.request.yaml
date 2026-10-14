@@ -1,0 +1,18 @@
+$kind: http-request
+description: Confirma que queden las dos, con la del cobrador saliente ya cerrada y la del entrante vigente desde hoy.
+url: "{{baseUrl}}/loans/{{deactivateCollectorLoanId}}/collection-assignments"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('tiene las dos asignaciones', () => pm.expect(body).to.have.lengthOf(2));
+      const open = body.find((a) => a.effectiveTo === null);
+      pm.test('la vigente es la del cobrador entrante', () => pm.expect(open.collectorMembershipId).to.eql(pm.collectionVariables.get('deactivateCollectorNewMembershipId')));
+    language: text/javascript
+order: 11000

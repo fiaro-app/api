@@ -26,6 +26,36 @@ describe('loadEnv', () => {
         resendApiKey: undefined,
         fromAddress: undefined,
       },
+      leads: { notifyEmail: undefined },
+      subscription: {
+        trialDays: 30,
+        trialMaxActiveLenders: 1,
+        trialMaxCollectors: 5,
+      },
+      maintenanceMode: false,
+      mobile: {
+        minimumSupportedVersion: '0.0.0',
+        latestVersion: '0.0.0',
+        downloadUrl: 'https://example.com/fiaro.apk',
+      },
+      push: {
+        delivery: 'log',
+        expoAccessToken: undefined,
+      },
+      moraAlerts: { enabled: true },
+      s3: {
+        endpoint: 'http://localhost:8333',
+        region: 'auto',
+        bucket: 'fiaro-dev',
+        accessKeyId: 'fiaro',
+        secretAccessKey: 'fiaro-secret',
+        publicUrlBase: 'http://localhost:8333/fiaro-dev',
+      },
+      turnstile: {
+        secretKey: undefined,
+        hostnames: [],
+        enabled: false,
+      },
     });
   });
 
@@ -41,6 +71,8 @@ describe('loadEnv', () => {
       LOG_LEVEL: 'warn',
       MOBILE_APP_SCHEMES: 'fiaro',
       QUEUE_PREFIX: 'fiaro-staging',
+      MAINTENANCE_MODE: 'true',
+      LEADS_NOTIFY_EMAIL: 'ventas@fiaro.co',
       ...PRODUCTION_ENV,
     });
 
@@ -64,6 +96,36 @@ describe('loadEnv', () => {
       email: {
         resendApiKey: PRODUCTION_ENV.RESEND_API_KEY,
         fromAddress: PRODUCTION_ENV.RESEND_FROM_EMAIL,
+      },
+      leads: { notifyEmail: 'ventas@fiaro.co' },
+      subscription: {
+        trialDays: 30,
+        trialMaxActiveLenders: 1,
+        trialMaxCollectors: 5,
+      },
+      maintenanceMode: true,
+      mobile: {
+        minimumSupportedVersion: PRODUCTION_ENV.MOBILE_MIN_SUPPORTED_VERSION,
+        latestVersion: PRODUCTION_ENV.MOBILE_LATEST_VERSION,
+        downloadUrl: PRODUCTION_ENV.MOBILE_DOWNLOAD_URL,
+      },
+      push: {
+        delivery: 'expo',
+        expoAccessToken: undefined,
+      },
+      moraAlerts: { enabled: true },
+      s3: {
+        endpoint: PRODUCTION_ENV.S3_ENDPOINT,
+        region: 'auto',
+        bucket: PRODUCTION_ENV.S3_BUCKET,
+        accessKeyId: PRODUCTION_ENV.S3_ACCESS_KEY_ID,
+        secretAccessKey: PRODUCTION_ENV.S3_SECRET_ACCESS_KEY,
+        publicUrlBase: PRODUCTION_ENV.S3_PUBLIC_URL_BASE,
+      },
+      turnstile: {
+        secretKey: PRODUCTION_ENV.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        hostnames: ['fiaro.example'],
+        enabled: true,
       },
     });
   });
@@ -110,5 +172,17 @@ describe('loadEnv', () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it('habilita turnstile cuando se configura la llave secreta', () => {
+    const env = load({
+      CLOUDFLARE_TURNSTILE_SECRET_KEY: '0x4AAAAAA',
+      CLOUDFLARE_TURNSTILE_HOSTNAMES: 'localhost,fiaro.example',
+    });
+    expect(env.turnstile).toEqual({
+      secretKey: '0x4AAAAAA',
+      hostnames: ['localhost', 'fiaro.example'],
+      enabled: true,
+    });
   });
 });

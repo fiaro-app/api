@@ -1,0 +1,29 @@
+$kind: http-request
+description: "Público, sin sesión (D-114). Con un celular colombiano o un correo. El límite es de 5 contactos por hora por IP, así que repetir la carpeta más de 5 veces seguidas da 429 (RATE_LIMITED) hasta que pase la hora: la prueba acepta las dos respuestas."
+url: "{{baseUrl}}/leads"
+method: POST
+headers:
+  - key: cf-turnstile-response
+    value: "{{turnstileToken}}"
+    description: Token de Cloudflare Turnstile. Solo se exige si la API tiene CLOUDFLARE_TURNSTILE_SECRET_KEY; con la llave secreta de prueba vale cualquier token.
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Ana Pérez (prueba de contacto)",
+      "phone": "300 123 4567",
+      "message": "Quiero probar Fiaro con mis 3 cobradores."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201, o 429 si ya se pasó del límite por hora', () => pm.expect([201, 429]).to.include(pm.response.code));
+      if (pm.response.code === 201) {
+        pm.test('confirma que quedó recibido', () => pm.expect(pm.response.json().received).to.be.true);
+      } else {
+        pm.test('el error es RATE_LIMITED', () => pm.expect(pm.response.json().code).to.eql('RATE_LIMITED'));
+      }
+    language: text/javascript
+order: 1000

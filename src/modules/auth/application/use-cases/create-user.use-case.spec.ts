@@ -35,6 +35,7 @@ function setup(options: { repositoryError?: Error } = {}) {
     findByPhone: vi.fn(() => Promise.resolve(null)),
     findById: vi.fn(() => Promise.resolve(null)),
     updatePassword: vi.fn(() => Promise.resolve()),
+    resetToTemporaryPassword: vi.fn(() => Promise.resolve()),
     markContactEmailVerified: vi.fn(() => Promise.resolve()),
     updateProfile: vi.fn(() => Promise.resolve()),
     findPasswordHash: vi.fn(() => Promise.resolve(null)),
@@ -119,7 +120,7 @@ describe('CreateUserUseCase', () => {
 
   it.each([
     ['un nombre demasiado corto', { fullName: 'A' }, 'fullName'],
-    ['una cédula con puntos', { nationalId: '1.020.304.050' }, 'nationalId'],
+    ['una cédula con letras', { nationalId: 'abc123' }, 'nationalId'],
     ['un email mal escrito', { contactEmail: 'ana@' }, 'email'],
   ])('rechaza %s e indica el campo', async (_caso, change, field) => {
     const { useCase, create } = setup();

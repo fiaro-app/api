@@ -1,0 +1,24 @@
+$kind: http-request
+description: "El canje no abre sesión sola: hay que iniciarla de nuevo con la contraseña nueva. Este paso solo deja la sesión lista para volver a la contraseña original."
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{phone}}",
+      "password": "{{newPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+    language: text/javascript
+order: 3000

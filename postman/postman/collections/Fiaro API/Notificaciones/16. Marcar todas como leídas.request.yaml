@@ -1,0 +1,15 @@
+$kind: http-request
+description: Marca en una sola llamada todas las notificaciones propias sin leer (D-104). Sin cuerpo equivale a marcar las de todos los prestamistas.
+url: "{{baseUrl}}/notifications/read-all"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('devuelve cuántas marcó', () => pm.expect(pm.response.json().marked).to.be.a('number').and.to.be.at.least(0));
+    language: text/javascript
+order: 16000

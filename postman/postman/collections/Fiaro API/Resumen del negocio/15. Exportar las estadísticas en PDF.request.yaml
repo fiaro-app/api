@@ -1,0 +1,27 @@
+$kind: http-request
+description: "Mismos filtros que QUERY /lenders/me/stats, más format: 'pdf' (D-101). Única ruta de la API que no responde JSON: Postman no valida el PDF en sí, solo que llegó con el tipo correcto y algún contenido."
+url: "{{baseUrl}}/lenders/me/stats/export"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "format": "pdf"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('es un PDF para descargar', () => {
+        pm.expect(pm.response.headers.get('Content-Type')).to.eql('application/pdf');
+        pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');
+      });
+      pm.test('trae contenido', () => pm.expect(pm.response.responseSize).to.be.above(0));
+    language: text/javascript
+order: 15000

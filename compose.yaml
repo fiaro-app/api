@@ -116,8 +116,8 @@ services:
       S3_BUCKET: ${S3_BUCKET:-fiaro-dev}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-fiaro}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fiaro-secret}
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
+      S3_PUBLIC_URL_BASE: http://localhost:${S3_PORT:-8333}/${S3_BUCKET:-fiaro-dev}
+      MAILPIT_URL: http://mailpit:8025
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-secreto-solo-para-desarrollo-de-fiaro-2026}
       BETTER_AUTH_URL: http://localhost:${API_PORT:-3040}
       MOBILE_APP_SCHEMES: ${MOBILE_APP_SCHEMES:-mobile}
@@ -178,7 +178,7 @@ services:
     devices:
       - /dev/kmsg
     ports:
-      - '127.0.0.1:${CADVISOR_PORT:-8081}:8080'
+      - '127.0.0.1:${CADVISOR_PORT:-8089}:8080'
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

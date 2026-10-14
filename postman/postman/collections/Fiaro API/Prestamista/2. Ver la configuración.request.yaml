@@ -1,0 +1,17 @@
+$kind: http-request
+description: "El prestamista con el que opera la sesión, resuelto por LenderScopeGuard a partir de la membresía activa. Cualquier rol puede verla."
+url: "{{baseUrl}}/lender"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae el nombre del negocio', () => pm.expect(body.name).to.be.a('string'));
+      pm.collectionVariables.set('originalLenderName', body.name);
+    language: text/javascript
+order: 2000

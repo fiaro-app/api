@@ -1,0 +1,22 @@
+$kind: http-request
+description: Confirma que el cierre del cuadre anterior avisó a quien administra el prestamista.
+url: "{{baseUrl}}/notifications"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const toReview = pm.response.json().data.find((item) => item.title === 'Cuadre por revisar');
+      pm.test('encuentra la notificación de cuadre por revisar', () => pm.expect(toReview).to.not.be.undefined);
+      pm.test('apunta al cuadre correcto', () => pm.expect(toReview.relatedEntityId).to.eql(pm.collectionVariables.get('notifSettlementId')));
+    language: text/javascript
+order: 10000

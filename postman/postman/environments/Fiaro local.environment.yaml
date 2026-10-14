@@ -1,5 +1,10 @@
 name: Fiaro local
 values:
+  - key: turnstileToken
+    value: 'XXXX.DUMMY.TOKEN.XXXX'
+    enabled: true
+    type: default
+    description: 'Token de prueba de Cloudflare Turnstile: pasa con la llave secreta de prueba 1x0000000000000000000000000000000AA. Con la llave real hay que sacar uno del widget.'
   - key: baseUrl
     value: 'http://localhost:3040'
     enabled: true
@@ -35,3 +40,38 @@ values:
     enabled: true
     type: default
     description: 'La contraseña propia que elige Luis Gómez en su primer ingreso.'
+  - key: fullName
+    value: 'Ana Pérez'
+    enabled: true
+    type: default
+    description: 'Nombre completo de Ana Pérez en el seed de desarrollo.'
+  - key: contactEmail
+    value: 'ana@fiaro.dev'
+    enabled: true
+    type: default
+    description: 'Correo de contacto de Ana Pérez en el seed de desarrollo (para recuperar la contraseña y verificar el correo).'
+  - key: resetCode
+    value: ''
+    enabled: true
+    type: default
+    description: 'Código de 6 dígitos que llega al pedir recuperar la contraseña (D-68). En modo desarrollo no se envía: sale en el log de la API como "Correo (modo desarrollo, no se envía) para ana@fiaro.dev...". Pégalo aquí antes de correr "2. Cambiar la contraseña con el código".'
+  - key: contactEmailVerificationCode
+    value: ''
+    enabled: true
+    type: default
+    description: 'Código de 6 dígitos que llega al pedir verificar el correo de contacto (D-69). Mismo modo desarrollo que `resetCode`: revisa el log de la API y pégalo aquí antes de correr "3. Verificar el correo de contacto".'
+  - key: deactivationPhone
+    value: '+573112223344'
+    enabled: true
+    type: default
+    description: 'Carla Ruiz, cuenta de prueba del seed de desarrollo dedicada a probar la desactivación (D-71): así nunca se desactiva a Ana ni a Luis, que las demás carpetas necesitan activos.'
+  - key: deactivationPassword
+    value: 'cuenta-de-prueba-2026'
+    enabled: true
+    type: default
+    description: 'Contraseña de Carla Ruiz en el seed de desarrollo.'
+  - key: originalLenderName
+    value: ''
+    enabled: true
+    type: default
+    description: 'La carpeta *Prestamista* la llena sola al leer la configuración (paso 2) y la usa para volver al nombre original (paso 4): no hace falta tocarla a mano.'

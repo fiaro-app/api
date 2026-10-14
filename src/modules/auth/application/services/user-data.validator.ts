@@ -1,6 +1,9 @@
-import { UserSchema } from '@fiaro-app/contracts';
+import { normalizeNationalId, UserSchema } from '@fiaro-app/contracts';
 import { InvalidUserDataError } from '@/modules/auth/domain/errors/invalid-user-data.error.js';
-import { zodIssueParams } from '@/shared/application/validation/zod-issue-params.js';
+import {
+  toIssuePath,
+  zodIssueParams,
+} from '@/shared/application/validation/zod-issue-params.js';
 
 /** Los datos de la persona que valida el contrato compartido (`UserSchema`). */
 const UserDataSchema = UserSchema.pick({
@@ -30,21 +33,9 @@ export interface ValidUserData {
 }
 
 /**
- * La ruta de un error de Zod como la lleva `VALIDATION_FAILED`: los símbolos (claves de objetos)
- * no viajan en JSON, así que pasan a texto.
- *
- * @param path - Ruta del error hasta el campo, tal como la entrega Zod.
- */
-export const toIssuePath = (
-  path: readonly PropertyKey[],
-): (string | number)[] =>
-  path.map((segment) =>
-    typeof segment === 'symbol' ? segment.toString() : segment,
-  );
-
-/**
  * Valida el nombre, el email y la cédula con el contrato compartido (`UserSchema`), la misma
- * regla que aplican las apps antes de enviarlos.
+ * regla que aplican las apps antes de enviarlos. La cédula se normaliza (quita puntos y
+ * espacios, `normalizeNationalId`) antes de validar, porque así la escribe la gente.
  *
  * @param input - Datos de la persona. El email y la cédula son opcionales.
  * @returns Los datos normalizados: el nombre sin espacios sobrantes y `null` en lo que falte.
@@ -55,7 +46,7 @@ export function validateUserData(input: UserDataInput): ValidUserData {
   const result = UserDataSchema.safeParse({
     fullName: input.fullName,
     email: input.contactEmail ?? null,
-    nationalId: input.nationalId ?? null,
+    nationalId: input.nationalId ? normalizeNationalId(input.nationalId) : null,
   });
   if (!result.success) {
     throw new InvalidUserDataError(

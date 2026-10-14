@@ -1,0 +1,35 @@
+$kind: http-request
+description: Los cobros de todo el negocio (D-105). Sin rango devuelve solo los de hoy; aquí debe estar la visita PAID registrada arriba, con el nombre del cobrador y el medio de pago.
+url: "{{baseUrl}}/collection-visits"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "outcome": "PAID"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la página y el rango consultado', () => {
+        pm.expect(body.meta.total).to.be.a('number');
+        pm.expect(body.range.from).to.eql(body.range.to);
+      });
+      pm.test('cada fila trae cliente, cobrador y pago', () => {
+        body.data.forEach((row) => {
+          pm.expect(row.outcome).to.eql('PAID');
+          pm.expect(row.client.fullName).to.be.a('string');
+          pm.expect(row.collector.fullName).to.be.a('string');
+          pm.expect(row.payment.amount).to.be.a('number');
+        });
+      });
+    language: text/javascript
+order: 15000

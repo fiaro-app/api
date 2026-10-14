@@ -1,0 +1,16 @@
+$kind: http-request
+description: "La reversión le devolvió saldo pendiente (10.000 de 20.000): ReconcileLoanStatusUseCase lo reabre solo a ACTIVE (D-85)."
+url: "{{baseUrl}}/loans/{{reversalLoanId}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('volvió a ACTIVE', () => pm.expect(pm.response.json().status).to.eql('ACTIVE'));
+      pm.test('closedAt volvió a null', () => pm.expect(pm.response.json().closedAt).to.be.null);
+    language: text/javascript
+order: 10000

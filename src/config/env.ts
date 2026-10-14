@@ -1,10 +1,17 @@
 import { z } from 'zod';
 import {
+  buildMoraAlertsConfig,
+  buildPushConfig,
+  buildS3Config,
+  buildSubscriptionConfig,
+} from '@/config/env-builders.js';
+import {
   AuthSecretSchema,
   commaSeparated,
   DatabaseUrlSchema,
   integer,
   LogLevelSchema,
+  MobileAppVersionSchema,
   MobileSchemeSchema,
   MongoUriSchema,
   OriginSchema,
@@ -34,6 +41,26 @@ const EnvSchema = z
     MOBILE_APP_SCHEMES: commaSeparated(MobileSchemeSchema),
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().optional(),
+    MAILPIT_URL: z.url().optional(),
+    LEADS_NOTIFY_EMAIL: z.email().optional(),
+    SUBSCRIPTION_TRIAL_DAYS: integer(1, 3650).default(30),
+    SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: integer(1, 1000).default(1),
+    SUBSCRIPTION_TRIAL_MAX_COLLECTORS: integer(1, 100_000).default(5),
+    MOBILE_MIN_SUPPORTED_VERSION: MobileAppVersionSchema.optional(),
+    MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
+    MOBILE_DOWNLOAD_URL: z.url().optional(),
+    MAINTENANCE_MODE: z.stringbool().optional(),
+    PUSH_DELIVERY: z.enum(['expo', 'log']).optional(),
+    EXPO_ACCESS_TOKEN: z.string().optional(),
+    MORA_ALERTS: z.stringbool().optional(),
+    S3_ENDPOINT: z.url().optional(),
+    S3_REGION: z.string().default('auto'),
+    S3_BUCKET: z.string().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
+    S3_PUBLIC_URL_BASE: z.url().optional(),
+    CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
+    CLOUDFLARE_TURNSTILE_HOSTNAMES: commaSeparated(z.string().min(1)),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -61,6 +88,60 @@ const EnvSchema = z
     message:
       'es obligatoria en producción para poder enviar correos; en desarrollo, sin ella se usa un envío que solo registra el correo en los logs',
   })
+  .refine(
+    (env) => env.NODE_ENV !== 'production' || env.MOBILE_MIN_SUPPORTED_VERSION,
+    {
+      path: ['MOBILE_MIN_SUPPORTED_VERSION'],
+      message:
+        'es obligatoria en producción: GET /mobile/version la usa para bloquear versiones viejas de la app',
+    },
+  )
+  .refine((env) => env.NODE_ENV !== 'production' || env.MOBILE_LATEST_VERSION, {
+    path: ['MOBILE_LATEST_VERSION'],
+    message:
+      'es obligatoria en producción: GET /mobile/version la muestra en la pantalla de actualización',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.MOBILE_DOWNLOAD_URL, {
+    path: ['MOBILE_DOWNLOAD_URL'],
+    message:
+      'es obligatoria en producción: GET /mobile/version la usa para enlazar la descarga del APK',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_ENDPOINT, {
+    path: ['S3_ENDPOINT'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_BUCKET, {
+    path: ['S3_BUCKET'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_ACCESS_KEY_ID, {
+    path: ['S3_ACCESS_KEY_ID'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_SECRET_ACCESS_KEY, {
+    path: ['S3_SECRET_ACCESS_KEY'],
+    message:
+      'es obligatoria en producción: POST /lender/logo-upload-url la necesita para firmar la URL de subida',
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.S3_PUBLIC_URL_BASE, {
+    path: ['S3_PUBLIC_URL_BASE'],
+    message:
+      'es obligatoria en producción: es la URL pública del logo una vez subido (un dominio propio sobre el bucket, R2 no sirve su URL interna)',
+  })
+  .refine(
+    (env) =>
+      env.NODE_ENV !== 'production' ||
+      (Boolean(env.CLOUDFLARE_TURNSTILE_SECRET_KEY) &&
+        env.CLOUDFLARE_TURNSTILE_HOSTNAMES.length > 0),
+    {
+      path: ['CLOUDFLARE_TURNSTILE_HOSTNAMES'],
+      message:
+        'y CLOUDFLARE_TURNSTILE_SECRET_KEY son obligatorias en producción para proteger POST /leads y POST /register; debe listar los dominios que emiten tokens de Turnstile',
+    },
+  )
   .transform((env) => ({
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
@@ -83,6 +164,23 @@ const EnvSchema = z
     email: {
       resendApiKey: env.RESEND_API_KEY,
       fromAddress: env.RESEND_FROM_EMAIL,
+      mailpitUrl: env.MAILPIT_URL,
+    },
+    leads: { notifyEmail: env.LEADS_NOTIFY_EMAIL },
+    subscription: buildSubscriptionConfig(env),
+    maintenanceMode: env.MAINTENANCE_MODE ?? false,
+    mobile: {
+      minimumSupportedVersion: env.MOBILE_MIN_SUPPORTED_VERSION ?? '0.0.0',
+      latestVersion: env.MOBILE_LATEST_VERSION ?? '0.0.0',
+      downloadUrl: env.MOBILE_DOWNLOAD_URL ?? 'https://example.com/fiaro.apk',
+    },
+    push: buildPushConfig(env),
+    moraAlerts: buildMoraAlertsConfig(env),
+    s3: buildS3Config(env),
+    turnstile: {
+      secretKey: env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+      hostnames: [...new Set(env.CLOUDFLARE_TURNSTILE_HOSTNAMES)],
+      enabled: Boolean(env.CLOUDFLARE_TURNSTILE_SECRET_KEY),
     },
   }));
 

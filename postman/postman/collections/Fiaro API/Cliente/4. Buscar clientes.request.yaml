@@ -1,0 +1,32 @@
+$kind: http-request
+description: "Clientes del prestamista con el que opera la sesión, paginados y con búsqueda opcional por nombre o cédula (método QUERY, ARCHITECTURE.md §5: RFC \"The HTTP QUERY Method\", cuerpo con el criterio en vez de query string). Cualquier rol puede verla."
+url: "{{baseUrl}}/clients"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "search": "cliente de prueba"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('encuentra al cliente de prueba', () => pm.expect(body.data.some((client) => client.id === pm.collectionVariables.get('clientId'))).to.be.true);
+      pm.test('cada fila trae lo que debe y lo que tiene vencido (D-113)', () => {
+        body.data.forEach((client) => {
+          pm.expect(client.balance).to.be.a('number');
+          pm.expect(client.overdueAmount).to.be.a('number');
+          pm.expect(client.overdueDays).to.be.a('number');
+          pm.expect(client.activeLoans).to.be.a('number');
+        });
+      });
+    language: text/javascript
+order: 4000

@@ -1,0 +1,15 @@
+$kind: http-request
+description: Después de «marcar todas», la insignia debe quedar en cero.
+url: "{{baseUrl}}/notifications/unread-count"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('ya no quedan notificaciones sin leer', () => pm.expect(pm.response.json().count).to.eql(0));
+    language: text/javascript
+order: 17000

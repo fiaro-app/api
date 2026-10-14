@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Carteras (zonas) del prestamista con el que opera la sesión (D-80): `POST`/`GET /portfolios`,
+  protegidas por `LenderScopeGuard`. Autocontenida: empieza con su propio inicio de sesión. El
+  paso 3 usa `{{$timestamp}}` en el nombre para que la carpeta se pueda repetir sin chocar con la
+  cartera de la vez anterior (no hay `DELETE /portfolios` todavía).
+order: 1950

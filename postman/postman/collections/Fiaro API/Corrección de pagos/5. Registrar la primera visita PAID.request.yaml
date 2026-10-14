@@ -1,0 +1,32 @@
+$kind: http-request
+description: Primera cuota pagada. El id de la visita lo genera el dispositivo (aquí, el script previo con un UUID al azar). Exige rol COLLECTOR, que la dueña ya tiene (D-78).
+url: "{{baseUrl}}/loans/{{reversalLoanId}}/collection-visits"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{reversalFirstVisitId}}",
+      "outcome": "PAID",
+      "occurredAt": "2026-10-01T15:00:00.000Z",
+      "payment": {
+        "amount": 10000
+      }
+    }
+scripts:
+  - type: prerequest
+    code: |-
+      pm.collectionVariables.set('reversalFirstVisitId', pm.variables.replaceIn('{{$guid}}'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('reversalFirstPaymentId', pm.response.json().payment.id);
+    language: text/javascript
+order: 5000

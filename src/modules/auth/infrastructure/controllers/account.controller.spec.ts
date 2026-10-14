@@ -4,6 +4,8 @@ import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthenticatedUser } from '@/shared/application/ports/session-resolver.port.js';
 import type { DeactivateAccountUseCase } from '@/modules/auth/application/use-cases/deactivate-account.use-case.js';
+import type { ListAccountSessionsUseCase } from '@/modules/auth/application/use-cases/list-account-sessions.use-case.js';
+import type { RevokeAccountSessionUseCase } from '@/modules/auth/application/use-cases/revoke-account-session.use-case.js';
 import type { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import type { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import type { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
@@ -53,6 +55,8 @@ function setup() {
     verifyContactEmailUseCase as unknown as VerifyContactEmailUseCase,
     updateProfileUseCase as unknown as UpdateProfileUseCase,
     deactivateAccountUseCase as unknown as DeactivateAccountUseCase,
+    {} as ListAccountSessionsUseCase,
+    {} as RevokeAccountSessionUseCase,
   );
   return {
     controller,
@@ -66,7 +70,7 @@ function setup() {
 }
 
 describe('AccountController', () => {
-  it('publica solo las rutas de verificar el correo de contacto, actualizar el perfil y desactivar la cuenta', () => {
+  it('publica las rutas de verificar el correo de contacto, actualizar el perfil, desactivar la cuenta y las sesiones', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       AccountController.prototype,
     )
@@ -86,6 +90,8 @@ describe('AccountController', () => {
       .sort();
 
     expect(publishedRoutes).toEqual([
+      'DELETE sessions/:id',
+      'GET sessions',
       'PATCH profile',
       'POST contact-email/request-verification',
       'POST contact-email/verify',

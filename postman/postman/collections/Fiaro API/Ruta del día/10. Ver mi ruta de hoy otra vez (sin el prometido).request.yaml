@@ -1,0 +1,21 @@
+$kind: http-request
+description: La promesa es para mañana, así que el préstamo sin asignar todavía no debería aparecer hoy.
+url: "{{baseUrl}}/collectors/me/route"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const loanIds = pm.response.json().map((entry) => entry.loanId);
+      pm.test('no trae el préstamo prometido para mañana', () => pm.expect(loanIds).to.not.include(pm.collectionVariables.get('routePromisedLoanId')));
+    language: text/javascript
+order: 10000

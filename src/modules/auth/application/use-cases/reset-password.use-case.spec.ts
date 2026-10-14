@@ -56,6 +56,7 @@ function setup(
     findByPhone: vi.fn(() => Promise.resolve(found)),
     findById: vi.fn(() => Promise.resolve(found)),
     updatePassword,
+    resetToTemporaryPassword: vi.fn(() => Promise.resolve()),
     markContactEmailVerified: vi.fn(() => Promise.resolve()),
     updateProfile: vi.fn(() => Promise.resolve()),
     findPasswordHash: vi.fn(() => Promise.resolve(null)),
@@ -75,7 +76,11 @@ function setup(
   );
   const passwordHasher: PasswordHasher = { hash, verify: vi.fn() };
   const revokeAllForUser = vi.fn(() => Promise.resolve(2));
-  const sessions: SessionRepository = { revokeAllForUser };
+  const sessions: SessionRepository = {
+    revokeAllForUser,
+    listActiveForUser: vi.fn(),
+    revokeOne: vi.fn(),
+  };
   const clock: Clock = { now: () => NOW };
   const useCase = new ResetPasswordUseCase(
     users,

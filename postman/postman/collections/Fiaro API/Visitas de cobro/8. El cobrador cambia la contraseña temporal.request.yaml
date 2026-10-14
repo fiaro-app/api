@@ -1,0 +1,24 @@
+$kind: http-request
+description: "Obligatorio antes de poder registrar visitas: una cuenta con contraseña temporal responde 403 PASSWORD_CHANGE_REQUIRED en cualquier otra ruta."
+url: "{{baseUrl}}/auth/change-password"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "currentPassword": "{{visitsCollectorTempPassword}}",
+      "newPassword": "Colombia-Fiaro-2026-cobrador"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la marca de contraseña temporal desaparece', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.false);
+    language: text/javascript
+order: 8000

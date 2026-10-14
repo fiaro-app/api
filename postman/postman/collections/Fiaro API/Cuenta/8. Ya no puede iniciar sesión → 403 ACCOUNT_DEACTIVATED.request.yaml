@@ -1,0 +1,25 @@
+$kind: http-request
+description: Confirma que la desactivación surtió efecto de inmediato.
+url: "{{baseUrl}}/auth/sign-in/phone-number"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phoneNumber": "{{deactivationPhone}}",
+      "password": "{{deactivationPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 403', () => pm.response.to.have.status(403));
+      pm.test('el código de error es ACCOUNT_DEACTIVATED', () => pm.expect(pm.response.json().code).to.eql('ACCOUNT_DEACTIVATED'));
+      pm.test('no abre sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.false);
+    language: text/javascript
+order: 8000

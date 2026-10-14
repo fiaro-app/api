@@ -45,6 +45,7 @@ const STATUS_BY_KIND: Readonly<Record<DomainErrorKind, number>> = {
   CONFLICT: HttpStatus.CONFLICT,
   FORBIDDEN: HttpStatus.FORBIDDEN,
   RULE_VIOLATED: HttpStatus.UNPROCESSABLE_ENTITY,
+  UNAVAILABLE: HttpStatus.SERVICE_UNAVAILABLE,
 };
 
 /**

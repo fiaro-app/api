@@ -1,0 +1,32 @@
+$kind: http-request
+description: "Préstamos del prestamista con el que opera la sesión, filtrados por cliente (método QUERY, ARCHITECTURE.md §5). Cualquier rol puede verla."
+url: "{{baseUrl}}/loans"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "clientId": "{{loanClientId}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('encuentra el préstamo de prueba', () => pm.expect(body.data.some((loan) => loan.id === pm.collectionVariables.get('loanId'))).to.be.true);
+      pm.test('cada fila trae su saldo, su mora y su cobrador (D-113)', () => {
+        body.data.forEach((loan) => {
+          pm.expect(loan.balance).to.be.a('number');
+          pm.expect(loan.overdueAmount).to.be.a('number');
+          pm.expect(loan.overdueDays).to.be.a('number');
+          pm.expect(loan).to.have.property('collector');
+        });
+      });
+    language: text/javascript
+order: 5000

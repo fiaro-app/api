@@ -117,7 +117,7 @@ describe('los errores de dominio salen por HTTP', () => {
         ...VALID,
         fullName: 'A',
         contactEmail: 'ana@',
-        nationalId: '1.020',
+        nationalId: 'abc',
       })
       .expect(400);
 

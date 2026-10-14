@@ -1,0 +1,29 @@
+$kind: http-request
+description: "Sin filtros, es el mes actual (desde el día 1 hasta hoy) y todos los cobradores (D-100). totalPortfolio/portfolioAtRisk los calcula el motor de calendario sobre los préstamos asignados, no las visitas ya registradas."
+url: "{{baseUrl}}/lenders/me/stats"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('termina hoy', () => pm.expect(body.to).to.eql(pm.collectionVariables.get('dashboardToday')));
+      pm.test('trae los 4 buckets fijos, en orden', () => {
+        pm.expect(body.arrearsByAge.map((b) => b.label)).to.eql(['0-7', '8-15', '16-30', '30+']);
+      });
+      pm.test('cuenta a la dueña y al cobrador invitado en el desempeño', () => {
+        pm.expect(body.collectorPerformance).to.have.lengthOf(2);
+        const ids = body.collectorPerformance.map((c) => c.collectorMembershipId);
+        pm.expect(ids).to.include(pm.collectionVariables.get('dashboardCollectorMembershipId'));
+      });
+    language: text/javascript
+order: 14000

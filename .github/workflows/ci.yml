@@ -1,11 +1,16 @@
 name: CI
 
+# Solo en PRs: correr otra vez al fusionar en dev repetía lo mismo y duplicaba los minutos. Un cambio
+# que solo toca documentación no corre el CI, y un push nuevo cancela la corrida anterior del mismo PR.
 on:
   pull_request:
     branches: [dev, main]
-  push:
-    branches: [dev]
+    paths-ignore: ['**/*.md', 'docs/**']
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -101,15 +106,25 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      # La documentación solo se publica como artefacto en los PRs de release a main.
       - name: Generate docs
+        if: github.base_ref == 'main'
         run: pnpm run docs
 
       - name: Upload docs artifact
+        if: github.base_ref == 'main'
         uses: actions/upload-artifact@v7
         with:
           name: docs
           path: docs
           retention-days: 14
+
+      # El scanner de Sonar descarga su JRE y sus analizadores en cada corrida (~300 MB): se guardan entre corridas.
+      - name: Cache Sonar
+        uses: actions/cache@v6
+        with:
+          path: ~/.sonar/cache
+          key: sonar-${{ runner.os }}
 
       # Requires the SONAR_TOKEN repo secret and Automatic Analysis disabled in Sonar
       # (Administration -> Analysis Method -> keep only CI-based Analysis).
@@ -118,7 +133,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  # La imagen de producción solo se construye y prueba en los PRs de release a main: las pruebas ya
+  # corren en `check`, y repetirlas dentro de contenedores costaba casi 10 minutos por PR.
   docker:
+    if: github.base_ref == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -140,8 +158,8 @@ jobs:
 
       # Valores de mentira: la API se conecta a la base de datos con la primera consulta, y a Redis y
       # MongoDB en segundo plano (si no responden reintenta y lo avisa en el log), así que arrancar y
-      # quedar sana no las necesita. Redis, MongoDB y Resend se pasan porque en producción son
-      # obligatorias (el envío de correos no se ejercita en este smoke test).
+      # quedar sana no las necesita. Redis, MongoDB, Resend y el version-gate móvil se pasan porque
+      # en producción son obligatorias (el envío de correos no se ejercita en este smoke test).
       - name: Smoke test production image
         run: |
           docker run -d --name api \
@@ -153,6 +171,16 @@ jobs:
             -e BETTER_AUTH_URL=https://api.example.com \
             -e RESEND_API_KEY=re_solo-para-la-prueba-de-humo \
             -e RESEND_FROM_EMAIL="Fiaro <no-reply@fiaro.example>" \
+            -e MOBILE_MIN_SUPPORTED_VERSION=1.0.0 \
+            -e MOBILE_LATEST_VERSION=1.0.0 \
+            -e MOBILE_DOWNLOAD_URL=https://fiaro.example/prueba-de-humo.apk \
+            -e S3_ENDPOINT=https://example.r2.cloudflarestorage.com \
+            -e S3_BUCKET=fiaro-prueba-de-humo \
+            -e S3_ACCESS_KEY_ID=solo-para-la-prueba-de-humo \
+            -e S3_SECRET_ACCESS_KEY=solo-para-la-prueba-de-humo \
+            -e S3_PUBLIC_URL_BASE=https://assets.fiaro.example \
+            -e CLOUDFLARE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA \
+            -e CLOUDFLARE_TURNSTILE_HOSTNAMES=fiaro.example \
             fiaro-api:ci
           for _ in $(seq 1 30); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0
@@ -160,8 +188,3 @@ jobs:
           done
           docker logs api
           exit 1
-
-      - name: Run tests in containers
-        run: docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml run --rm --build test
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

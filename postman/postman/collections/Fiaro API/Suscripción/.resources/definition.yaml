@@ -1,0 +1,6 @@
+$kind: collection
+description: |-
+  El plan del negocio (`GET /subscription`, D-115): estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`),
+  fechas, límites y uso. Cualquier rol puede verlo; solo informa, no bloquea nada. Autocontenida:
+  empieza con su propio inicio de sesión de Ana.
+order: 1996

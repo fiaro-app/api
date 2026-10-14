@@ -18,6 +18,8 @@ description: |-
   - **Rate limit:** iniciar sesión y cambiar la contraseña admiten 5 intentos por minuto y por IP. La carpeta *Rate limit* lo supera a propósito: ejecútala al final.
   - **Errores:** llevan un `code` estable (`INVALID_PHONE_NUMBER_OR_PASSWORD`, `VALIDATION_FAILED`, `RATE_LIMITED`...). Las apps reaccionan al código, no al texto.
   - **Contraseña temporal:** un cobrador con `mustChangePassword` solo puede ver su sesión, cambiar la contraseña y cerrar sesión; el resto responde 403 `PASSWORD_CHANGE_REQUIRED`.
+  - **Códigos por correo (*Recuperar la contraseña*, *Cuenta*):** en modo desarrollo el correo no se envía de verdad, solo se escribe en el log de la API (`Correo (modo desarrollo, no se envía) para ...`). Esas dos carpetas necesitan que copies el código de ahí a las variables `resetCode`/`contactEmailVerificationCode` antes del paso que lo canjea — no corren solas dentro de *Run collection*.
+  - **Desactivar la cuenta (*Cuenta*) es irreversible** (D-71, baja lógica sin ruta para revertirla): por eso esos tres últimos pasos usan a Carla Ruiz (`deactivationPhone`), no a Ana ni a Luis. Después de correrlos una vez, Carla queda desactivada hasta que se reinicie la base de datos.
 
   La documentación completa de la API está en `/docs` (Swagger UI) y en `/docs/openapi.json`.
 variables:
@@ -42,3 +44,42 @@ variables:
   - key: newTempPassword
     value: 'contraseña-propia-2026'
     description: 'La contraseña propia que elige Luis Gómez en su primer ingreso.'
+  - key: fullName
+    value: 'Ana Pérez'
+    description: 'Nombre completo de Ana Pérez en el seed de desarrollo.'
+  - key: contactEmail
+    value: 'ana@fiaro.dev'
+    description: 'Correo de contacto de Ana Pérez en el seed de desarrollo (para recuperar la contraseña y verificar el correo).'
+  - key: resetCode
+    value: ''
+    description: 'Código de 6 dígitos que llega al pedir recuperar la contraseña (D-68). En modo desarrollo no se envía: sale en el log de la API como "Correo (modo desarrollo, no se envía) para ana@fiaro.dev...". Pégalo aquí antes de correr "2. Cambiar la contraseña con el código".'
+  - key: contactEmailVerificationCode
+    value: ''
+    description: 'Código de 6 dígitos que llega al pedir verificar el correo de contacto (D-69). Mismo modo desarrollo que `resetCode`: revisa el log de la API y pégalo aquí antes de correr "3. Verificar el correo de contacto".'
+  - key: deactivationPhone
+    value: '+573112223344'
+    description: 'Carla Ruiz, cuenta de prueba del seed de desarrollo dedicada a probar la desactivación (D-71): así nunca se desactiva a Ana ni a Luis, que las demás carpetas necesitan activos.'
+  - key: deactivationPassword
+    value: 'cuenta-de-prueba-2026'
+    description: 'Contraseña de Carla Ruiz en el seed de desarrollo.'
+  - key: originalLenderName
+    value: ''
+    description: 'La carpeta *Prestamista* la llena sola al leer la configuración (paso 2) y la usa para volver al nombre original (paso 4): no hace falta tocarla a mano.'
+  - key: clientId
+    value: ''
+    description: 'La carpeta *Cliente* la llena sola al dar de alta al cliente de prueba (paso 2) y la usa en los pasos siguientes: no hace falta tocarla a mano.'
+  - key: loanClientId
+    value: ''
+    description: 'La carpeta *Préstamo* la llena sola al dar de alta su propio cliente de prueba (paso 2): no hace falta tocarla a mano.'
+  - key: loanId
+    value: ''
+    description: 'La carpeta *Préstamo* la llena sola al dar de alta el préstamo de prueba (paso 3) y la usa en los pasos siguientes: no hace falta tocarla a mano.'
+  - key: registerPhone
+    value: ''
+    description: 'La carpeta *Registro* la llena sola en un script previo al paso 1 (celular al azar, para poder repetir la carpeta): no hace falta tocarla a mano.'
+  - key: registerNationalId
+    value: ''
+    description: 'La carpeta *Registro* la llena sola en un script previo al paso 1 (cédula al azar): no hace falta tocarla a mano.'
+  - key: registerPassword
+    value: ''
+    description: 'La carpeta *Registro* la llena sola en un script previo al paso 1: no hace falta tocarla a mano.'

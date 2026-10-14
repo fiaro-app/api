@@ -1,21 +1,30 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { DeactivateAccountUseCase } from '@/modules/auth/application/use-cases/deactivate-account.use-case.js';
+import { ListAccountSessionsUseCase } from '@/modules/auth/application/use-cases/list-account-sessions.use-case.js';
+import { RevokeAccountSessionUseCase } from '@/modules/auth/application/use-cases/revoke-account-session.use-case.js';
 import { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
 import type { RequestOrigin } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
 import { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth-auditor.js';
+import {
+  ApiListAccountSessions,
+  ApiRevokeAccountSession,
+} from '@/modules/auth/infrastructure/controllers/docs/account-sessions-routes.docs.js';
 import {
   ApiDeactivateAccount,
   ApiRequestContactEmailVerification,
@@ -27,11 +36,19 @@ import {
   UpdateProfileRequestSchema,
   VerifyContactEmailRequestSchema,
 } from '@/modules/auth/infrastructure/controllers/schemas/account-requests.schema.js';
+import {
+  toAccountSessionsResponse,
+  type AccountSessionsResponseSchema,
+} from '@/modules/auth/infrastructure/controllers/schemas/account-sessions-responses.schema.js';
 import type { UpdateProfileResponseSchema } from '@/modules/auth/infrastructure/controllers/schemas/account-responses.schema.js';
 import type { StatusResponseSchema } from '@/modules/auth/infrastructure/controllers/schemas/auth-responses.schema.js';
 import { ContactEmailVerificationGuard } from '@/modules/auth/infrastructure/contact-email-verification/contact-email-verification-guard.js';
+import { CurrentSession } from '@/shared/infrastructure/http/current-session.decorator.js';
 import { CurrentUser } from '@/shared/infrastructure/http/current-user.decorator.js';
-import type { AuthenticatedUser } from '@/shared/application/ports/session-resolver.port.js';
+import type {
+  AuthenticatedSession,
+  AuthenticatedUser,
+} from '@/shared/application/ports/session-resolver.port.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 
 /**
@@ -48,6 +65,8 @@ export class AccountController {
     private readonly verifyContactEmailUseCase: VerifyContactEmailUseCase,
     private readonly updateProfileUseCase: UpdateProfileUseCase,
     private readonly deactivateAccountUseCase: DeactivateAccountUseCase,
+    private readonly listAccountSessionsUseCase: ListAccountSessionsUseCase,
+    private readonly revokeAccountSessionUseCase: RevokeAccountSessionUseCase,
   ) {}
 
   /**
@@ -149,6 +168,48 @@ export class AccountController {
     });
     this.auditor.accountDeactivated(user.id, this.originOf(req));
     return { status: true };
+  }
+
+  /**
+   * Las sesiones abiertas de la persona autenticada, con la actual marcada.
+   *
+   * @param session - La sesión desde la que se hace la petición.
+   */
+  @Get('sessions')
+  @HttpCode(HttpStatus.OK)
+  @ApiListAccountSessions()
+  async listSessions(
+    @CurrentSession() session: AuthenticatedSession,
+  ): Promise<z.output<typeof AccountSessionsResponseSchema>> {
+    return toAccountSessionsResponse(
+      await this.listAccountSessionsUseCase.execute(
+        session.user.id,
+        session.id,
+      ),
+    );
+  }
+
+  /**
+   * Cierra una sesión puntual de la persona autenticada.
+   *
+   * @param id - La sesión a cerrar.
+   * @param session - La sesión desde la que se hace la petición.
+   * @param req - Petición de Express.
+   */
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiRevokeAccountSession()
+  async revokeSession(
+    @Param('id', { schema: z.uuid() }) id: string,
+    @CurrentSession() session: AuthenticatedSession,
+    @Req() req: Request,
+  ): Promise<void> {
+    await this.revokeAccountSessionUseCase.execute(
+      id,
+      session.user.id,
+      session.id,
+    );
+    this.auditor.sessionRevoked(session.user.id, 'one', this.originOf(req));
   }
 
   /** @param req - Petición de Express. */

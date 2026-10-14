@@ -99,6 +99,18 @@ export const RedisUrlSchema = z
   .regex(/^rediss?:\/\/\S+$/, 'debe ser una URL redis:// o rediss://');
 
 /**
+ * Versión de la app móvil, `MAYOR.MENOR.PARCHE` (por ejemplo `1.4.0`) — el mismo formato que
+ * valida `AppVersionSchema` de `@fiaro-app/contracts`, repetido aquí porque la validación del
+ * entorno no pasa por el catálogo de i18n que usa esa versión del schema.
+ */
+export const MobileAppVersionSchema = z
+  .string()
+  .regex(
+    /^\d+\.\d+\.\d+$/,
+    'debe tener el formato MAYOR.MENOR.PARCHE, por ejemplo 1.4.0',
+  );
+
+/**
  * URI de MongoDB (`mongodb://` o `mongodb+srv://`, como la de Atlas) que dice en qué base de datos
  * se guarda: `mongodb://usuario:clave@host/base`. El resto de la URI lo valida el driver al conectar.
  */

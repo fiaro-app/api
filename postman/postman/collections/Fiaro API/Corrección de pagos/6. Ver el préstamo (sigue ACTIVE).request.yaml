@@ -1,0 +1,15 @@
+$kind: http-request
+description: Con una sola de las dos cuotas pagadas, el préstamo todavía no se cierra solo.
+url: "{{baseUrl}}/loans/{{reversalLoanId}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('sigue ACTIVE', () => pm.expect(pm.response.json().status).to.eql('ACTIVE'));
+    language: text/javascript
+order: 6000

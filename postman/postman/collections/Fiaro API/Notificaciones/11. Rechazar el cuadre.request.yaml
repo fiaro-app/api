@@ -1,0 +1,23 @@
+$kind: http-request
+description: "El rechazo es informativo (D-19) y dispara \"cuadre rechazado\" (D-87) hacia el cobrador — aquí, otra vez la misma dueña, que cerró su propio cuadre."
+url: "{{baseUrl}}/daily-settlements/{{notifSettlementId}}/reject"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "reviewNote": "Falta soportar el efectivo con un recibo."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('queda REJECTED', () => pm.expect(pm.response.json().status).to.eql('REJECTED'));
+    language: text/javascript
+order: 11000

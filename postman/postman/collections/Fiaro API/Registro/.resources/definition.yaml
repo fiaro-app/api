@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Registro público de un negocio nuevo (`POST /register`, D-78): da de alta a la persona y su
+  Tenant, prestamista y membresía de dueño con los tres roles, sin sesión. Autocontenida: el
+  paso 1 genera un celular y una cédula al azar (script `prerequest`) para poder repetirse sin
+  chocar con una corrida anterior.
+order: 900

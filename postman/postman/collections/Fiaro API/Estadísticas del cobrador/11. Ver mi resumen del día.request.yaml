@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Sin fecha, es la de hoy (método QUERY, ARCHITECTURE.md §5). expectedAmount lo calcula el motor de calendario sobre los préstamos asignados, no la visita ya registrada."
+url: "{{baseUrl}}/collectors/me/daily-summary"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('es la fecha de hoy', () => pm.expect(body.date).to.eql(pm.collectionVariables.get('statsToday')));
+      pm.test('cobró los 30.000 de la visita, en efectivo', () => {
+        pm.expect(body.collectedAmount).to.eql(30000);
+        pm.expect(body.collectedByMethod.CASH).to.eql(30000);
+      });
+      pm.test('trae la visita en el historial', () => pm.expect(body.visits).to.have.lengthOf(1));
+    language: text/javascript
+order: 11000

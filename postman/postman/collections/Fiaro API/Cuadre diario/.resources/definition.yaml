@@ -1,0 +1,9 @@
+$kind: collection
+description: |-
+  Cuadre diario de un cobrador (D-86): `POST`/`GET`/`QUERY /daily-settlements`,
+  `.../approve` y `.../reject`, protegidas por `LenderScopeGuard`. Autocontenida: registra su
+  propio negocio (la dueña nace con OWNER, LENDER y COLLECTOR, D-78). Cierra el día sin nota para
+  ver el 400, lo cierra con nota, lo aprueba, confirma que aprobarlo otra vez da 409, lo reenvía
+  (D-36, vuelve a PENDING y limpia la revisión), lo rechaza con un comentario y lo busca por
+  estado.
+order: 1999

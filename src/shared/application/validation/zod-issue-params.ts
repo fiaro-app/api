@@ -39,3 +39,16 @@ export function zodIssueParams(
   }
   return params;
 }
+
+/**
+ * La ruta de un error de Zod como la lleva `VALIDATION_FAILED`: los símbolos (claves de objetos)
+ * no viajan en JSON, así que pasan a texto.
+ *
+ * @param path - Ruta del error hasta el campo, tal como la entrega Zod.
+ */
+export const toIssuePath = (
+  path: readonly PropertyKey[],
+): (string | number)[] =>
+  path.map((segment) =>
+    typeof segment === 'symbol' ? segment.toString() : segment,
+  );

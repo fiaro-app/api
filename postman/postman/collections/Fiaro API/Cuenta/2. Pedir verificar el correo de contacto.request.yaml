@@ -1,0 +1,15 @@
+$kind: http-request
+description: "Manda un código de 6 dígitos al correo de contacto de la persona autenticada. En desarrollo el correo no se envía: revisa el log de la API para leer el código."
+url: "{{baseUrl}}/account/contact-email/request-verification"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('confirma el pedido', () => pm.expect(pm.response.json().status).to.be.true);
+    language: text/javascript
+order: 2000

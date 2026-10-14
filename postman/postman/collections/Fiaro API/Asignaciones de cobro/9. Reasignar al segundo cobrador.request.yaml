@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Permanente desde el 10 de octubre: cierra la asignación vigente del primer cobrador (effectiveTo al día anterior) antes de crear esta."
+url: "{{baseUrl}}/loans/{{assignmentsLoanId}}/collection-assignments"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "collectorMembershipId": "{{assignmentsCollector2MembershipId}}",
+      "effectiveFrom": "2026-10-10"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('queda vigente, sin fecha de fin', () => pm.expect(body.effectiveTo).to.be.null);
+    language: text/javascript
+order: 9000

@@ -1,0 +1,16 @@
+$kind: http-request
+description: "Las dos cuotas ya están pagadas (20.000 de 20.000): ReconcileLoanStatusUseCase lo cerró solo, sin que nadie llamara una ruta de cierre (D-85)."
+url: "{{baseUrl}}/loans/{{reversalLoanId}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('ya está PAID_OFF', () => pm.expect(pm.response.json().status).to.eql('PAID_OFF'));
+      pm.test('closedAt ya no es null', () => pm.expect(pm.response.json().closedAt).to.not.be.null);
+    language: text/javascript
+order: 8000

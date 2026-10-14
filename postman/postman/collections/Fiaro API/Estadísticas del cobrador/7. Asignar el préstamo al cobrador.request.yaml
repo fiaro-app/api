@@ -1,0 +1,25 @@
+$kind: http-request
+description: "Sin esto, el cobrador no podría registrar la visita del paso 10 (modo cobrador, D-89) ni el préstamo contaría en sus estadísticas. Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/loans/{{statsLoanId}}/collection-assignments"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "collectorMembershipId": "{{statsCollectorMembershipId}}",
+      "effectiveFrom": "{{statsLoanStartDate}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('queda vigente, sin fecha de fin', () => pm.expect(body.effectiveTo).to.be.null);
+    language: text/javascript
+order: 7000

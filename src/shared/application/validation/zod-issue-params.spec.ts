@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { zodIssueParams } from '@/shared/application/validation/zod-issue-params.js';
+import {
+  toIssuePath,
+  zodIssueParams,
+} from '@/shared/application/validation/zod-issue-params.js';
 
 /** Los valores de los marcadores de la primera falla de un schema con ese dato. */
 function paramsOf(schema: z.ZodType, input: unknown) {
@@ -41,5 +44,22 @@ describe('zodIssueParams', () => {
 
   it('queda vacío si la falla no trae ninguno de esos campos', () => {
     expect(paramsOf(z.string(), 1)).toEqual({});
+  });
+});
+
+describe('toIssuePath', () => {
+  it('conserva los textos y los números de la ruta', () => {
+    expect(toIssuePath(['items', 0, 'name'])).toEqual(['items', 0, 'name']);
+  });
+
+  it('pasa los símbolos a texto: en JSON desaparecerían', () => {
+    expect(toIssuePath(['data', Symbol('clave')])).toEqual([
+      'data',
+      'Symbol(clave)',
+    ]);
+  });
+
+  it('una ruta vacía sigue vacía', () => {
+    expect(toIssuePath([])).toEqual([]);
   });
 });

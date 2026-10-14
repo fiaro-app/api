@@ -1,0 +1,18 @@
+$kind: http-request
+description: Confirma que queden las dos, con la del primer cobrador ya cerrada el día anterior a la reasignación.
+url: "{{baseUrl}}/loans/{{assignmentsLoanId}}/collection-assignments"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('tiene las dos asignaciones', () => pm.expect(body).to.have.lengthOf(2));
+      const first = body.find((a) => a.collectorMembershipId === pm.collectionVariables.get('assignmentsCollector1MembershipId'));
+      pm.test('la del primer cobrador se cerró el 2026-10-09', () => pm.expect(first.effectiveTo).to.eql('2026-10-09'));
+    language: text/javascript
+order: 10000

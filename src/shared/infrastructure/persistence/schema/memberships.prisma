@@ -1,0 +1,40 @@
+/// Roles dentro de un prestamista, acumulables: el operador que trabaja solo tiene los tres.
+enum Role {
+  OWNER
+  LENDER
+  COLLECTOR
+}
+
+/// `INACTIVE` quita el acceso de inmediato y conserva todo el historial.
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Relación entre una persona (`User`) y un prestamista, con sus roles. Los cobros, cuadres y
+/// asignaciones apuntan a la membresía, no al usuario, porque una persona puede trabajar para
+/// más de un prestamista.
+model Membership {
+  id            String           @id @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  lenderId      String           @map("lender_id") @db.Uuid
+  roles         Role[]
+  status        MembershipStatus @default(ACTIVE)
+  portfolioId   String?          @map("portfolio_id") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deactivatedAt DateTime?        @map("deactivated_at") @db.Timestamptz(3)
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lender    Lender     @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  portfolio Portfolio? @relation(fields: [portfolioId], references: [id])
+  collectionAssignments CollectionAssignment[]
+  collectionVisits CollectionVisit[]
+  settlementsSubmitted DailySettlement[] @relation("SettlementsSubmitted")
+  settlementsReviewed  DailySettlement[] @relation("SettlementsReviewed")
+
+  @@unique([userId, lenderId])
+  @@index([lenderId])
+  @@index([portfolioId])
+  @@map("memberships")
+}

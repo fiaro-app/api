@@ -1,0 +1,30 @@
+$kind: http-request
+description: Con collectorNote, el cuadre se crea PENDING aunque lo cobrado difiera de lo esperado. El rol COLLECTOR lo tiene la dueña desde el registro (D-78).
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 100000,
+      "collectedCash": 60000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0,
+      "collectorNote": "Un cliente no pagó."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('nace PENDING', () => pm.expect(body.status).to.eql('PENDING'));
+      pm.test('collectedAmount suma el desglose', () => pm.expect(body.collectedAmount).to.eql(60000));
+      pm.collectionVariables.set('settlementId', body.id);
+    language: text/javascript
+order: 4000

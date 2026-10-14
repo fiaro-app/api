@@ -1,0 +1,16 @@
+$kind: http-request
+description: "Genera una contraseña temporal nueva (D-93) y revoca sus sesiones. Se muestra una sola vez en tempPassword, para pasarla por WhatsApp, igual que al invitar. Exige rol OWNER o LENDER; nadie puede restablecerse la contraseña a sí mismo por esta ruta."
+url: "{{baseUrl}}/memberships/{{membershipsCollectorMembershipId}}/reset-password"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae una contraseña temporal nueva', () => pm.expect(body.tempPassword).to.be.a('string'));
+    language: text/javascript
+order: 8000

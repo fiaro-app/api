@@ -1,0 +1,47 @@
+/// Cada cuánto se cobra una cuota (LoanSchema de contracts).
+enum LoanFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+/// ACTIVE: tiene saldo pendiente. PAID_OFF: el saldo llegó a cero. CANCELED: anulado por un
+/// error de registro, antes de recibir pagos.
+enum LoanStatus {
+  ACTIVE
+  PAID_OFF
+  CANCELED
+}
+
+/// Acuerdo de pago pactado entre el prestamista y el cliente. Fiaro no calcula intereses: todos
+/// los montos los ingresa el prestamista.
+model Loan {
+  id                     String        @id @db.Uuid
+  lenderId               String        @map("lender_id") @db.Uuid
+  clientId               String        @map("client_id") @db.Uuid
+  principalAmount        Int           @map("principal_amount")
+  installmentCount       Int           @map("installment_count")
+  installmentValue       Int           @map("installment_value")
+  totalPayable           Int           @map("total_payable")
+  frequency              LoanFrequency
+  /// Fecha de calendario en texto (`AAAA-MM-DD`), no `DateTime`: así se guarda tal como la
+  /// entrega el contrato, sin que la zona horaria del driver pueda correrla un día.
+  startDate              String        @map("start_date")
+  status                 LoanStatus    @default(ACTIVE)
+  /// Quién lo dio de alta (sin FK a memberships: es un dato de auditoría, no una relación que hoy se consulte).
+  createdByMembershipId  String        @map("created_by_membership_id") @db.Uuid
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  closedAt               DateTime?     @map("closed_at") @db.Timestamptz(3)
+
+  lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  collectionAssignments CollectionAssignment[]
+  collectionVisits CollectionVisit[]
+  payments Payment[]
+
+  @@index([lenderId])
+  @@index([clientId])
+  @@map("loans")
+}

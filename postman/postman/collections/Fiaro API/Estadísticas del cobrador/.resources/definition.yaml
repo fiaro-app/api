@@ -1,0 +1,10 @@
+$kind: collection
+description: |-
+  El resumen del día y las estadísticas de desempeño de un cobrador (D-98):
+  `QUERY /collectors/me/daily-summary` y `QUERY /collectors/me/stats`, protegidas por
+  `LenderScopeGuard`. `expectedAmount` lo calcula el motor de calendario sobre los préstamos que
+  el cobrador tiene asignados hoy, no las visitas que ya registró — así la cifra no se infla
+  dejando de visitar los casos difíciles. Autocontenida: registra su propio negocio en el paso 1
+  y a su cobrador en el paso 4, con celular y cédula al azar, para poder repetir la carpeta sin
+  chocar con una corrida anterior.
+order: 2004
