@@ -22,7 +22,7 @@ function sorted(value: unknown): unknown {
  * cambian la clave.
  *
  * @param resource - Qué se lee, por ejemplo `stats` o `loans`.
- * @param params - Todo lo que cambia el resultado.
+ * @param params - Los datos que cambian el resultado.
  */
 export function cacheKey(resource: string, params: object = {}): string {
   const digest = createHash('sha256')
