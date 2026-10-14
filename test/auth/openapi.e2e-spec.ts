@@ -131,7 +131,7 @@ describe('la documentación de las rutas de autenticación', () => {
     };
     expect(change.required).toEqual(['currentPassword', 'newPassword']);
     expect(change.properties.newPassword).toMatchObject({
-      minLength: 8,
+      minLength: 15,
       maxLength: 128,
     });
   });

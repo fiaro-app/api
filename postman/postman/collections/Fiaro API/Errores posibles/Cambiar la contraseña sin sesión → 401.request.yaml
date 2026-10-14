@@ -12,7 +12,7 @@ body:
   content: |-
     {
       "currentPassword": "x",
-      "newPassword": "contraseña-nueva-2"
+      "newPassword": "contraseña-nueva-de-prueba-2"
     }
 scripts:
   - type: afterResponse
