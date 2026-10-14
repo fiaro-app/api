@@ -58,6 +58,8 @@ const EnvSchema = z
     S3_ACCESS_KEY_ID: z.string().optional(),
     S3_SECRET_ACCESS_KEY: z.string().optional(),
     S3_PUBLIC_URL_BASE: z.url().optional(),
+    CLOUDFLARE_TURNSTILE_SECRET_KEY: z.string().optional(),
+    CLOUDFLARE_TURNSTILE_HOSTNAMES: commaSeparated(z.string().min(1)),
   })
   .refine(
     (env) => env.NODE_ENV !== 'production' || env.TRUST_PROXY !== undefined,
@@ -128,6 +130,17 @@ const EnvSchema = z
     message:
       'es obligatoria en producción: es la URL pública del logo una vez subido (un dominio propio sobre el bucket, R2 no sirve su URL interna)',
   })
+  .refine(
+    (env) =>
+      env.NODE_ENV !== 'production' ||
+      (Boolean(env.CLOUDFLARE_TURNSTILE_SECRET_KEY) &&
+        env.CLOUDFLARE_TURNSTILE_HOSTNAMES.length > 0),
+    {
+      path: ['CLOUDFLARE_TURNSTILE_HOSTNAMES'],
+      message:
+        'y CLOUDFLARE_TURNSTILE_SECRET_KEY son obligatorias en producción para proteger POST /leads y POST /register; debe listar los dominios que emiten tokens de Turnstile',
+    },
+  )
   .transform((env) => ({
     nodeEnv: env.NODE_ENV,
     port: env.PORT,
@@ -162,6 +175,11 @@ const EnvSchema = z
     push: buildPushConfig(env),
     moraAlerts: buildMoraAlertsConfig(env),
     s3: buildS3Config(env),
+    turnstile: {
+      secretKey: env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+      hostnames: [...new Set(env.CLOUDFLARE_TURNSTILE_HOSTNAMES)],
+      enabled: Boolean(env.CLOUDFLARE_TURNSTILE_SECRET_KEY),
+    },
   }));
 
 /** Configuración validada y tipada; se inyecta con el token `ENV`. */

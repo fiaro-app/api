@@ -1,3 +1,4 @@
+import { TurnstileTokenSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
 
 /**
@@ -30,4 +31,5 @@ export const CreateLeadRequestSchema = z.strictObject({
     description:
       'Campo señuelo contra robots: debe viajar vacío o ausente. Con algo escrito, el contacto se descarta en silencio.',
   }),
+  turnstileToken: TurnstileTokenSchema.optional(),
 });

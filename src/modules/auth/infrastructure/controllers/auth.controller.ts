@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Inject,
@@ -13,8 +14,11 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import type { z } from 'zod';
+import { TURNSTILE_HEADER } from '@fiaro-app/contracts';
 import type { Env } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
+import { TurnstileVerificationError } from '@/shared/domain/errors/turnstile-verification.error.js';
+import { TurnstileService } from '@/shared/infrastructure/turnstile/turnstile.service.js';
 import { RequestPasswordResetUseCase } from '@/modules/auth/application/use-cases/request-password-reset.use-case.js';
 import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case.js';
 import { toAuthRequest } from '@/modules/auth/infrastructure/better-auth/auth-request.js';
@@ -35,13 +39,15 @@ import { BETTER_AUTH } from '@/modules/auth/infrastructure/better-auth/auth.toke
 import {
   ApiChangePassword,
   ApiGetSession,
-  ApiRequestPasswordReset,
-  ApiResetPassword,
   ApiRevokeOtherSessions,
   ApiRevokeSessions,
   ApiSignIn,
   ApiSignOut,
 } from '@/modules/auth/infrastructure/controllers/docs/auth-routes.docs.js';
+import {
+  ApiRequestPasswordReset,
+  ApiResetPassword,
+} from '@/modules/auth/infrastructure/controllers/docs/password-reset-routes.docs.js';
 import {
   ChangePasswordRequestSchema,
   RequestPasswordResetRequestSchema,
@@ -76,6 +82,7 @@ export class AuthController {
     private readonly passwordResetGuard: PasswordResetGuard,
     private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
     private readonly resetPasswordUseCase: ResetPasswordUseCase,
+    private readonly turnstile: TurnstileService,
   ) {}
 
   /**
@@ -126,7 +133,8 @@ export class AuthController {
    * Pide recuperar la contraseña de un celular por correo: si tiene cuenta y correo de contacto,
    * manda un código. Responde lo mismo siempre, para no revelar qué celulares tienen cuenta.
    *
-   * @param body - Celular, ya validado.
+   * @param body - Celular y token de Turnstile, ya validados.
+   * @param headerToken - Token de Turnstile por cabecera, si no viene en el cuerpo.
    * @param req - Petición de Express.
    */
   @Post('request-password-reset')
@@ -135,13 +143,25 @@ export class AuthController {
   async requestPasswordReset(
     @Body({ schema: RequestPasswordResetRequestSchema })
     body: z.output<typeof RequestPasswordResetRequestSchema>,
+    @Headers(TURNSTILE_HEADER) headerToken: string | undefined,
     @Req() req: Request,
   ): Promise<z.output<typeof StatusResponseSchema>> {
+    if (
+      !(await this.turnstile.validateToken(
+        body.turnstileToken ?? headerToken,
+        req.ip,
+        'password-reset',
+      ))
+    ) {
+      throw new TurnstileVerificationError();
+    }
     const allowed = await this.passwordResetGuard.admitRequest(
       body.phoneNumber,
     );
     const sent = allowed
-      ? await this.requestPasswordResetUseCase.execute(body)
+      ? await this.requestPasswordResetUseCase.execute({
+          phoneNumber: body.phoneNumber,
+        })
       : false;
     this.auditor.passwordResetRequested(
       body.phoneNumber,

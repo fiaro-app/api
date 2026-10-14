@@ -13,6 +13,8 @@ import type { AuthAuditor } from '@/modules/auth/infrastructure/better-auth/auth
 import type { Auth } from '@/modules/auth/infrastructure/better-auth/auth.factory.js';
 import { AuthController } from '@/modules/auth/infrastructure/controllers/auth.controller.js';
 import type { PasswordResetGuard } from '@/modules/auth/infrastructure/password-reset/password-reset-guard.js';
+import { TurnstileVerificationError } from '@/shared/domain/errors/turnstile-verification.error.js';
+import type { TurnstileService } from '@/shared/infrastructure/turnstile/turnstile.service.js';
 import { IS_PUBLIC_KEY } from '@/shared/infrastructure/http/public.decorator.js';
 import { realApiErrors } from '@test/support/api-errors.js';
 import { FakeExpressResponse } from '@test/support/fake-express-response.js';
@@ -41,6 +43,7 @@ function setup(reply: () => Response = () => new Response('{}')) {
   const resetPasswordUseCase = {
     execute: vi.fn(() => Promise.resolve({ userId: 'user-1' })),
   };
+  const turnstile = { validateToken: vi.fn(() => Promise.resolve(true)) };
   return {
     controller: new AuthController(
       { handler } as unknown as Auth,
@@ -50,7 +53,9 @@ function setup(reply: () => Response = () => new Response('{}')) {
       passwordResetGuard as unknown as PasswordResetGuard,
       requestPasswordResetUseCase as unknown as RequestPasswordResetUseCase,
       resetPasswordUseCase as unknown as ResetPasswordUseCase,
+      turnstile as unknown as TurnstileService,
     ),
+    turnstile,
     handler,
     auditor,
     passwordResetGuard,
@@ -187,6 +192,7 @@ describe('AuthController', () => {
 
       const response = await controller.requestPasswordReset(
         { phoneNumber: '+573001234567' },
+        undefined,
         requestOf('POST'),
       );
 
@@ -207,6 +213,31 @@ describe('AuthController', () => {
       expect(response).toEqual({ status: true });
     });
 
+    it('pedir el código: sin pasar Turnstile no gasta cupo ni manda correo', async () => {
+      const {
+        controller,
+        turnstile,
+        passwordResetGuard,
+        requestPasswordResetUseCase,
+      } = setup();
+      turnstile.validateToken.mockResolvedValueOnce(false);
+
+      await expect(
+        controller.requestPasswordReset(
+          { phoneNumber: '+573001234567', turnstileToken: 'malo' },
+          undefined,
+          requestOf('POST'),
+        ),
+      ).rejects.toBeInstanceOf(TurnstileVerificationError);
+      expect(turnstile.validateToken).toHaveBeenCalledExactlyOnceWith(
+        'malo',
+        '203.0.113.7',
+        'password-reset',
+      );
+      expect(passwordResetGuard.admitRequest).not.toHaveBeenCalled();
+      expect(requestPasswordResetUseCase.execute).not.toHaveBeenCalled();
+    });
+
     it('pedir el código: sin cupo, no llama al caso de uso pero responde lo mismo', async () => {
       const {
         controller,
@@ -218,6 +249,7 @@ describe('AuthController', () => {
 
       const response = await controller.requestPasswordReset(
         { phoneNumber: '+573001234567' },
+        undefined,
         requestOf('POST'),
       );
 

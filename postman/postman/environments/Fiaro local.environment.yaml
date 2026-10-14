@@ -1,5 +1,10 @@
 name: Fiaro local
 values:
+  - key: turnstileToken
+    value: 'XXXX.DUMMY.TOKEN.XXXX'
+    enabled: true
+    type: default
+    description: 'Token de prueba de Cloudflare Turnstile: pasa con la llave secreta de prueba 1x0000000000000000000000000000000AA. Con la llave real hay que sacar uno del widget.'
   - key: baseUrl
     value: 'http://localhost:3040'
     enabled: true

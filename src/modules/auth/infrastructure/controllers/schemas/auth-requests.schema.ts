@@ -1,4 +1,4 @@
-import { MobilePhoneSchema } from '@fiaro-app/contracts';
+import { MobilePhoneSchema, TurnstileTokenSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
 import {
   PASSWORD_MAX_LENGTH,
@@ -60,6 +60,7 @@ export const RequestPasswordResetRequestSchema = z.strictObject({
     description: 'Celular colombiano en formato internacional E.164.',
     example: '+573001234567',
   }),
+  turnstileToken: TurnstileTokenSchema.optional(),
 });
 
 /** Cuerpo de `POST /auth/reset-password`. */

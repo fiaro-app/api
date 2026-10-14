@@ -1,6 +1,16 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { TURNSTILE_HEADER } from '@fiaro-app/contracts';
+import type { Request } from 'express';
 import type { z } from 'zod';
 import { CreateLeadUseCase } from '@/modules/leads/application/use-cases/create-lead.use-case.js';
 import { ApiCreateLead } from '@/modules/leads/infrastructure/controllers/docs/lead-routes.docs.js';
@@ -8,6 +18,8 @@ import { CreateLeadRequestSchema } from '@/modules/leads/infrastructure/controll
 import type { LeadReceivedResponseSchema } from '@/modules/leads/infrastructure/controllers/schemas/lead-responses.schema.js';
 import { Public } from '@/shared/infrastructure/http/public.decorator.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { TurnstileVerificationError } from '@/shared/domain/errors/turnstile-verification.error.js';
+import { TurnstileService } from '@/shared/infrastructure/turnstile/turnstile.service.js';
 
 /** Cuántos contactos admite una misma IP por ventana. */
 export const LEAD_RATE_LIMIT = 5;
@@ -29,7 +41,10 @@ export const LEAD_RATE_WINDOW_MS = 60 * 60 * 1000;
 @Public()
 @Controller('leads')
 export class LeadController {
-  constructor(private readonly createLeadUseCase: CreateLeadUseCase) {}
+  constructor(
+    private readonly createLeadUseCase: CreateLeadUseCase,
+    private readonly turnstile: TurnstileService,
+  ) {}
 
   /** @param body - Los datos del contacto, ya validados. */
   @Post()
@@ -39,9 +54,20 @@ export class LeadController {
   async createLead(
     @Body({ schema: CreateLeadRequestSchema })
     body: z.output<typeof CreateLeadRequestSchema>,
+    @Headers(TURNSTILE_HEADER) headerToken: string | undefined,
+    @Req() request: Request,
   ): Promise<z.output<typeof LeadReceivedResponseSchema>> {
     if (body.website !== undefined && body.website.trim() !== '') {
       return { received: true };
+    }
+    if (
+      !(await this.turnstile.validateToken(
+        body.turnstileToken ?? headerToken,
+        request.ip,
+        'lead',
+      ))
+    ) {
+      throw new TurnstileVerificationError();
     }
     await this.createLeadUseCase.execute({
       name: body.name,

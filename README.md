@@ -157,7 +157,7 @@ Detalle y razones en [ARCHITECTURE.md §8](./ARCHITECTURE.md#8-herramientas-hook
 
 ## Variables de entorno
 
-Se validan al arrancar: si alguna es inválida el proceso no arranca y el error dice cuál. `DATABASE_URL`, `BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` son obligatorias: con `pnpm docker:dev` las define Compose, y sin Docker las trae `.env.example` (cópialo a `.env`). El resto son opcionales en desarrollo (por ejemplo `CORS_ORIGINS`, para probar el panel web). En producción `TRUST_PROXY` también es obligatoria. Cada una se explica en [ARCHITECTURE.md](./ARCHITECTURE.md#9-variables-de-entorno) y la seguridad HTTP que las usa, en la [sección 11](./ARCHITECTURE.md#11-seguridad-http). Nunca se commitea un `.env` real.
+Se validan al arrancar: si alguna es inválida el proceso no arranca y el error dice cuál. `DATABASE_URL`, `BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` son obligatorias: con `pnpm docker:dev` las define Compose, y sin Docker las trae `.env.example` (cópialo a `.env`). El resto son opcionales en desarrollo (por ejemplo `CORS_ORIGINS`, para probar el panel web). En producción `TRUST_PROXY`, `CLOUDFLARE_TURNSTILE_SECRET_KEY` y `CLOUDFLARE_TURNSTILE_HOSTNAMES` también son obligatorias. El último valor es una lista de hostnames separados por comas y debe coincidir con los dominios configurados en el widget; la site key pública correspondiente se configura en la web. Cada una se explica en [ARCHITECTURE.md](./ARCHITECTURE.md#9-variables-de-entorno) y la seguridad HTTP que las usa, en la [sección 11](./ARCHITECTURE.md#11-seguridad-http). Nunca se commitea un `.env` real.
 
 ## Ramas y flujo de trabajo
 

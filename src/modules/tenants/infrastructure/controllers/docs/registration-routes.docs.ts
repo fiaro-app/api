@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   RegistrationConflictSchema,
+  RegistrationTurnstileFailedSchema,
   RegistrationValidationErrorSchema,
 } from '@/modules/tenants/infrastructure/controllers/schemas/registration-errors.schema.js';
 import { RegisterOwnerResponseSchema } from '@/modules/tenants/infrastructure/controllers/schemas/registration-responses.schema.js';
@@ -18,6 +19,12 @@ export const ApiRegisterOwner = () =>
       status: 201,
       description: 'Persona y negocio creados.',
       standardSchema: RegisterOwnerResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'No se pudo validar el desafío de Cloudflare Turnstile (`TURNSTILE_FAILED`).',
+      standardSchema: RegistrationTurnstileFailedSchema,
     }),
     ApiResponse({
       status: 400,

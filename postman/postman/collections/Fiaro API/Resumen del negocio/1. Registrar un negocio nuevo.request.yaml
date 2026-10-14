@@ -3,6 +3,9 @@ description: "Público, sin sesión. Esta carpeta es autocontenida: registra su 
 url: "{{baseUrl}}/register"
 method: POST
 headers:
+  - key: cf-turnstile-response
+    value: "{{turnstileToken}}"
+    description: Token de Cloudflare Turnstile. Solo se exige si la API tiene CLOUDFLARE_TURNSTILE_SECRET_KEY; con la llave secreta de prueba vale cualquier token.
   - key: Content-Type
     value: application/json
 body:

@@ -51,6 +51,11 @@ describe('loadEnv', () => {
         secretAccessKey: 'fiaro-secret',
         publicUrlBase: 'http://localhost:8333/fiaro-dev',
       },
+      turnstile: {
+        secretKey: undefined,
+        hostnames: [],
+        enabled: false,
+      },
     });
   });
 
@@ -117,6 +122,11 @@ describe('loadEnv', () => {
         secretAccessKey: PRODUCTION_ENV.S3_SECRET_ACCESS_KEY,
         publicUrlBase: PRODUCTION_ENV.S3_PUBLIC_URL_BASE,
       },
+      turnstile: {
+        secretKey: PRODUCTION_ENV.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        hostnames: ['fiaro.example'],
+        enabled: true,
+      },
     });
   });
 
@@ -162,5 +172,17 @@ describe('loadEnv', () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it('habilita turnstile cuando se configura la llave secreta', () => {
+    const env = load({
+      CLOUDFLARE_TURNSTILE_SECRET_KEY: '0x4AAAAAA',
+      CLOUDFLARE_TURNSTILE_HOSTNAMES: 'localhost,fiaro.example',
+    });
+    expect(env.turnstile).toEqual({
+      secretKey: '0x4AAAAAA',
+      hostnames: ['localhost', 'fiaro.example'],
+      enabled: true,
+    });
   });
 });

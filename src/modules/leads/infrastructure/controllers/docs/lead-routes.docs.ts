@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   LeadRateLimitedSchema,
+  LeadTurnstileFailedSchema,
   LeadValidationErrorSchema,
 } from '@/modules/leads/infrastructure/controllers/schemas/lead-errors.schema.js';
 import { LeadReceivedResponseSchema } from '@/modules/leads/infrastructure/controllers/schemas/lead-responses.schema.js';
@@ -18,6 +19,12 @@ export const ApiCreateLead = () =>
       status: 201,
       description: 'Contacto recibido.',
       standardSchema: LeadReceivedResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description:
+        'No se pudo validar el desafío de Cloudflare Turnstile (`TURNSTILE_FAILED`).',
+      standardSchema: LeadTurnstileFailedSchema,
     }),
     ApiResponse({
       status: 400,

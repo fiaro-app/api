@@ -40,3 +40,8 @@ export const PasswordResetCodeInvalidSchema = ApiErrorSchema.extend({
 export const PasswordResetCodeExpiredSchema = ApiErrorSchema.extend({
   code: z.literal('PASSWORD_RESET_CODE_EXPIRED'),
 }).meta({ id: 'PasswordResetCodeExpired' });
+
+/** `400 TURNSTILE_FAILED`: no se pudo verificar el desafío contra robots. */
+export const AuthTurnstileFailedSchema = ApiErrorSchema.extend({
+  code: z.literal('TURNSTILE_FAILED'),
+}).meta({ id: 'AuthTurnstileFailed' });
