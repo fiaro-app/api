@@ -161,6 +161,8 @@ jobs:
             -e S3_ACCESS_KEY_ID=solo-para-la-prueba-de-humo \
             -e S3_SECRET_ACCESS_KEY=solo-para-la-prueba-de-humo \
             -e S3_PUBLIC_URL_BASE=https://assets.fiaro.example \
+            -e CLOUDFLARE_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA \
+            -e CLOUDFLARE_TURNSTILE_HOSTNAMES=fiaro.example \
             fiaro-api:ci
           for _ in $(seq 1 30); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && exit 0
