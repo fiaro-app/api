@@ -15,6 +15,7 @@ body:
       "phone": "{{dashboardCollectorPhone}}",
       "fullName": "Cobrador de prueba del resumen",
       "nationalId": "{{dashboardCollectorNationalId}}",
+      "contactEmail": "cobrador-{{dashboardCollectorNationalId}}@example.com",
       "roles": ["COLLECTOR"],
       "portfolioId": "{{dashboardPortfolioId}}"
     }

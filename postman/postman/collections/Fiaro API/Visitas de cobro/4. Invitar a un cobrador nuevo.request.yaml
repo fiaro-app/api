@@ -15,6 +15,7 @@ body:
       "phone": "{{visitsCollectorPhone}}",
       "fullName": "Cobrador de prueba de visitas",
       "nationalId": "{{visitsCollectorNationalId}}",
+      "contactEmail": "cobrador-{{visitsCollectorNationalId}}@example.com",
       "roles": ["COLLECTOR"],
       "portfolioId": "{{visitsPortfolioId}}"
     }

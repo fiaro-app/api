@@ -69,6 +69,7 @@ async function seedBusinessWithCollector(testApp: TestApp): Promise<{
       phone: collector.phone,
       fullName: 'Carlos Cobrador',
       nationalId: collector.nationalId,
+      contactEmail: `cobrador-${collector.nationalId}@example.com`,
       roles: ['COLLECTOR'],
       portfolioId: generalPortfolio.id,
     });

@@ -37,6 +37,7 @@ const COLLECTOR_INPUT = {
   phone: '+573109998877',
   fullName: 'Luis Gómez',
   nationalId: '1030405060',
+  contactEmail: 'luis@example.com',
   roles: ['COLLECTOR' as const],
   portfolioId: 'portfolio-1',
 };
