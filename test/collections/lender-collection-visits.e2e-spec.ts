@@ -48,7 +48,7 @@ describe('QUERY /collection-visits', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.range).toEqual({ from: TODAY, to: TODAY });
-    expect(response.body.meta).toEqual({ page: 1, pageSize: 20, total: 2 });
+    expect(response.body.meta).toEqual({ page: 1, pageSize: 10, total: 2 });
     const rows = response.body.data as (Row & { loan: { id: string } })[];
     const amounts = rows.map((row) => row.payment?.amount ?? 0);
     expect(amounts.toSorted((a, b) => a - b)).toEqual([5_000, 10_000]);

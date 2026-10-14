@@ -7,6 +7,7 @@ import type { GetCollectorStatsUseCase } from '@/modules/collections/application
 import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
 import type { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
 import type { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
+import { LenderStatsScope } from '@/modules/dashboard/application/services/lender-stats-scope.js';
 import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
 import { GetLenderStatsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats.use-case.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
@@ -108,9 +109,7 @@ function setup(options: SetupOptions) {
       getLoanBalance,
       listCollectionAssignments,
     ),
-    listMemberships,
-    getCollectorStats,
-    getClient,
+    new LenderStatsScope(listMemberships, getCollectorStats, getClient),
     clock,
   );
   return { useCase, getCollectorStatsExecute, getClientExecute };

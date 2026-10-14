@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
-import type { GetMembershipEntryUseCase } from '@/modules/memberships/application/use-cases/get-membership-entry.use-case.js';
 import { ListLoansWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-loans-with-balance.use-case.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
+import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
@@ -58,8 +58,14 @@ function setup(
       skipNationalHolidays: false,
     }),
   );
-  const getMembership = vi.fn((id: string) =>
-    Promise.resolve({ id, fullName: `Cobrador ${id}` }),
+  const listMembershipNames = vi.fn((ids: readonly string[]) =>
+    Promise.resolve(new Map(ids.map((id) => [id, `Cobrador ${id}`]))),
+  );
+  const listClientNames = vi.fn((ids: readonly string[]) =>
+    Promise.resolve(new Map(ids.map((id) => [id, `Cliente ${id}`]))),
+  );
+  const findActiveByCollectorAndDate = vi.fn(() =>
+    Promise.resolve([{ loanId: 'loan-1' }]),
   );
   const listVisitRecordsByLoans = vi.fn(() =>
     Promise.resolve([paidRecord('loan-1', 20_000)]),
@@ -71,18 +77,24 @@ function setup(
   const useCase = new ListLoansWithBalanceUseCase(
     { execute: listLoans } as unknown as ListLoansUseCase,
     { execute: getLender } as unknown as GetLenderUseCase,
-    { execute: getMembership } as unknown as GetMembershipEntryUseCase,
     {
       listVisitRecordsByLoans,
       listCollectorsByLoans,
+      listClientNames,
+      listMembershipNames,
     },
+    {
+      findActiveByCollectorAndDate,
+    } as unknown as CollectionAssignmentRepository,
     clock,
   );
   return {
     useCase,
     listLoans,
     getLender,
-    getMembership,
+    listMembershipNames,
+    listClientNames,
+    findActiveByCollectorAndDate,
     listVisitRecordsByLoans,
     listCollectorsByLoans,
   };
@@ -114,13 +126,15 @@ describe('ListLoansWithBalanceUseCase', () => {
       collector: null,
     });
     expect(first?.loan.id).toBe('loan-1');
+    expect(first?.clientFullName).toBe('Cliente client-1');
   });
 
   it('hace una consulta por cosa para toda la página, no una por préstamo', async () => {
     const {
       useCase,
       getLender,
-      getMembership,
+      listMembershipNames,
+      listClientNames,
       listVisitRecordsByLoans,
       listCollectorsByLoans,
     } = setup();
@@ -136,14 +150,18 @@ describe('ListLoansWithBalanceUseCase', () => {
       ['loan-1', 'loan-2'],
       '2026-09-27',
     );
-    expect(getMembership).toHaveBeenCalledExactlyOnceWith(
-      'membership-1',
+    expect(listMembershipNames).toHaveBeenCalledExactlyOnceWith(
+      ['membership-1'],
+      'lender-1',
+    );
+    expect(listClientNames).toHaveBeenCalledExactlyOnceWith(
+      ['client-1', 'client-2'],
       'lender-1',
     );
   });
 
   it('pide el nombre de cada cobrador distinto una sola vez', async () => {
-    const { useCase, getMembership, listCollectorsByLoans } = setup();
+    const { useCase, listMembershipNames, listCollectorsByLoans } = setup();
     listCollectorsByLoans.mockResolvedValueOnce(
       new Map([
         ['loan-1', 'membership-1'],
@@ -153,7 +171,10 @@ describe('ListLoansWithBalanceUseCase', () => {
 
     await useCase.execute({ lenderId: 'lender-1', page: 1, pageSize: 20 });
 
-    expect(getMembership).toHaveBeenCalledOnce();
+    expect(listMembershipNames).toHaveBeenCalledExactlyOnceWith(
+      ['membership-1'],
+      'lender-1',
+    );
   });
 
   it('una página vacía no consulta nada más', async () => {
@@ -168,5 +189,42 @@ describe('ListLoansWithBalanceUseCase', () => {
     expect(page).toEqual({ items: [], total: 42 });
     expect(getLender).not.toHaveBeenCalled();
     expect(listVisitRecordsByLoans).not.toHaveBeenCalled();
+  });
+
+  it('con cobrador lista solo los préstamos que tiene asignados hoy', async () => {
+    const { useCase, listLoans, findActiveByCollectorAndDate } = setup();
+
+    await useCase.execute({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+      collectorMembershipId: 'membership-1',
+    });
+
+    expect(findActiveByCollectorAndDate).toHaveBeenCalledExactlyOnceWith(
+      'membership-1',
+      '2026-09-27',
+    );
+    expect(listLoans).toHaveBeenCalledExactlyOnceWith({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+      ids: ['loan-1'],
+    });
+  });
+
+  it('un cobrador sin préstamos asignados devuelve una página vacía sin listar', async () => {
+    const { useCase, listLoans, findActiveByCollectorAndDate } = setup();
+    findActiveByCollectorAndDate.mockResolvedValueOnce([]);
+
+    const page = await useCase.execute({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+      collectorMembershipId: 'membership-1',
+    });
+
+    expect(page).toEqual({ items: [], total: 0 });
+    expect(listLoans).not.toHaveBeenCalled();
   });
 });

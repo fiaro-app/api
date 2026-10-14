@@ -1,0 +1,24 @@
+$kind: http-request
+description: "El ranking de clientes con mora de hoy, paginado (10 por defecto, máximo 50). QUERY /lenders/me/stats trae solo los 5 primeros. Mismos filtros de cobrador y cartera (D-117)."
+url: "{{baseUrl}}/lenders/me/stats/top-arrears"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: '{ "page": 1, "pageSize": 10 }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la página con sus metadatos', () => {
+        pm.expect(body.data).to.be.an('array');
+        pm.expect(body.meta).to.include({ page: 1, pageSize: 10 });
+      });
+    language: text/javascript
+order: 18000

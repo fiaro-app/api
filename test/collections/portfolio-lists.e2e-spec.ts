@@ -61,7 +61,7 @@ describe('QUERY /loans', () => {
       .set('Cookie', business.ownerCookie);
 
     expect(list.status).toBe(200);
-    expect(list.body.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
+    expect(list.body.meta).toEqual({ page: 1, pageSize: 10, total: 1 });
     const row = (list.body.data as Record<string, unknown>[])[0];
     expect(row).toMatchObject({
       id: business.loanId,
@@ -76,6 +76,24 @@ describe('QUERY /loans', () => {
       },
     });
     expect(row?.balance).toBe(10_000); // 20.000 pactados - 10.000 pagados
+    expect(row?.clientFullName).toEqual(expect.any(String));
+    expect(row?.clientFullName).not.toBe('');
+  });
+
+  it('con collectorMembershipId trae solo los préstamos que ese cobrador tiene hoy', async () => {
+    app = await startTestApp(START);
+    const business = await seedAssignedLoan(app);
+
+    const own = await query(app, '/loans', business.ownerCookie, {
+      collectorMembershipId: business.collectorMembershipId,
+    });
+    const other = await query(app, '/loans', business.ownerCookie, {
+      collectorMembershipId: '01a0f387-97a7-7192-bc0f-4f9d34e0480f',
+    });
+
+    expect(own.body.meta.total).toBe(1);
+    expect(own.body.data[0].id).toBe(business.loanId);
+    expect(other.body).toMatchObject({ data: [], meta: { total: 0 } });
   });
 
   it('un préstamo sin cobrador asignado sale con collector null', async () => {

@@ -9,6 +9,9 @@ import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-le
  * (D-101). No repite ningún cálculo: compone `GetLenderStatsUseCase` y `GetLenderUseCase`
  * (`lenders`, ya exportado desde D-84) en paralelo.
  */
+/** El PDF muestra más filas del ranking y del desempeño que la pantalla (que pagina). */
+const EXPORT_LIST_SIZE = 10;
+
 @Injectable()
 export class GetLenderStatsExportUseCase {
   constructor(
@@ -19,7 +22,7 @@ export class GetLenderStatsExportUseCase {
   /** @param input - El prestamista, el período y los filtros, igual que `GetLenderStatsUseCase`. */
   async execute(input: GetLenderStatsInput): Promise<LenderStatsExport> {
     const [stats, lender] = await Promise.all([
-      this.getLenderStats.execute(input),
+      this.getLenderStats.execute(input, EXPORT_LIST_SIZE),
       this.getLender.execute(input.lenderId),
     ]);
     return { stats, lenderName: lender.name };

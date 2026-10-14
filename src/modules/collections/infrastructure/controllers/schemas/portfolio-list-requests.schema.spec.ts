@@ -8,7 +8,7 @@ describe('ListLoansWithBalanceRequestSchema', () => {
   it('aplica los valores por defecto de paginación', () => {
     expect(ListLoansWithBalanceRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
   });
 
@@ -36,7 +36,7 @@ describe('ListClientsWithBalanceRequestSchema', () => {
   it('aplica los valores por defecto de paginación', () => {
     expect(ListClientsWithBalanceRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
   });
 
