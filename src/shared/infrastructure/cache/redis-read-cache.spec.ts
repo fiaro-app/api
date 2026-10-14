@@ -86,6 +86,40 @@ describe('RedisReadCache', () => {
     expect(ttls.get('fiaro:cache:lender-1:gen')).toBe(7 * 24 * 60 * 60);
   });
 
+  it('lecturas iguales al mismo tiempo comparten un solo cálculo', async () => {
+    const { cache } = setup();
+    let resolve: (value: number) => void = () => undefined;
+    const load = vi.fn(
+      () =>
+        new Promise<number>((done) => {
+          resolve = done;
+        }),
+    );
+
+    const reads = Array.from({ length: 5 }, () =>
+      cache.getOrLoad('lender-1', 'k', 60, load),
+    );
+    await vi.waitFor(() => {
+      expect(load).toHaveBeenCalledOnce();
+    });
+    resolve(42);
+
+    expect(await Promise.all(reads)).toEqual([42, 42, 42, 42, 42]);
+  });
+
+  it('si el cálculo falla, el siguiente vuelve a intentar', async () => {
+    const { cache } = setup();
+    const load = vi
+      .fn<() => Promise<number>>()
+      .mockRejectedValueOnce(new Error('db'))
+      .mockResolvedValueOnce(1);
+
+    await expect(cache.getOrLoad('lender-1', 'k', 60, load)).rejects.toThrow(
+      'db',
+    );
+    expect(await cache.getOrLoad('lender-1', 'k', 60, load)).toBe(1);
+  });
+
   it('no mezcla prestamistas', async () => {
     const { cache } = setup();
     await cache.getOrLoad('lender-1', 'k', 60, () => Promise.resolve('uno'));
