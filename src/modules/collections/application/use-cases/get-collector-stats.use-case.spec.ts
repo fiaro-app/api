@@ -11,6 +11,7 @@ import { Payment } from '@/modules/collections/domain/entities/payment.entity.js
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
+import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
 const NOW = new Date('2026-10-07T15:00:00Z');
@@ -104,12 +105,19 @@ function setup(options: {
   const listByCollectorAndDateRange = vi.fn(() =>
     Promise.resolve(options.visitRecords ?? []),
   );
+  const summarizeByCollectorAndDateRange = vi.fn(() =>
+    Promise.resolve({
+      visitsCount: (options.visitRecords ?? []).length,
+      collectedAmount: sumNetPayments(options.visitRecords ?? []),
+    }),
+  );
   const visits: CollectionVisitRepository = {
     create: vi.fn(),
     findById: vi.fn(),
     listByLoan: vi.fn(),
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange,
+    summarizeByCollectorAndDateRange,
   };
   const loansById = options.loans ?? {};
   const getLoanExecute = vi.fn((loanId: string) =>
@@ -151,7 +159,11 @@ function setup(options: {
     listLoanBalances,
     clock,
   );
-  return { useCase, findActiveByCollectorAndDate, listByCollectorAndDateRange };
+  return {
+    useCase,
+    findActiveByCollectorAndDate,
+    listByCollectorAndDateRange: summarizeByCollectorAndDateRange,
+  };
 }
 
 describe('GetCollectorStatsUseCase', () => {

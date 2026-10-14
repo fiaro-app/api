@@ -274,3 +274,51 @@ describe('PrismaCollectionVisitRepository.listByCollectorAndDateRange', () => {
     expect(found[0]?.visit).toEqual(visit);
   });
 });
+
+describe('PrismaCollectionVisitRepository.summarizeByCollectorAndDateRange', () => {
+  it('cuenta las visitas y suma los pagos sin reversión del rango, en la base de datos', async () => {
+    const count = vi.fn(() => Promise.resolve(3));
+    const aggregate = vi.fn(() =>
+      Promise.resolve({ _sum: { amount: 45_000 } }),
+    );
+    const repository = new PrismaCollectionVisitRepository({
+      collectionVisit: { count },
+      payment: { aggregate },
+    } as unknown as PrismaService);
+
+    const summary = await repository.summarizeByCollectorAndDateRange(
+      'membership-1',
+      '2026-10-01',
+      '2026-10-01',
+    );
+
+    const inRange = {
+      collectorMembershipId: 'membership-1',
+      occurredAt: {
+        gte: new Date('2026-10-01T05:00:00.000Z'),
+        lt: new Date('2026-10-02T05:00:00.000Z'),
+      },
+    };
+    expect(summary).toEqual({ visitsCount: 3, collectedAmount: 45_000 });
+    expect(count).toHaveBeenCalledExactlyOnceWith({ where: inRange });
+    expect(aggregate).toHaveBeenCalledExactlyOnceWith({
+      _sum: { amount: true },
+      where: { visit: inRange, reversal: null },
+    });
+  });
+
+  it('sin pagos cobró cero', async () => {
+    const repository = new PrismaCollectionVisitRepository({
+      collectionVisit: { count: () => Promise.resolve(0) },
+      payment: { aggregate: () => Promise.resolve({ _sum: { amount: null } }) },
+    } as unknown as PrismaService);
+
+    expect(
+      await repository.summarizeByCollectorAndDateRange(
+        'm',
+        '2026-10-01',
+        '2026-10-02',
+      ),
+    ).toEqual({ visitsCount: 0, collectedAmount: 0 });
+  });
+});

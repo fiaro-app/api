@@ -3,7 +3,10 @@ import type {
   ListLoanBalancesUseCase,
   LoanBalanceSnapshot,
 } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
-import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
+import {
+  endOfBusinessDay,
+  LoanPortfolioSnapshotService,
+} from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 
@@ -96,18 +99,17 @@ describe('LoanPortfolioSnapshotService.asOf', () => {
     loan('created-after', '2026-10-01T12:00:00Z', null),
   ];
 
-  it('incluye solo los préstamos que ya existían y seguían abiertos ese día', async () => {
+  it('pide a la base solo los préstamos abiertos al cerrar ese día (hora de Colombia)', async () => {
     const { service, listLoans } = setup(LOANS);
 
-    const records = await service.asOf('lender-1', '2026-09-30');
+    await service.asOf('lender-1', '2026-09-30');
 
     expect(listLoans).toHaveBeenCalledWith(
-      expect.objectContaining({ status: undefined }),
+      expect.objectContaining({
+        status: undefined,
+        openAt: new Date('2026-10-01T05:00:00.000Z'),
+      }),
     );
-    expect(records.map((r) => r.clientId)).toEqual([
-      'client-open',
-      'client-closed-later',
-    ]);
   });
 
   it('calcula el saldo de esa fecha y resuelve el cobrador que tenía asignado entonces', async () => {
@@ -121,21 +123,6 @@ describe('LoanPortfolioSnapshotService.asOf', () => {
     );
     expect(before[0]?.collectorMembershipId).toBe('old');
     expect(after[0]?.collectorMembershipId).toBe('new');
-  });
-
-  it('un préstamo cerrado el mismo día ya no cuenta ese día', async () => {
-    const { service } = setup([
-      loan(
-        'closes-today',
-        '2026-08-01T12:00:00Z',
-        '2026-09-30T12:00:00Z',
-        'PAID_OFF',
-      ),
-    ]);
-
-    const records = await service.asOf('lender-1', '2026-09-30');
-
-    expect(records).toEqual([]);
   });
 
   it('un préstamo sin saldo calculado sale en cero y sin cobrador', async () => {
@@ -153,5 +140,16 @@ describe('LoanPortfolioSnapshotService.asOf', () => {
         collectorMembershipId: null,
       },
     ]);
+  });
+});
+
+describe('endOfBusinessDay', () => {
+  it('es la medianoche siguiente en Colombia (UTC-5), también a fin de mes y de año', () => {
+    expect(endOfBusinessDay('2026-09-30').toISOString()).toBe(
+      '2026-10-01T05:00:00.000Z',
+    );
+    expect(endOfBusinessDay('2026-12-31').toISOString()).toBe(
+      '2027-01-01T05:00:00.000Z',
+    );
   });
 });

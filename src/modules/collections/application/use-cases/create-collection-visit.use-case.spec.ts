@@ -43,6 +43,7 @@ function setup(
     listByLoan,
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange: vi.fn(),
+    summarizeByCollectorAndDateRange: vi.fn(),
   };
   const findActiveByCollectorAndDate = vi.fn(() =>
     Promise.resolve(assignedLoans),

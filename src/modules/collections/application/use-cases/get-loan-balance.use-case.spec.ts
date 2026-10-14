@@ -80,6 +80,7 @@ function setup(
     listByLoan,
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange: vi.fn(),
+    summarizeByCollectorAndDateRange: vi.fn(),
   };
   const getLoanExecute = vi.fn(() => Promise.resolve(loan));
   const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
@@ -167,6 +168,7 @@ describe('GetLoanBalanceUseCase', () => {
       listByLoan: vi.fn(() => Promise.resolve([])),
       listByCollectorAndPromisedDate: vi.fn(),
       listByCollectorAndDateRange: vi.fn(),
+      summarizeByCollectorAndDateRange: vi.fn(),
     };
     const clock: Clock = { now: () => NOW };
     const closedUseCase = new GetLoanBalanceUseCase(

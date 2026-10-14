@@ -13,6 +13,7 @@ function setup(found: readonly CollectionVisitRecord[]) {
     listByLoan,
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange: vi.fn(),
+    summarizeByCollectorAndDateRange: vi.fn(),
   };
   const getLoanExecute = vi.fn(() =>
     Promise.resolve({ id: 'loan-1' } as never),

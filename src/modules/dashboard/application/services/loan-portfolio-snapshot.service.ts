@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { toBusinessDate } from '@fiaro-app/contracts';
 import { ListLoanBalancesUseCase } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import { fetchAllPages } from '@/modules/dashboard/application/services/fetch-all-pages.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
+import { addDays } from '@/shared/domain/calendar/business-date.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 
 const PAGE_SIZE = 100;
@@ -49,7 +49,8 @@ export class LoanPortfolioSnapshotService {
 
   /**
    * Una fecha pasada: los préstamos que ya existían ese día y todavía no se habían cerrado, con
-   * el saldo y la mora que tenían entonces (D-111).
+   * el saldo y la mora que tenían entonces (D-111). El filtro va en la consulta (D-122): antes se
+   * traían todos los préstamos del prestamista y se descartaban en memoria.
    *
    * @param lenderId - El prestamista dueño.
    * @param asOf - La fecha pasada (`AAAA-MM-DD`), hora de Bogotá.
@@ -58,8 +59,10 @@ export class LoanPortfolioSnapshotService {
     lenderId: string,
     asOf: string,
   ): Promise<readonly LoanStatsRecord[]> {
-    const loans = (await this.fetchLoans(lenderId, undefined)).filter((loan) =>
-      wasOpenOn(loan, asOf),
+    const loans = await this.fetchLoans(
+      lenderId,
+      undefined,
+      endOfBusinessDay(asOf),
     );
     return this.toRecords(loans, lenderId, asOf, asOf);
   }
@@ -67,9 +70,16 @@ export class LoanPortfolioSnapshotService {
   private async fetchLoans(
     lenderId: string,
     status: 'ACTIVE' | undefined,
+    openAt?: Date,
   ): Promise<readonly LoanDetails[]> {
     return fetchAllPages<LoanDetails>(PAGE_SIZE, (page) =>
-      this.listLoans.execute({ lenderId, status, page, pageSize: PAGE_SIZE }),
+      this.listLoans.execute({
+        lenderId,
+        status,
+        openAt,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
     );
   }
 
@@ -100,13 +110,11 @@ export class LoanPortfolioSnapshotService {
 }
 
 /**
- * @param loan - El préstamo.
+ * El instante en que termina un día de calendario en Colombia (medianoche siguiente, UTC-5 todo
+ * el año): un préstamo «abierto ese día» se creó antes y no se cerró antes de este instante.
+ *
  * @param day - La fecha (`AAAA-MM-DD`).
- * @returns Si el préstamo ya se había dado de alta ese día y todavía no se había cerrado.
  */
-function wasOpenOn(loan: LoanDetails, day: string): boolean {
-  if (toBusinessDate(loan.createdAt) > day) {
-    return false;
-  }
-  return loan.closedAt === null || toBusinessDate(loan.closedAt) > day;
+export function endOfBusinessDay(day: string): Date {
+  return new Date(`${addDays(day, 1)}T05:00:00.000Z`);
 }
