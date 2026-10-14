@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ListCollectorPerformanceUseCase } from '@/modules/dashboard/application/use-cases/list-collector-performance.use-case.js';
 import type { ListTopArrearsUseCase } from '@/modules/dashboard/application/use-cases/list-top-arrears.use-case.js';
 import { LenderStatsListsController } from '@/modules/dashboard/infrastructure/controllers/lender-stats-lists.controller.js';
+import { PassthroughReadCache } from '@/shared/infrastructure/cache/passthrough-read-cache.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
 const scopeWith = (roles: string[]): LenderScope => ({
@@ -29,6 +30,7 @@ function setup() {
   const controller = new LenderStatsListsController(
     { execute: topArrears } as unknown as ListTopArrearsUseCase,
     { execute: performance } as unknown as ListCollectorPerformanceUseCase,
+    new PassthroughReadCache(),
   );
   return { controller, topArrears, performance };
 }

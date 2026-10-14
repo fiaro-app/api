@@ -86,6 +86,7 @@ describe('loadEnv', () => {
       logLevel: 'warn',
       databaseUrl: REQUIRED_ENV.DATABASE_URL,
       redisUrl: PRODUCTION_ENV.REDIS_URL,
+      cacheRedisUrl: PRODUCTION_ENV.REDIS_URL,
       mongoUri: PRODUCTION_ENV.MONGODB_URI,
       queuePrefix: 'fiaro-staging',
       auth: {

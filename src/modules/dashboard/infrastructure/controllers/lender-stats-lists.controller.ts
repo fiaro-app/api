@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Inject,
   QueryMethod,
   UseGuards,
 } from '@nestjs/common';
@@ -24,6 +25,10 @@ import {
   type TopArrearsPageResponseSchema,
 } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-lists.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import type { ReadCache } from '@/shared/application/ports/read-cache.port.js';
+import { READ_CACHE } from '@/shared/application/ports/read-cache.token.js';
+import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
+import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
@@ -43,6 +48,7 @@ export class LenderStatsListsController {
   constructor(
     private readonly listTopArrearsUseCase: ListTopArrearsUseCase,
     private readonly listCollectorPerformanceUseCase: ListCollectorPerformanceUseCase,
+    @Inject(READ_CACHE) private readonly cache: ReadCache,
   ) {}
 
   /**
@@ -58,12 +64,18 @@ export class LenderStatsListsController {
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof TopArrearsPageResponseSchema>> {
     assertViewer(scope);
-    return toStatsPageResponse(
-      await this.listTopArrearsUseCase.execute({
-        lenderId: scope.lenderId,
-        ...query,
-      }),
-      query,
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('stats-top-arrears', query),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toStatsPageResponse(
+          await this.listTopArrearsUseCase.execute({
+            lenderId: scope.lenderId,
+            ...query,
+          }),
+          query,
+        ),
     );
   }
 
@@ -80,16 +92,22 @@ export class LenderStatsListsController {
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof CollectorPerformancePageResponseSchema>> {
     assertViewer(scope);
-    return toStatsPageResponse(
-      await this.listCollectorPerformanceUseCase.execute({
-        lenderId: scope.lenderId,
-        from: query.dateRange?.from,
-        to: query.dateRange?.to,
-        portfolioId: query.portfolioId,
-        page: query.page,
-        pageSize: query.pageSize,
-      }),
-      query,
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('stats-collector-performance', query),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toStatsPageResponse(
+          await this.listCollectorPerformanceUseCase.execute({
+            lenderId: scope.lenderId,
+            from: query.dateRange?.from,
+            to: query.dateRange?.to,
+            portfolioId: query.portfolioId,
+            page: query.page,
+            pageSize: query.pageSize,
+          }),
+          query,
+        ),
     );
   }
 }

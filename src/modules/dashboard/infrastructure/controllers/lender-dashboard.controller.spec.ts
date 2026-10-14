@@ -9,6 +9,7 @@ import type { LenderStatsExport } from '@/modules/dashboard/application/dtos/len
 import type { GetLenderStatsExportUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats-export.use-case.js';
 import type { GetLenderStatsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats.use-case.js';
 import { LenderDashboardController } from '@/modules/dashboard/infrastructure/controllers/lender-dashboard.controller.js';
+import { PassthroughReadCache } from '@/shared/infrastructure/cache/passthrough-read-cache.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
 const DASHBOARD: LenderDashboard = {
@@ -75,6 +76,7 @@ function setup() {
     getLenderDashboardUseCase as unknown as GetLenderDashboardUseCase,
     getLenderStatsUseCase as unknown as GetLenderStatsUseCase,
     getLenderStatsExportUseCase as unknown as GetLenderStatsExportUseCase,
+    new PassthroughReadCache(),
   );
   return {
     controller,

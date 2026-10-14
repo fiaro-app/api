@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Inject,
   QueryMethod,
   UseGuards,
 } from '@nestjs/common';
@@ -25,6 +26,10 @@ import {
   type LoanListResponseSchema,
 } from '@/modules/collections/infrastructure/controllers/schemas/loan-list-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import type { ReadCache } from '@/shared/application/ports/read-cache.port.js';
+import { READ_CACHE } from '@/shared/application/ports/read-cache.token.js';
+import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
+import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
@@ -47,6 +52,7 @@ export class PortfolioListController {
   constructor(
     private readonly listLoansWithBalanceUseCase: ListLoansWithBalanceUseCase,
     private readonly listClientsWithBalanceUseCase: ListClientsWithBalanceUseCase,
+    @Inject(READ_CACHE) private readonly cache: ReadCache,
   ) {}
 
   /**
@@ -62,11 +68,19 @@ export class PortfolioListController {
     query: z.output<typeof ListLoansWithBalanceRequestSchema>,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof LoanListResponseSchema>> {
-    const page = await this.listLoansWithBalanceUseCase.execute({
-      lenderId: scope.lenderId,
-      ...query,
-    });
-    return toLoanListResponse(page, query);
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('loans', query),
+      CACHE_TTL_SECONDS.lists,
+      async () =>
+        toLoanListResponse(
+          await this.listLoansWithBalanceUseCase.execute({
+            lenderId: scope.lenderId,
+            ...query,
+          }),
+          query,
+        ),
+    );
   }
 
   /**
@@ -82,10 +96,18 @@ export class PortfolioListController {
     query: z.output<typeof ListClientsWithBalanceRequestSchema>,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof ClientListResponseSchema>> {
-    const page = await this.listClientsWithBalanceUseCase.execute({
-      lenderId: scope.lenderId,
-      ...query,
-    });
-    return toClientListResponse(page, query);
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('clients', query),
+      CACHE_TTL_SECONDS.lists,
+      async () =>
+        toClientListResponse(
+          await this.listClientsWithBalanceUseCase.execute({
+            lenderId: scope.lenderId,
+            ...query,
+          }),
+          query,
+        ),
+    );
   }
 }
