@@ -61,6 +61,7 @@ function setup(
     listByLoan: vi.fn(() => Promise.resolve(records)),
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange: vi.fn(),
+    summarizeByCollectorAndDateRange: vi.fn(),
   };
   const getLoanExecute = vi.fn(() => Promise.resolve(loan));
   const getLenderExecute = vi.fn(() => Promise.resolve(LENDER));
