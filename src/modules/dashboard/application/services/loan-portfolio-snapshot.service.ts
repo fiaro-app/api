@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { toBusinessDate } from '@fiaro-app/contracts';
-import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
-import { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
+import { ListLoanBalancesUseCase } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import { fetchAllPages } from '@/modules/dashboard/application/services/fetch-all-pages.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
@@ -22,13 +21,16 @@ export interface LoanStatsRecord {
  * La cartera de préstamos de un prestamista en una fecha: cada préstamo con su saldo, su mora y el
  * cobrador que lo tenía asignado ese día. La comparten las estadísticas de hoy y las del período
  * anterior (D-111), para que ambas midan exactamente lo mismo.
+ *
+ * @remarks
+ * Los saldos y cobradores salen en tandas (`ListLoanBalancesUseCase`, D-119), no préstamo por
+ * préstamo: con unos miles de préstamos eran miles de consultas por pantalla.
  */
 @Injectable()
 export class LoanPortfolioSnapshotService {
   constructor(
     private readonly listLoans: ListLoansUseCase,
-    private readonly getLoanBalance: GetLoanBalanceUseCase,
-    private readonly listCollectionAssignments: ListCollectionAssignmentsUseCase,
+    private readonly listLoanBalances: ListLoanBalancesUseCase,
   ) {}
 
   /**
@@ -42,9 +44,7 @@ export class LoanPortfolioSnapshotService {
     today: string,
   ): Promise<readonly LoanStatsRecord[]> {
     const loans = await this.fetchLoans(lenderId, 'ACTIVE');
-    return Promise.all(
-      loans.map((loan) => this.toRecord(loan, lenderId, today, undefined)),
-    );
+    return this.toRecords(loans, lenderId, today, undefined);
   }
 
   /**
@@ -61,9 +61,7 @@ export class LoanPortfolioSnapshotService {
     const loans = (await this.fetchLoans(lenderId, undefined)).filter((loan) =>
       wasOpenOn(loan, asOf),
     );
-    return Promise.all(
-      loans.map((loan) => this.toRecord(loan, lenderId, asOf, asOf)),
-    );
+    return this.toRecords(loans, lenderId, asOf, asOf);
   }
 
   private async fetchLoans(
@@ -75,28 +73,29 @@ export class LoanPortfolioSnapshotService {
     );
   }
 
-  private async toRecord(
-    loan: LoanDetails,
+  /** Saldo, mora y cobrador del día de todos los préstamos, en tandas. */
+  private async toRecords(
+    loans: readonly LoanDetails[],
     lenderId: string,
     day: string,
     balanceAsOf: string | undefined,
-  ): Promise<LoanStatsRecord> {
-    const [balance, assignments] = await Promise.all([
-      this.getLoanBalance.execute(loan.id, lenderId, balanceAsOf),
-      this.listCollectionAssignments.execute(loan.id, lenderId),
-    ]);
-    const current = assignments.find(
-      (assignment) =>
-        assignment.effectiveFrom <= day &&
-        (assignment.effectiveTo === null || assignment.effectiveTo >= day),
-    );
-    return {
-      clientId: loan.clientId,
-      balance: balance.balance,
-      overdueAmount: balance.overdueAmount,
-      overdueDays: balance.overdueDays,
-      collectorMembershipId: current?.collectorMembershipId ?? null,
-    };
+  ): Promise<readonly LoanStatsRecord[]> {
+    const balances = await this.listLoanBalances.execute({
+      lenderId,
+      loans,
+      day,
+      asOf: balanceAsOf,
+    });
+    return loans.map((loan) => {
+      const balance = balances.get(loan.id);
+      return {
+        clientId: loan.clientId,
+        balance: balance?.balance ?? 0,
+        overdueAmount: balance?.overdueAmount ?? 0,
+        overdueDays: balance?.overdueDays ?? 0,
+        collectorMembershipId: balance?.collectorMembershipId ?? null,
+      };
+    });
   }
 }
 

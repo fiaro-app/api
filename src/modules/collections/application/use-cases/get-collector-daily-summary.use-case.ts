@@ -12,7 +12,8 @@ import type { CollectionVisitRepository } from '@/modules/collections/domain/rep
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
-import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
+import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
+import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import { computeExpectedAmountInRange } from '@/shared/domain/calendar/period-expected.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
@@ -37,7 +38,7 @@ export class GetCollectorDailySummaryUseCase {
     private readonly assignments: CollectionAssignmentRepository,
     @Inject(COLLECTION_VISIT_REPOSITORY)
     private readonly visits: CollectionVisitRepository,
-    private readonly getLoan: GetLoanUseCase,
+    private readonly listLoans: ListLoansUseCase,
     private readonly getLender: GetLenderUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -60,23 +61,20 @@ export class GetCollectorDailySummaryUseCase {
       this.getLender.execute(input.lenderId),
     ]);
 
-    const loans = await Promise.all(
-      assigned.map((assignment) =>
-        this.getLoan.execute(assignment.loanId, input.lenderId),
-      ),
+    const loans = await this.activeLoans(
+      assigned.map((assignment) => assignment.loanId),
+      input.lenderId,
     );
-    const expectedAmount = loans
-      .filter((loan) => loan.status === 'ACTIVE')
-      .reduce(
-        (sum, loan) =>
-          sum +
-          computeExpectedAmountInRange(
-            toLoanScheduleInput(loan, lender),
-            date,
-            date,
-          ),
-        0,
-      );
+    const expectedAmount = loans.reduce(
+      (sum, loan) =>
+        sum +
+        computeExpectedAmountInRange(
+          toLoanScheduleInput(loan, lender),
+          date,
+          date,
+        ),
+      0,
+    );
 
     const collectedByMethod = sumNetPaymentsByMethod(records);
     return {
@@ -89,5 +87,28 @@ export class GetCollectorDailySummaryUseCase {
       collectedByMethod,
       visits: records.map(toCollectionVisitDetails),
     };
+  }
+
+  /**
+   * Los préstamos activos entre los asignados, en una sola consulta.
+   *
+   * @param loanIds - Los préstamos asignados ese día.
+   * @param lenderId - El prestamista dueño.
+   */
+  private async activeLoans(
+    loanIds: readonly string[],
+    lenderId: string,
+  ): Promise<readonly LoanDetails[]> {
+    if (loanIds.length === 0) {
+      return [];
+    }
+    const page = await this.listLoans.execute({
+      lenderId,
+      ids: loanIds,
+      status: 'ACTIVE',
+      page: 1,
+      pageSize: loanIds.length,
+    });
+    return page.items;
   }
 }

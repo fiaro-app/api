@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { LoanBalanceDetails } from '@/modules/collections/application/dtos/loan-balance.dto.js';
-import type { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
-import type { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
+import type {
+  ListLoanBalancesUseCase,
+  LoanBalanceSnapshot,
+} from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
@@ -24,44 +25,32 @@ function setup(loans: readonly LoanDetails[]) {
   const listLoans = vi.fn(() =>
     Promise.resolve({ items: loans, total: loans.length }),
   );
-  const getLoanBalance = vi.fn<
-    (
-      loanId: string,
-      lenderId: string,
-      asOf?: string,
-    ) => Promise<LoanBalanceDetails>
-  >((loanId) =>
-    Promise.resolve({
-      balance: 100_000,
-      overdueAmount: loanId === 'late' ? 10_000 : 0,
-      overdueDays: loanId === 'late' ? 4 : 0,
-    } as LoanBalanceDetails),
-  );
-  const listAssignments = vi.fn(() =>
-    Promise.resolve([
-      {
-        collectorMembershipId: 'old',
-        effectiveFrom: '2026-01-01',
-        effectiveTo: '2026-09-15',
-      },
-      {
-        collectorMembershipId: 'new',
-        effectiveFrom: '2026-09-16',
-        effectiveTo: null,
-      },
-    ]),
+  const listLoanBalances = vi.fn(
+    (input: { loans: readonly LoanDetails[]; day: string; asOf?: string }) =>
+      Promise.resolve(
+        new Map<string, LoanBalanceSnapshot>(
+          input.loans.map((item) => [
+            item.id,
+            {
+              balance: 100_000,
+              overdueAmount: item.id === 'late' ? 10_000 : 0,
+              overdueDays: item.id === 'late' ? 4 : 0,
+              collectorMembershipId: input.day < '2026-09-16' ? 'old' : 'new',
+            } as LoanBalanceSnapshot,
+          ]),
+        ),
+      ),
   );
   const service = new LoanPortfolioSnapshotService(
     { execute: listLoans } as unknown as ListLoansUseCase,
-    { execute: getLoanBalance } as unknown as GetLoanBalanceUseCase,
-    { execute: listAssignments } as unknown as ListCollectionAssignmentsUseCase,
+    { execute: listLoanBalances } as unknown as ListLoanBalancesUseCase,
   );
-  return { service, listLoans, getLoanBalance };
+  return { service, listLoans, listLoanBalances };
 }
 
 describe('LoanPortfolioSnapshotService.current', () => {
   it('pide solo los préstamos ACTIVE y su saldo de hoy, y resuelve el cobrador de hoy', async () => {
-    const { service, listLoans, getLoanBalance } = setup([
+    const { service, listLoans, listLoanBalances } = setup([
       loan('late', '2026-08-01T12:00:00Z', null),
     ]);
 
@@ -70,10 +59,12 @@ describe('LoanPortfolioSnapshotService.current', () => {
     expect(listLoans).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'ACTIVE' }),
     );
-    expect(getLoanBalance).toHaveBeenCalledExactlyOnceWith(
-      'late',
-      'lender-1',
-      undefined,
+    expect(listLoanBalances).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        lenderId: 'lender-1',
+        day: '2026-10-09',
+        asOf: undefined,
+      }),
     );
     expect(records).toEqual([
       {
@@ -120,15 +111,13 @@ describe('LoanPortfolioSnapshotService.asOf', () => {
   });
 
   it('calcula el saldo de esa fecha y resuelve el cobrador que tenía asignado entonces', async () => {
-    const { service, getLoanBalance } = setup(LOANS);
+    const { service, listLoanBalances } = setup(LOANS);
 
     const before = await service.asOf('lender-1', '2026-09-10');
     const after = await service.asOf('lender-1', '2026-09-30');
 
-    expect(getLoanBalance).toHaveBeenCalledWith(
-      'open',
-      'lender-1',
-      '2026-09-30',
+    expect(listLoanBalances).toHaveBeenCalledWith(
+      expect.objectContaining({ day: '2026-09-30', asOf: '2026-09-30' }),
     );
     expect(before[0]?.collectorMembershipId).toBe('old');
     expect(after[0]?.collectorMembershipId).toBe('new');
@@ -147,5 +136,22 @@ describe('LoanPortfolioSnapshotService.asOf', () => {
     const records = await service.asOf('lender-1', '2026-09-30');
 
     expect(records).toEqual([]);
+  });
+
+  it('un préstamo sin saldo calculado sale en cero y sin cobrador', async () => {
+    const { service, listLoanBalances } = setup([
+      loan('open', '2026-08-01T12:00:00Z', null),
+    ]);
+    listLoanBalances.mockResolvedValueOnce(new Map());
+
+    expect(await service.current('lender-1', '2026-10-09')).toEqual([
+      {
+        clientId: 'client-open',
+        balance: 0,
+        overdueAmount: 0,
+        overdueDays: 0,
+        collectorMembershipId: null,
+      },
+    ]);
   });
 });

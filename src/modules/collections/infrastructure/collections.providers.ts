@@ -8,6 +8,7 @@ import { GetCollectorRouteUseCase } from '@/modules/collections/application/use-
 import { GetCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-collector-stats.use-case.js';
 import { GetManagedCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-managed-collector-stats.use-case.js';
 import { ListClientsWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-clients-with-balance.use-case.js';
+import { ListLoanBalancesUseCase } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import { ListLoansWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-loans-with-balance.use-case.js';
 import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
 import { GetLoanInstallmentsUseCase } from '@/modules/collections/application/use-cases/get-loan-installments.use-case.js';
@@ -65,6 +66,7 @@ export const collectionsProviders: Provider[] = [
   GetManagedCollectorStatsUseCase,
   ListLoansWithBalanceUseCase,
   ListClientsWithBalanceUseCase,
+  ListLoanBalancesUseCase,
 ];
 
 /**
@@ -74,10 +76,12 @@ export const collectionsProviders: Provider[] = [
  * estadísticas de período, que reusan las estadísticas del Lender (D-100) para el desempeño por
  * cobrador; y el historial de asignaciones de un préstamo, que esas mismas estadísticas del
  * Lender reusan para saber a qué cobrador (y a qué cartera, a través de él) tiene asignado hoy —
- * ninguna repite esa composición.
+ * ninguna repite esa composición. `ListLoanBalancesUseCase` da esos saldos y cobradores en tandas
+ * para la foto de la cartera de las estadísticas (D-119).
  */
 export const collectionsExports = [
   GetLoanBalanceUseCase,
+  ListLoanBalancesUseCase,
   GetCollectorDailySummaryUseCase,
   GetCollectorStatsUseCase,
   ListCollectionAssignmentsUseCase,

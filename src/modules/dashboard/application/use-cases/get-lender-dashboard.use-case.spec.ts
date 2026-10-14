@@ -10,6 +10,9 @@ import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/lis
 import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import type { SettlementDetails } from '@/modules/settlements/application/dtos/settlement-details.dto.js';
 import type { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
+import { batchedBalances } from '@/modules/dashboard/application/use-cases/__fixtures__/batched-balances.js';
+import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
+import type { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
 const NOW = new Date('2026-10-07T15:00:00Z');
@@ -150,8 +153,12 @@ function setup(options: {
     listMemberships,
     getCollectorDailySummary,
     getCollectorStats,
-    listLoans,
-    getLoanBalance,
+    new LoanPortfolioSnapshotService(
+      listLoans,
+      batchedBalances(getLoanBalance, {
+        execute: () => Promise.resolve([]),
+      } as unknown as ListCollectionAssignmentsUseCase),
+    ),
     listSettlements,
     clock,
   );
