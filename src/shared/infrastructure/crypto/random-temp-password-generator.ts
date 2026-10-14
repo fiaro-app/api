@@ -8,7 +8,7 @@ import type { TempPasswordGenerator } from '@/shared/application/ports/temp-pass
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 
 /** Caracteres de la contraseña temporal: de sobra para no caer en la lista de comunes ni en un patrón (D-65). */
-const TEMP_PASSWORD_LENGTH = 12;
+const TEMP_PASSWORD_LENGTH = 16;
 
 /** Genera contraseñas temporales al azar, con mezcla de mayúsculas, minúsculas y dígitos. */
 export class RandomTempPasswordGenerator implements TempPasswordGenerator {

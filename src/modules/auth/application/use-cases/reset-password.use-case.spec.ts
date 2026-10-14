@@ -171,7 +171,7 @@ describe('ResetPasswordUseCase.execute', () => {
     const { useCase, updatePassword } = setup();
 
     await expect(
-      useCase.execute({ ...VALID, newPassword: '12345678' }),
+      useCase.execute({ ...VALID, newPassword: 'tequieromucho123' }),
     ).rejects.toBeInstanceOf(WeakPasswordError);
     expect(updatePassword).not.toHaveBeenCalled();
   });

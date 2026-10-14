@@ -90,12 +90,25 @@ repetirla sola, 4,5 / 4,6 ms. Esta ruta no cambió en D-119.
 - **Estampida:** sin `single-flight`, 20 lecturas iguales con la caché vacía calculaban 20 veces
   (p95 2,4 s en A); compartiendo el cálculo, 127 ms.
 
+## D-122: estadísticas de períodos largos
+
+Dos causas de los ~650 ms de «estadísticas del año + período anterior» en B, ya resueltas:
+
+- **Desempeño por cobrador:** cada cobrador traía a memoria todas sus visitas del período con sus
+  pagos (en B, ~40.000 por año) solo para contarlas y sumarlas. Ahora la base de datos devuelve el
+  conteo y la suma (`summarizeByCollectorAndDateRange`): año sin período anterior 430 → 95 ms.
+- **Período anterior:** traía los 5.954 préstamos y descartaba en memoria los que no estaban
+  abiertos ese día. Ahora la consulta filtra por `createdAt` y `closedAt` (`openAt`).
+
+| Lectura (B, sin caché) | Optimizado (D-119) | D-122 |
+| --- | ---: | ---: |
+| Estadísticas del año + período anterior | 650 / 692 | **171 / 187** |
+| Estadísticas del mes | 93 / 109 | 93 / 135 |
+| Desempeño por cobrador, página | 58 / 67 | 52 / 59 |
+| 20 estadísticas a la vez | 4.214 / 4.523 | **2.985 / 3.546** |
+
 ## Qué queda por mirar
 
-- **Estadísticas del año con período anterior sin caché** siguen en ~650 ms en B: la foto del
-  período anterior trae todos los préstamos del prestamista (5.954) y descarta en memoria los que no
-  estaban abiertos ese día. Filtrar por fecha en la consulta (`createdAt ≤ día` y
-  `closedAt > día`) la acotaría.
-- **El cálculo ocupa el hilo de Node:** con caché vacía, 20 estadísticas a la vez en B tardan 4,2 s
-  sin errores. Si un negocio llega a ese tamaño, precalcular la foto diaria (job nocturno) es el
-  siguiente paso, no más caché.
+- **El cálculo ocupa el hilo de Node:** con caché vacía, 20 estadísticas a la vez en B tardan ~3 s
+  sin errores (con caché, 9 ms). Si un negocio llega a ese tamaño, precalcular la foto diaria (job
+  nocturno) es el siguiente paso, no más caché.

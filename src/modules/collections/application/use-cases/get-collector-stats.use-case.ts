@@ -4,7 +4,6 @@ import type {
   CollectorPeriodStats,
   GetCollectorStatsInput,
 } from '@/modules/collections/application/dtos/collector-period-stats.dto.js';
-import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import { toLoanScheduleInput } from '@/modules/collections/application/services/to-loan-schedule-input.js';
 import { ListLoanBalancesUseCase } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
@@ -50,12 +49,12 @@ export class GetCollectorStatsUseCase {
     const from = input.from ?? startOfBusinessMonth(today);
     const to = input.to ?? today;
 
-    const [assigned, records, lender] = await Promise.all([
+    const [assigned, summary, lender] = await Promise.all([
       this.assignments.findActiveByCollectorAndDate(
         input.collectorMembershipId,
         today,
       ),
-      this.visits.listByCollectorAndDateRange(
+      this.visits.summarizeByCollectorAndDateRange(
         input.collectorMembershipId,
         from,
         to,
@@ -78,7 +77,7 @@ export class GetCollectorStatsUseCase {
         ),
       0,
     );
-    const collectedAmount = sumNetPayments(records);
+    const { collectedAmount } = summary;
     const overdueAmount = await this.sumOverdueAmount(
       activeLoans,
       input.lenderId,
@@ -92,7 +91,7 @@ export class GetCollectorStatsUseCase {
       collectedAmount,
       effectiveness:
         expectedAmount === 0 ? null : collectedAmount / expectedAmount,
-      visitsCount: records.length,
+      visitsCount: summary.visitsCount,
       overdueAmount,
     };
   }

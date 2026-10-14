@@ -21,7 +21,7 @@ function setup() {
   const hash = vi.fn(() => Promise.resolve('hash-de-la-temporal'));
   const passwordHasher: PasswordHasher = { hash, verify: vi.fn() };
   const tempPasswords: TempPasswordGenerator = {
-    next: vi.fn(() => 'TempAbc23456'),
+    next: vi.fn(() => 'TempAbc23456Wxyz'),
   };
   const revokeAllForUser = vi.fn(() => Promise.resolve(1));
   const sessions: SessionRepository = {
@@ -49,8 +49,8 @@ describe('AdminResetPasswordUseCase', () => {
 
     const tempPassword = await useCase.execute('user-1');
 
-    expect(tempPassword).toBe('TempAbc23456');
-    expect(hash).toHaveBeenCalledExactlyOnceWith('TempAbc23456');
+    expect(tempPassword).toBe('TempAbc23456Wxyz');
+    expect(hash).toHaveBeenCalledExactlyOnceWith('TempAbc23456Wxyz');
     expect(resetToTemporaryPassword).toHaveBeenCalledExactlyOnceWith(
       'user-1',
       'hash-de-la-temporal',

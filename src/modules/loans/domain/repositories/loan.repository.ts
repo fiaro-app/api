@@ -15,6 +15,11 @@ export interface ListLoansCriteria {
   readonly status?: LoanStatus;
   /** Solo estos préstamos (por ejemplo, los que un cobrador tiene asignados hoy); ausente para no acotar. */
   readonly ids?: readonly string[];
+  /**
+   * Solo los que estaban abiertos justo antes de este instante: creados antes y sin cerrar o
+   * cerrados desde entonces. Lo usan las estadísticas del período anterior (D-122).
+   */
+  readonly openAt?: Date;
 }
 
 /** Una página de {@link LoanRepository.list}. */

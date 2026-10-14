@@ -76,6 +76,7 @@ function setup(
     listByLoan: vi.fn(),
     listByCollectorAndPromisedDate,
     listByCollectorAndDateRange: vi.fn(),
+    summarizeByCollectorAndDateRange: vi.fn(),
   };
   const loans = options.loans ?? {};
   const getLoanExecute = vi.fn((loanId: string) => {

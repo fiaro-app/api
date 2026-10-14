@@ -42,13 +42,13 @@ describe('assertPasswordAllowed', () => {
     expect(error).toMatchObject({
       code: 'INVALID_PASSWORD_LENGTH',
       kind: 'INVALID',
-      params: { minLength: 8, maxLength: 128 },
-      message: 'La contraseña debe tener entre 8 y 128 caracteres.',
+      params: { minLength: 15, maxLength: 128 },
+      message: 'La contraseña debe tener entre 15 y 128 caracteres.',
     });
   });
 
-  it('el mínimo es de 8, como en el prototipo', () => {
-    expect(PASSWORD_MIN_LENGTH).toBe(8);
+  it('el mínimo es de 15, lo que pide NIST SP 800-63B-4 con un solo factor', () => {
+    expect(PASSWORD_MIN_LENGTH).toBe(15);
   });
 });
 

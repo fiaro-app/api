@@ -110,6 +110,28 @@ describe('PrismaLoanRepository.findById', () => {
 });
 
 describe('PrismaLoanRepository.list', () => {
+  it('con openAt trae los creados antes y no cerrados antes de ese instante', async () => {
+    const { repository, findMany } = setup();
+    const openAt = new Date('2026-10-01T05:00:00.000Z');
+
+    await repository.list({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 10,
+      openAt,
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          lenderId: 'lender-1',
+          createdAt: { lt: openAt },
+          OR: [{ closedAt: null }, { closedAt: { gte: openAt } }],
+        },
+      }),
+    );
+  });
+
   it('acota a los ids pedidos cuando llegan', async () => {
     const { repository, findMany } = setup();
 

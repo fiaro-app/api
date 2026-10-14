@@ -41,6 +41,12 @@ export class PrismaLoanRepository implements LoanRepository {
       ...(criteria.clientId ? { clientId: criteria.clientId } : {}),
       ...(criteria.status ? { status: criteria.status } : {}),
       ...(criteria.ids ? { id: { in: [...criteria.ids] } } : {}),
+      ...(criteria.openAt
+        ? {
+            createdAt: { lt: criteria.openAt },
+            OR: [{ closedAt: null }, { closedAt: { gte: criteria.openAt } }],
+          }
+        : {}),
     };
 
     const [rows, total] = await this.prisma.$transaction([
