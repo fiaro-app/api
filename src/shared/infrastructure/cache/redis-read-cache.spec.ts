@@ -2,6 +2,7 @@ import type { Redis } from 'ioredis';
 import { describe, expect, it, vi } from 'vitest';
 import { PassthroughReadCache } from '@/shared/infrastructure/cache/passthrough-read-cache.js';
 import {
+  INVALIDATION_RETRY_MS,
   MAX_ENTRY_BYTES,
   RedisReadCache,
 } from '@/shared/infrastructure/cache/redis-read-cache.js';
@@ -12,6 +13,13 @@ function fakeRedis() {
   const ttls = new Map<string, number>();
   const redis = {
     get: vi.fn((key: string) => Promise.resolve(store.get(key) ?? null)),
+    mget: vi.fn((...keys: string[]) =>
+      Promise.resolve(keys.map((key) => store.get(key) ?? null)),
+    ),
+    incr: vi.fn((key: string) => {
+      store.set(key, String(Number(store.get(key) ?? '0') + 1));
+      return Promise.resolve(Number(store.get(key)));
+    }),
     set: vi.fn((key: string, value: string, _ex: string, ttl: number) => {
       store.set(key, value);
       ttls.set(key, ttl);
@@ -64,7 +72,7 @@ describe('RedisReadCache', () => {
       total: 3,
     });
     await vi.waitFor(() => {
-      expect(ttls.get('fiaro:cache:lender-1:0:stats:a')).toBe(60);
+      expect(ttls.get('fiaro:cache:lender-1:0.0:stats:a')).toBe(60);
     });
     expect(await cache.getOrLoad('lender-1', 'stats:a', 60, load)).toEqual({
       total: 3,
@@ -140,7 +148,7 @@ describe('RedisReadCache', () => {
 
   it('con Redis caído calcula directo, avisa y no falla al invalidar ni al guardar', async () => {
     const { cache, redis, warn } = setup();
-    redis.get.mockRejectedValue(new Error('ECONNREFUSED'));
+    redis.mget.mockRejectedValue(new Error('ECONNREFUSED'));
     redis.multi.mockImplementation(() => {
       throw new Error('ECONNREFUSED');
     });
@@ -149,22 +157,27 @@ describe('RedisReadCache', () => {
       await cache.getOrLoad('lender-1', 'k', 60, () => Promise.resolve(7)),
     ).toBe(7);
     await expect(cache.invalidate('lender-1')).resolves.toBeUndefined();
-    expect(warn).toHaveBeenCalledTimes(2);
+    redis.incr.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(cache.invalidateAll()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(3);
 
-    redis.get.mockResolvedValue(null);
+    redis.mget.mockImplementation((...keys: string[]) =>
+      Promise.resolve(keys.map(() => null)),
+    );
+    redis.multi.mockImplementation(fakeRedis().redis.multi);
     redis.set.mockRejectedValueOnce(new Error('OOM'));
     expect(
-      await cache.getOrLoad('lender-1', 'k', 60, () => Promise.resolve(8)),
+      await cache.getOrLoad('lender-2', 'k', 60, () => Promise.resolve(8)),
     ).toBe(8);
     await vi.waitFor(() => {
-      expect(warn).toHaveBeenCalledTimes(3);
+      expect(warn).toHaveBeenCalledTimes(4);
     });
   });
 
   it('con Redis lento no espera más de lo debido', async () => {
     vi.useFakeTimers();
     const { cache, redis } = setup();
-    redis.get.mockImplementation(() => new Promise(() => undefined));
+    redis.mget.mockImplementation(() => new Promise(() => undefined));
 
     const result = cache.getOrLoad('lender-1', 'k', 60, () =>
       Promise.resolve('directo'),
@@ -173,6 +186,59 @@ describe('RedisReadCache', () => {
 
     expect(await result).toBe('directo');
     vi.useRealTimers();
+  });
+
+  it('invalidateAll descarta lo guardado de todos los prestamistas', async () => {
+    const { cache } = setup();
+    const load = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+
+    await cache.getOrLoad('lender-1', 'k', 60, load);
+    await cache.invalidateAll();
+
+    expect(await cache.getOrLoad('lender-1', 'k', 60, load)).toBe(2);
+  });
+
+  it('si invalidar falla, lee sin caché y reintenta hasta lograrlo', async () => {
+    vi.useFakeTimers();
+    const { cache, redis, store } = setup();
+    const load = vi.fn(() => Promise.resolve('viejo'));
+    await cache.getOrLoad('lender-1', 'k', 60, load);
+    const working = redis.multi.getMockImplementation();
+    redis.multi.mockImplementation(() => {
+      throw new Error('ECONNRESET');
+    });
+
+    await cache.invalidate('lender-1');
+    load.mockResolvedValue('nuevo');
+    expect(await cache.getOrLoad('lender-1', 'k', 60, load)).toBe('nuevo');
+    expect(store.get('fiaro:cache:lender-1:gen')).toBeUndefined();
+
+    await vi.advanceTimersByTimeAsync(INVALIDATION_RETRY_MS);
+    expect(store.get('fiaro:cache:lender-1:gen')).toBeUndefined();
+    redis.multi.mockImplementation(working ?? fakeRedis().redis.multi);
+    await vi.advanceTimersByTimeAsync(INVALIDATION_RETRY_MS);
+
+    expect(store.get('fiaro:cache:lender-1:gen')).toBe('1');
+    load.mockClear();
+    await cache.getOrLoad('lender-1', 'k', 60, load);
+    await cache.getOrLoad('lender-1', 'k', 60, load);
+    expect(load).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it('cierra la conexión al apagar y deja de reintentar', async () => {
+    const { cache, redis } = setup();
+    redis.multi.mockImplementation(() => {
+      throw new Error('ECONNRESET');
+    });
+    await cache.invalidate('lender-1');
+
+    cache.onModuleDestroy();
+
+    expect(redis.disconnect).toHaveBeenCalledOnce();
   });
 
   it('cierra la conexión al apagar', () => {
@@ -190,6 +256,7 @@ describe('PassthroughReadCache', () => {
     await cache.getOrLoad('l', 'k', 60, load);
     await cache.getOrLoad('l', 'k', 60, load);
     await cache.invalidate();
+    await cache.invalidateAll();
 
     expect(load).toHaveBeenCalledTimes(2);
   });
