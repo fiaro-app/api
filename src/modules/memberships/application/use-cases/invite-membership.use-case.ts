@@ -76,7 +76,7 @@ export class InviteMembershipUseCase {
    * aplica, su cartera.
    * @returns La membresía creada y, si la persona es nueva, su contraseña temporal.
    * @throws {@link InvalidMembershipDataError} Si los roles o la cartera no cumplen la regla, o
-   * si la persona es nueva, tiene el rol `COLLECTOR` y no trae cédula.
+   * si la persona es nueva, tiene el rol `COLLECTOR` y no trae cédula o correo.
    * @throws {@link InvalidMobilePhoneError} Si el celular no está en formato E.164.
    * @throws {@link InvalidUserDataError} Si el nombre, la cédula o el email no cumplen el
    * contrato (solo cuando la persona es nueva).
@@ -172,14 +172,8 @@ export class InviteMembershipUseCase {
     input: InviteMembershipInput,
     data: ValidMembershipData,
   ): Promise<InvitedMembership> {
-    if (data.roles.includes('COLLECTOR') && !input.nationalId) {
-      throw new InvalidMembershipDataError([
-        {
-          path: ['nationalId'],
-          message: 'La cédula es obligatoria para un cobrador nuevo.',
-          params: {},
-        },
-      ]);
+    if (data.roles.includes('COLLECTOR')) {
+      assertNewCollectorData(input);
     }
 
     const tempPassword = this.tempPasswords.next();
@@ -209,5 +203,38 @@ export class InviteMembershipUseCase {
       membership: toMembershipDetailsFromCreated(membership),
       tempPassword,
     };
+  }
+}
+
+/**
+ * Un cobrador nuevo necesita cédula y correo: el correo es por donde le llegan su contraseña
+ * temporal y los avisos de la app (D-94), así que no puede quedar sin él (D-120).
+ *
+ * @param input - Los datos del pedido.
+ * @throws {@link InvalidMembershipDataError} Con un issue por cada dato que falte.
+ */
+function assertNewCollectorData(input: InviteMembershipInput): void {
+  const issues = [
+    ...(input.nationalId
+      ? []
+      : [
+          {
+            path: ['nationalId'],
+            message: 'La cédula es obligatoria para un cobrador nuevo.',
+            params: {},
+          },
+        ]),
+    ...(input.contactEmail
+      ? []
+      : [
+          {
+            path: ['contactEmail'],
+            message: 'El correo es obligatorio para un cobrador nuevo.',
+            params: {},
+          },
+        ]),
+  ];
+  if (issues.length > 0) {
+    throw new InvalidMembershipDataError(issues);
   }
 }

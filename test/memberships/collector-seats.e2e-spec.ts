@@ -88,6 +88,7 @@ function invite(
     .set('Cookie', business.ownerCookie)
     .send({
       ...person,
+      contactEmail: `cobrador-${person.phone.slice(1)}@example.com`,
       fullName: 'Cobrador Concurrente',
       roles: ['COLLECTOR'],
       portfolioId,

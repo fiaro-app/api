@@ -15,6 +15,7 @@ body:
       "phone": "{{membershipsCollectorPhone}}",
       "fullName": "Luis Gómez (cobrador de prueba)",
       "nationalId": "{{membershipsCollectorNationalId}}",
+      "contactEmail": "cobrador-{{membershipsCollectorNationalId}}@example.com",
       "roles": ["COLLECTOR"],
       "portfolioId": "{{membershipsPortfolioId}}"
     }

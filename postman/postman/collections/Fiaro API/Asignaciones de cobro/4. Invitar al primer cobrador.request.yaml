@@ -15,6 +15,7 @@ body:
       "phone": "{{assignmentsCollector1Phone}}",
       "fullName": "Cobrador Uno (prueba de asignaciones)",
       "nationalId": "{{assignmentsCollector1NationalId}}",
+      "contactEmail": "cobrador-{{assignmentsCollector1NationalId}}@example.com",
       "roles": ["COLLECTOR"],
       "portfolioId": "{{assignmentsPortfolioId}}"
     }

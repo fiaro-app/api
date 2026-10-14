@@ -124,6 +124,7 @@ describe('InviteMembershipUseCase', () => {
       phone: '+573109998877',
       fullName: 'Luis Gómez',
       nationalId: '1030405060',
+      contactEmail: 'luis@example.com',
       roles: ['COLLECTOR'],
       portfolioId: 'portfolio-1',
     });
@@ -133,7 +134,7 @@ describe('InviteMembershipUseCase', () => {
       fullName: 'Luis Gómez',
       password: 'TempAbc23456',
       nationalId: '1030405060',
-      contactEmail: undefined,
+      contactEmail: 'luis@example.com',
       mustChangePassword: true,
     });
     expect(createMembershipExecute).toHaveBeenCalledExactlyOnceWith({
@@ -178,6 +179,26 @@ describe('InviteMembershipUseCase', () => {
     });
 
     expect(sent).toHaveLength(0);
+  });
+
+  it('rechaza una persona nueva con rol COLLECTOR sin correo, señalando el campo', async () => {
+    const { useCase, createUserExecute } = setup(null);
+
+    const error = await useCase
+      .execute({
+        lenderId: 'lender-1',
+        phone: '+573109998877',
+        fullName: 'Luis Gómez',
+        nationalId: '1030405060',
+        roles: ['COLLECTOR'],
+        portfolioId: 'portfolio-1',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(
+      (error as InvalidMembershipDataError).issues.map((issue) => issue.path),
+    ).toEqual([['contactEmail']]);
+    expect(createUserExecute).not.toHaveBeenCalled();
   });
 
   it('rechaza una persona nueva con rol COLLECTOR sin cédula', async () => {
