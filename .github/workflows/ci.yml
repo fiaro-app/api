@@ -1,11 +1,16 @@
 name: CI
 
+# Solo en PRs: correr otra vez al fusionar en dev repetía lo mismo y duplicaba los minutos. Un cambio
+# que solo toca documentación no corre el CI, y un push nuevo cancela la corrida anterior del mismo PR.
 on:
   pull_request:
     branches: [dev, main]
-  push:
-    branches: [dev]
+    paths-ignore: ['**/*.md', 'docs/**']
   workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -101,15 +106,25 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      # La documentación solo se publica como artefacto en los PRs de release a main.
       - name: Generate docs
+        if: github.base_ref == 'main'
         run: pnpm run docs
 
       - name: Upload docs artifact
+        if: github.base_ref == 'main'
         uses: actions/upload-artifact@v7
         with:
           name: docs
           path: docs
           retention-days: 14
+
+      # El scanner de Sonar descarga su JRE y sus analizadores en cada corrida (~300 MB): se guardan entre corridas.
+      - name: Cache Sonar
+        uses: actions/cache@v6
+        with:
+          path: ~/.sonar/cache
+          key: sonar-${{ runner.os }}
 
       # Requires the SONAR_TOKEN repo secret and Automatic Analysis disabled in Sonar
       # (Administration -> Analysis Method -> keep only CI-based Analysis).
@@ -118,7 +133,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  # La imagen de producción solo se construye y prueba en los PRs de release a main: las pruebas ya
+  # corren en `check`, y repetirlas dentro de contenedores costaba casi 10 minutos por PR.
   docker:
+    if: github.base_ref == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -170,8 +188,3 @@ jobs:
           done
           docker logs api
           exit 1
-
-      - name: Run tests in containers
-        run: docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml run --rm --build test
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
