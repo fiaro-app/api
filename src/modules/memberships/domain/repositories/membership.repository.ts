@@ -73,4 +73,39 @@ export interface MembershipRepository {
 
   /** @param criteria - Prestamista, paginación y los filtros opcionales de estado y rol. */
   list(criteria: ListMembershipsCriteria): Promise<MembershipsPage>;
+
+  /**
+   * La membresía, en cualquier estado, de alguien con esa cédula en este prestamista.
+   *
+   * @param lenderId - El prestamista.
+   * @param nationalId - La cédula ya normalizada.
+   */
+  findByLenderAndNationalId(
+    lenderId: string,
+    nationalId: string,
+  ): Promise<Membership | null>;
+
+  /**
+   * Cuántos cupos de cobrador ocupa el prestamista: membresías `ACTIVE` con `COLLECTOR` y sin
+   * `OWNER` (el dueño no ocupa cupo).
+   *
+   * @param lenderId - El prestamista.
+   */
+  countCollectorSeats(lenderId: string): Promise<number>;
+
+  /**
+   * Si la membresía tiene historial: asignaciones de cobro, visitas o cuadres (enviados o
+   * revisados).
+   *
+   * @param id - La membresía.
+   */
+  hasHistory(id: string): Promise<boolean>;
+
+  /**
+   * Borra la membresía. Solo se llama cuando {@link MembershipRepository.hasHistory} es `false`.
+   *
+   * @param id - La membresía.
+   * @param lenderId - El prestamista dueño.
+   */
+  delete(id: string, lenderId: string): Promise<void>;
 }

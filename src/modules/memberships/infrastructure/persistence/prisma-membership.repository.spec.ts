@@ -49,10 +49,31 @@ function setup() {
   const count = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve(0),
   );
+  const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
+  const remove = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve(),
+  );
   const repository = new PrismaMembershipRepository({
-    membership: { create, findFirst, findMany, update, count },
+    membership: {
+      create,
+      findFirst,
+      findMany,
+      update,
+      count,
+      findUnique,
+      delete: remove,
+    },
   } as unknown as PrismaService);
-  return { repository, create, findFirst, findMany, update, count };
+  return {
+    repository,
+    create,
+    findFirst,
+    findMany,
+    update,
+    count,
+    findUnique,
+    remove,
+  };
 }
 
 describe('PrismaMembershipRepository.create', () => {
@@ -199,6 +220,72 @@ describe('PrismaMembershipRepository.update', () => {
         createdAt: CREATED_AT,
         deactivatedAt: null,
       },
+    });
+  });
+});
+
+describe('PrismaMembershipRepository: reglas del alta y del borrado', () => {
+  it('busca la cédula entre las personas del mismo prestamista, en cualquier estado', async () => {
+    const { repository, findFirst } = setup();
+    findFirst.mockResolvedValueOnce(row);
+
+    const found = await repository.findByLenderAndNationalId(
+      'lender-1',
+      '1030405060',
+    );
+
+    expect(findFirst).toHaveBeenCalledExactlyOnceWith({
+      where: { lenderId: 'lender-1', user: { nationalId: '1030405060' } },
+    });
+    expect(found?.id).toBe('membership-1');
+    findFirst.mockResolvedValueOnce(null);
+    expect(
+      await repository.findByLenderAndNationalId('lender-1', '1'),
+    ).toBeNull();
+  });
+
+  it('cuenta los cupos de cobrador sin el dueño', async () => {
+    const { repository, count } = setup();
+    count.mockResolvedValueOnce(3);
+
+    expect(await repository.countCollectorSeats('lender-1')).toBe(3);
+    expect(count).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        lenderId: 'lender-1',
+        status: 'ACTIVE',
+        roles: { has: 'COLLECTOR' },
+        NOT: { roles: { has: 'OWNER' } },
+      },
+    });
+  });
+
+  it('tiene historial si cualquiera de sus relaciones tiene filas', async () => {
+    const { repository, findUnique } = setup();
+    const counts = (visits: number) => ({
+      _count: {
+        collectionAssignments: 0,
+        collectionVisits: visits,
+        settlementsSubmitted: 0,
+        settlementsReviewed: 0,
+      },
+    });
+    findUnique
+      .mockResolvedValueOnce(counts(2))
+      .mockResolvedValueOnce(counts(0))
+      .mockResolvedValueOnce(null);
+
+    expect(await repository.hasHistory('membership-1')).toBe(true);
+    expect(await repository.hasHistory('membership-1')).toBe(false);
+    expect(await repository.hasHistory('membership-1')).toBe(false);
+  });
+
+  it('borra por id y prestamista', async () => {
+    const { repository, remove } = setup();
+
+    await repository.delete('membership-1', 'lender-1');
+
+    expect(remove).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'membership-1', lenderId: 'lender-1' },
     });
   });
 });

@@ -2,9 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CreatedUser } from '@/modules/auth/application/dtos/create-user.dto.js';
 import type { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
 import type { GetUserByPhoneUseCase } from '@/modules/auth/application/use-cases/get-user-by-phone.use-case.js';
+import type { AdminResetPasswordUseCase } from '@/modules/auth/application/use-cases/admin-reset-password.use-case.js';
+import type { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import type { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
+import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
+import type { LenderLock } from '@/shared/application/ports/lender-lock.port.js';
 import type { EmailMessage } from '@/modules/notifications/domain/email-message.js';
 import type { EmailSender } from '@/modules/notifications/application/ports/email-sender.port.js';
 import type { TempPasswordGenerator } from '@/shared/application/ports/temp-password-generator.port.js';
@@ -64,10 +68,20 @@ function setup(foundUser: typeof EXISTING_USER | null) {
   const sent: EmailMessage[] = [];
   const emailSender: EmailSender = { send: (message) => sent.push(message) };
 
+  const memberships = {
+    findByLenderAndNationalId: () => Promise.resolve(null),
+    findActiveByUserId: () => Promise.resolve([]),
+  } as unknown as MembershipRepository;
+  const lock: LenderLock = { runExclusive: (_lenderId, work) => work() };
+
   const useCase = new InviteMembershipUseCase(
     getUserByPhone,
     createUser,
     createMembership,
+    { execute: vi.fn() } as unknown as AdminResetPasswordUseCase,
+    { assertAvailable: vi.fn() } as unknown as CollectorSeats,
+    memberships,
+    lock,
     tempPasswords,
     emailSender,
   );

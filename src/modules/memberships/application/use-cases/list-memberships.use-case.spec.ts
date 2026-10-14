@@ -32,6 +32,10 @@ function setup(
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
     countActiveByPortfolio: vi.fn(),
+    findByLenderAndNationalId: vi.fn(),
+    countCollectorSeats: vi.fn(),
+    hasHistory: vi.fn(),
+    delete: vi.fn(),
     update: vi.fn(),
     list,
   };

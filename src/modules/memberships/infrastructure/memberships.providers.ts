@@ -1,8 +1,13 @@
 import type { Provider } from '@nestjs/common';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { CountActiveMembershipsByPortfolioUseCase } from '@/modules/memberships/application/use-cases/count-active-memberships-by-portfolio.use-case.js';
+import { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
+import { DeleteMembershipUseCase } from '@/modules/memberships/application/use-cases/delete-membership.use-case.js';
+import { ReactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/reactivate-membership.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { COLLECTOR_SEAT_LIMIT } from '@/modules/memberships/application/ports/collector-seat-limit.token.js';
+import { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import { MembershipEntryAssembler } from '@/modules/memberships/application/services/membership-entry.assembler.js';
 import { GetMembershipEntryUseCase } from '@/modules/memberships/application/use-cases/get-membership-entry.use-case.js';
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
@@ -12,6 +17,7 @@ import { ListMembershipsUseCase } from '@/modules/memberships/application/use-ca
 import { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
+import { PrismaCollectorSeatLimit } from '@/modules/memberships/infrastructure/persistence/prisma-collector-seat-limit.js';
 import { PrismaMembershipRepository } from '@/modules/memberships/infrastructure/persistence/prisma-membership.repository.js';
 import { LENDER_SCOPE_RESOLVER } from '@/shared/application/ports/lender-scope-resolver.token.js';
 import { TEMP_PASSWORD_GENERATOR } from '@/shared/application/ports/temp-password-generator.token.js';
@@ -25,17 +31,22 @@ export const membershipsProviders: Provider[] = [
     useClass: MembershipLenderScopeResolver,
   },
   { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
+  { provide: COLLECTOR_SEAT_LIMIT, useClass: PrismaCollectorSeatLimit },
+  CollectorSeats,
   CreateMembershipUseCase,
   GetMembershipUseCase,
   MembershipEntryAssembler,
   GetMembershipEntryUseCase,
   InviteMembershipUseCase,
   DeactivateMembershipUseCase,
+  ReactivateMembershipUseCase,
+  DeleteMembershipUseCase,
   ChangeMembershipRolesUseCase,
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
   ResetMembershipPasswordUseCase,
   CountActiveMembershipsByPortfolioUseCase,
+  CountCollectorSeatsUseCase,
 ];
 
 /**
@@ -51,6 +62,7 @@ export const membershipsProviders: Provider[] = [
  * del resumen del Lender (D-99). `CountActiveMembershipsByPortfolioUseCase` lo usa `lenders`
  * para no dejar borrar una cartera con cobradores activos (D-109). `GetMembershipEntryUseCase` lo
  * usa `collections` para el nombre del cobrador de cada préstamo de la lista (D-113).
+ * `CountCollectorSeatsUseCase` lo usa `subscriptions` para el uso de cupos de cobrador.
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
@@ -59,6 +71,7 @@ export const membershipsExports = [
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
   CountActiveMembershipsByPortfolioUseCase,
+  CountCollectorSeatsUseCase,
   GetMembershipEntryUseCase,
   LENDER_SCOPE_RESOLVER,
 ];

@@ -19,6 +19,10 @@ function setup() {
     findActiveByUserId: vi.fn(() => Promise.resolve([])),
     findActiveByLenderAndRoles: vi.fn(() => Promise.resolve([])),
     countActiveByPortfolio: vi.fn(),
+    findByLenderAndNationalId: vi.fn(),
+    countCollectorSeats: vi.fn(),
+    hasHistory: vi.fn(),
+    delete: vi.fn(),
     list: vi.fn(),
     update: vi.fn(() => Promise.resolve()),
   };

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CountLendersByTenantUseCase } from '@/modules/lenders/application/use-cases/count-lenders-by-tenant.use-case.js';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
-import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
+import { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 import { SubscriptionNotFoundError } from '@/modules/subscriptions/domain/errors/subscription-not-found.error.js';
 import { computeSubscriptionState } from '@/modules/subscriptions/domain/policies/subscription-status.js';
@@ -16,7 +16,8 @@ import { CLOCK } from '@/shared/application/ports/clock.token.js';
  * pantalla de facturación y el aviso de solo lectura le sirven a todos.
  *
  * @remarks
- * Solo informa: no bloquea nada (D-115). El uso de cobradores es el del prestamista de la sesión,
+ * Informa; el límite de cobradores lo aplica `memberships` al invitar, reactivar o cambiar roles.
+ * El uso de cobradores no cuenta al dueño, igual que el límite. El uso de cobradores es el del prestamista de la sesión,
  * que mientras un Tenant tenga un solo prestamista (D-03) es el de todo el negocio.
  */
 @Injectable()
@@ -26,7 +27,7 @@ export class GetSubscriptionUseCase {
     private readonly subscriptions: SubscriptionRepository,
     private readonly getLender: GetLenderUseCase,
     private readonly countLendersByTenant: CountLendersByTenantUseCase,
-    private readonly listMemberships: ListMembershipsUseCase,
+    private readonly countCollectorSeats: CountCollectorSeatsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -42,13 +43,7 @@ export class GetSubscriptionUseCase {
     }
     const [activeLenders, collectors] = await Promise.all([
       this.countLendersByTenant.execute(lender.tenantId),
-      this.listMemberships.execute({
-        lenderId,
-        role: 'COLLECTOR',
-        status: 'ACTIVE',
-        page: 1,
-        pageSize: 1,
-      }),
+      this.countCollectorSeats.execute(lenderId),
     ]);
     const state = computeSubscriptionState(
       subscription.currentPeriodEndsAt,
@@ -66,7 +61,7 @@ export class GetSubscriptionUseCase {
         maxActiveLenders: subscription.maxActiveLenders,
         maxCollectors: subscription.maxCollectors,
       },
-      usage: { activeLenders, activeCollectors: collectors.total },
+      usage: { activeLenders, activeCollectors: collectors },
       createdAt: subscription.createdAt,
     };
   }
