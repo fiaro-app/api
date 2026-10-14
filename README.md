@@ -84,7 +84,7 @@ Con `pnpm docker:dev:obs` se suma la observabilidad:
 |---|---|---|
 | Grafana | <http://localhost:3030> | `admin` / `admin` |
 | Prometheus | <http://localhost:9090> | — |
-| Loki, Alloy, cAdvisor | `localhost:3100`, `localhost:12345`, `localhost:8081` | — |
+| Loki, Alloy, cAdvisor | `localhost:3100`, `localhost:12345`, `localhost:8089` | — |
 
 | Comando | Qué hace |
 |---|---|
