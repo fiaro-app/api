@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { CollectionsModule } from '@/modules/collections/collections.module.js';
 import { dashboardProviders } from '@/modules/dashboard/infrastructure/dashboard.providers.js';
+import { LenderStatsListsController } from '@/modules/dashboard/infrastructure/controllers/lender-stats-lists.controller.js';
 import { LenderDashboardController } from '@/modules/dashboard/infrastructure/controllers/lender-dashboard.controller.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
@@ -31,7 +32,7 @@ import { SettlementsModule } from '@/modules/settlements/settlements.module.js';
     MembershipsModule,
     SettlementsModule,
   ],
-  controllers: [LenderDashboardController],
+  controllers: [LenderDashboardController, LenderStatsListsController],
   providers: dashboardProviders,
 })
 export class DashboardModule {}

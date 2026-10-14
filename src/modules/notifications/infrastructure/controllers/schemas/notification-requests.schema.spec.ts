@@ -9,7 +9,7 @@ describe('ListNotificationsRequestSchema', () => {
   it('aplica los valores por defecto de paginación', () => {
     expect(ListNotificationsRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
   });
 

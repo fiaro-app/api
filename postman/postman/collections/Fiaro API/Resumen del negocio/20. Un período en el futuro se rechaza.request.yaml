@@ -1,0 +1,23 @@
+$kind: http-request
+description: "Los períodos de las consultas históricas no aceptan fechas posteriores a hoy ni más de 366 días (93 en el reporte de cobros) (D-117)."
+url: "{{baseUrl}}/lenders/me/stats"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: '{ "dateRange": { "from": "2026-01-01", "to": "2999-01-01" } }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('señala la fecha final', () => {
+        const issues = pm.response.json().issues;
+        pm.expect(issues.map((i) => i.path.join('.'))).to.include('dateRange.to');
+      });
+    language: text/javascript
+order: 20000

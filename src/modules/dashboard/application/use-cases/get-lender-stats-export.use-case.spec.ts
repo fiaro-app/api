@@ -26,10 +26,13 @@ describe('GetLenderStatsExportUseCase', () => {
     });
 
     expect(result).toEqual({ stats: STATS, lenderName: 'Créditos Ana' });
-    expect(getLenderStatsExecute).toHaveBeenCalledExactlyOnceWith({
-      lenderId: 'lender-1',
-      collectorMembershipId: 'm1',
-    });
+    expect(getLenderStatsExecute).toHaveBeenCalledExactlyOnceWith(
+      {
+        lenderId: 'lender-1',
+        collectorMembershipId: 'm1',
+      },
+      10,
+    );
     expect(getLenderExecute).toHaveBeenCalledExactlyOnceWith('lender-1');
   });
 });

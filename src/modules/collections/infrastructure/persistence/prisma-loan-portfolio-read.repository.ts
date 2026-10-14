@@ -49,4 +49,40 @@ export class PrismaLoanPortfolioReadRepository implements LoanPortfolioReadRepos
     });
     return new Map(rows.map((row) => [row.loanId, row.collectorMembershipId]));
   }
+
+  /**
+   * @param clientIds - Los clientes.
+   * @param lenderId - El prestamista dueño.
+   */
+  async listClientNames(
+    clientIds: readonly string[],
+    lenderId: string,
+  ): Promise<ReadonlyMap<string, string>> {
+    if (clientIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.client.findMany({
+      where: { lenderId, id: { in: [...clientIds] } },
+      select: { id: true, fullName: true },
+    });
+    return new Map(rows.map((row) => [row.id, row.fullName]));
+  }
+
+  /**
+   * @param membershipIds - Las membresías.
+   * @param lenderId - El prestamista dueño.
+   */
+  async listMembershipNames(
+    membershipIds: readonly string[],
+    lenderId: string,
+  ): Promise<ReadonlyMap<string, string>> {
+    if (membershipIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.membership.findMany({
+      where: { lenderId, id: { in: [...membershipIds] } },
+      select: { id: true, user: { select: { fullName: true } } },
+    });
+    return new Map(rows.map((row) => [row.id, row.user.fullName]));
+  }
 }

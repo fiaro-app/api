@@ -13,6 +13,8 @@ export interface ListLoansCriteria {
   readonly clientId?: string;
   /** Solo los préstamos en este estado; ausente para listar todos. */
   readonly status?: LoanStatus;
+  /** Solo estos préstamos (por ejemplo, los que un cobrador tiene asignados hoy); ausente para no acotar. */
+  readonly ids?: readonly string[];
 }
 
 /** Una página de {@link LoanRepository.list}. */

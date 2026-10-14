@@ -77,3 +77,28 @@ export interface LenderPeriodStats {
   /** El período anterior, o `null` si no se pidió (`includePrevious`). */
   readonly previous: LenderPreviousPeriodStats | null;
 }
+
+/** Una página de una lista de las estadísticas. */
+export interface LenderStatsPage<T> {
+  readonly items: readonly T[];
+  readonly total: number;
+}
+
+/** Entrada de `ListTopArrearsUseCase`: los mismos filtros de las estadísticas, paginados. */
+export interface ListTopArrearsInput {
+  readonly lenderId: string;
+  readonly collectorMembershipId?: string;
+  readonly portfolioId?: string;
+  readonly page: number;
+  readonly pageSize: number;
+}
+
+/** Entrada de `ListCollectorPerformanceUseCase`: período y cartera opcionales, paginados. */
+export interface ListCollectorPerformanceInput {
+  readonly lenderId: string;
+  readonly from?: string;
+  readonly to?: string;
+  readonly portfolioId?: string;
+  readonly page: number;
+  readonly pageSize: number;
+}

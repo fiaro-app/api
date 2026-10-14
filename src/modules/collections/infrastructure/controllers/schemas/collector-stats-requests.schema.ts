@@ -1,5 +1,6 @@
-import { BusinessDateSchema, DateRangeSchema } from '@fiaro-app/contracts';
+import { BusinessDateSchema, boundedDateRange } from '@fiaro-app/contracts';
 import { z } from 'zod';
+import { DATE_RANGE_LIMITS } from '@/shared/infrastructure/http/schemas/date-range-limits.js';
 
 /** Cuerpo de `QUERY /collectors/me/daily-summary`. */
 export const GetCollectorDailySummaryRequestSchema = z.strictObject({
@@ -11,7 +12,7 @@ export const GetCollectorDailySummaryRequestSchema = z.strictObject({
 
 /** Cuerpo de `QUERY /collectors/me/stats`. */
 export const GetCollectorStatsRequestSchema = z.strictObject({
-  dateRange: DateRangeSchema.optional().meta({
+  dateRange: boundedDateRange(DATE_RANGE_LIMITS.stats).optional().meta({
     description:
       'Período a consultar. Ausente para el mes actual (desde el día 1 hasta hoy).',
   }),

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { LenderStatsScope } from '@/modules/dashboard/application/services/lender-stats-scope.js';
 import type { GetClientUseCase } from '@/modules/clients/application/use-cases/get-client.use-case.js';
 import type { CollectorPeriodStats } from '@/modules/collections/application/dtos/collector-period-stats.dto.js';
 import type { GetCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-collector-stats.use-case.js';
@@ -84,9 +85,11 @@ function setup() {
   const clock: Clock = { now: () => NOW };
   const useCase = new GetLenderStatsUseCase(
     snapshots,
-    listMemberships,
-    { execute: getCollectorStats } as unknown as GetCollectorStatsUseCase,
-    getClient,
+    new LenderStatsScope(
+      listMemberships,
+      { execute: getCollectorStats } as unknown as GetCollectorStatsUseCase,
+      getClient,
+    ),
     clock,
   );
   return { useCase, current, asOf, getCollectorStats };

@@ -110,6 +110,23 @@ describe('PrismaLoanRepository.findById', () => {
 });
 
 describe('PrismaLoanRepository.list', () => {
+  it('acota a los ids pedidos cuando llegan', async () => {
+    const { repository, findMany } = setup();
+
+    await repository.list({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 10,
+      ids: ['loan-1', 'loan-2'],
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { lenderId: 'lender-1', id: { in: ['loan-1', 'loan-2'] } },
+      }),
+    );
+  });
+
   it('pagina sin filtros', async () => {
     const { repository, findMany, count } = setup();
     findMany.mockResolvedValueOnce([row]);

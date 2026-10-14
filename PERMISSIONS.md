@@ -155,7 +155,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `POST /loans` | `OWNER`, `LENDER` | — |
 | `GET /loans/:id` | Cualquiera | — |
-| `QUERY /loans` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays`, `nextDueDate` y el `collector` vigente (D-113). Vive en `collections` (`PortfolioListController`) por la misma razón que `/loans/:loanId/balance` (D-84). |
+| `QUERY /loans` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays`, `nextDueDate`, el `collector` vigente (D-113) y `clientFullName`; filtra por `collectorMembershipId` (sus préstamos asignados hoy) (D-117). Vive en `collections` (`PortfolioListController`) por la misma razón que `/loans/:loanId/balance` (D-84). |
 | `POST /loans/:id/cancel` | `OWNER`, `LENDER` | Mismo rol que crear (D-79): anulación por error, antes de recibir pagos. |
 
 ## Cobro en campo — `collections` (7 controllers)
@@ -198,6 +198,8 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `GET /lenders/me/dashboard` | `OWNER`, `LENDER` | Agrega cartera, cobro de hoy, cobradores, mora, alertas y cuadres `PENDING` (D-99). Con `from` y `to` (juntos) suma lo cobrado y lo esperado de ese período (`*InPeriod`, D-111). No tiene dominio propio: compone casos de uso ya exportados por `collections`, `loans`, `memberships` y `settlements`. |
 | `QUERY /lenders/me/stats` | `OWNER`, `LENDER` | Cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), ranking de mayor mora y desempeño por cobrador, filtrable por `collectorMembershipId`/`portfolioId` (D-100); con `includePrevious: true` trae también el período anterior de la misma duración (`previous`, D-111). Misma forma que `QUERY /collectors/me/stats` (D-98) le muestra a un cobrador sobre sí mismo. |
+| `QUERY /lenders/me/stats/top-arrears` | `OWNER`, `LENDER` | El ranking de mayor mora completo, paginado; `/lenders/me/stats` trae solo los 5 primeros (D-117). |
+| `QUERY /lenders/me/stats/collector-performance` | `OWNER`, `LENDER` | El desempeño de todos los cobradores activos, paginado; `/lenders/me/stats` trae solo los 5 primeros (D-117). |
 | `QUERY /lenders/me/stats/export` | `OWNER`, `LENDER` | El mismo reporte anterior, en un PDF de una página (D-101). Única ruta de la API que no responde JSON: usa `@Res()` directo. |
 
 ## Notificaciones — `/notifications` (`NotificationController`)

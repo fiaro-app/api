@@ -1,3 +1,4 @@
+import { toBusinessDate } from '@fiaro-app/contracts';
 import { v7 as uuidv7 } from 'uuid';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -6,6 +7,7 @@ import {
   seedBusinessWithCollector,
 } from '@test/support/notification-seed.js';
 import { httpQuery } from '@test/support/security-app.js';
+import { addDays } from '@/shared/domain/calendar/business-date.js';
 import { startTestApp, type TestApp } from '@test/support/test-app.js';
 
 let app: TestApp | undefined;
@@ -16,6 +18,10 @@ afterEach(async () => {
 });
 
 const START = { env: { CORS_ORIGINS: HEADERS.Origin } };
+
+/** Un período que termina hoy: las estadísticas no aceptan fechas futuras (D-117). */
+const TODAY = toBusinessDate(new Date());
+const MONTH_AGO = addDays(TODAY, -30);
 
 function getStats(testApp: TestApp, cookie: string, id: string, query = '') {
   return testApp.http
@@ -34,19 +40,18 @@ describe('GET /collectors/:id/stats', () => {
       app,
       business.ownerCookie,
       business.collectorMembershipId,
-      '?from=2026-10-01&to=2026-10-31',
+      `?from=${MONTH_AGO}&to=${TODAY}`,
     );
     const own = await httpQuery(app.http, '/collectors/me/stats')
       .set(HEADERS)
       .set('Cookie', business.collectorCookie)
-      .send({ dateRange: { from: '2026-10-01', to: '2026-10-31' } });
+      .send({ dateRange: { from: MONTH_AGO, to: TODAY } });
 
     expect(viewed.status).toBe(200);
     expect(viewed.body).toEqual(own.body);
     expect(viewed.body).toMatchObject({
-      from: '2026-10-01',
-      to: '2026-10-31',
-      expectedAmount: 20_000,
+      from: MONTH_AGO,
+      to: TODAY,
       collectedAmount: 0,
       visitsCount: 0,
     });
