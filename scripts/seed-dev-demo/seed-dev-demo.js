@@ -91,6 +91,9 @@ const app = await NestFactory.createApplicationContext(AppModule, {
   logger: false,
 });
 const createUser = app.get(CreateUserUseCase, { strict: false });
+const { READ_CACHE } =
+  await import('../../dist/shared/application/ports/read-cache.token.js');
+const readCache = app.get(READ_CACHE, { strict: false });
 for (const collector of COLLECTORS) {
   try {
     await createUser.execute({ ...collector, password: COLLECTOR_PASSWORD });
@@ -98,7 +101,6 @@ for (const collector of COLLECTORS) {
     if (error.code !== 'PHONE_ALREADY_REGISTERED') throw error;
   }
 }
-await app.close();
 
 await db.query('begin');
 try {
@@ -218,4 +220,7 @@ try {
   throw error;
 } finally {
   await db.end();
+  // Escribe directo en la base de datos, sin pasar por la API: lo que la caché guardó ya no vale (D-123).
+  await readCache.invalidateAll();
+  await app.close();
 }

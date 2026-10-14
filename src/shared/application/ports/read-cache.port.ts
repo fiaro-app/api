@@ -27,4 +27,10 @@ export interface ReadCache {
    * @param lenderId - El prestamista.
    */
   invalidate(lenderId: string): Promise<void>;
+
+  /**
+   * Descarta todo lo guardado de todos los prestamistas. Para lo que escribe en la base de datos
+   * sin pasar por la API (scripts de datos, migraciones de datos): se llama al terminar (D-123).
+   */
+  invalidateAll(): Promise<void>;
 }
