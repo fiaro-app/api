@@ -34,6 +34,7 @@ const EnvSchema = z
     LOG_LEVEL: LogLevelSchema.optional(),
     DATABASE_URL: DatabaseUrlSchema,
     REDIS_URL: RedisUrlSchema.optional(),
+    CACHE_REDIS_URL: RedisUrlSchema.optional(),
     MONGODB_URI: MongoUriSchema.optional(),
     QUEUE_PREFIX: QueuePrefixSchema.default('fiaro'),
     BETTER_AUTH_SECRET: AuthSecretSchema,
@@ -152,6 +153,7 @@ const EnvSchema = z
     logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
+    cacheRedisUrl: env.CACHE_REDIS_URL ?? env.REDIS_URL,
     mongoUri: env.MONGODB_URI,
     queuePrefix: env.QUEUE_PREFIX,
     auth: {

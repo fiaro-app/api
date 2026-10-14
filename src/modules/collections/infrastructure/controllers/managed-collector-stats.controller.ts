@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Query,
   UseGuards,
@@ -19,6 +20,10 @@ import {
   type CollectorPeriodStatsResponseSchema,
 } from '@/modules/collections/infrastructure/controllers/schemas/collector-stats-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import type { ReadCache } from '@/shared/application/ports/read-cache.port.js';
+import { READ_CACHE } from '@/shared/application/ports/read-cache.token.js';
+import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
+import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
@@ -44,6 +49,7 @@ const VIEWER_ROLES = ['OWNER', 'LENDER'];
 export class ManagedCollectorStatsController {
   constructor(
     private readonly getManagedCollectorStatsUseCase: GetManagedCollectorStatsUseCase,
+    @Inject(READ_CACHE) private readonly cache: ReadCache,
   ) {}
 
   /**
@@ -63,13 +69,19 @@ export class ManagedCollectorStatsController {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
-    return toCollectorPeriodStatsResponse(
-      await this.getManagedCollectorStatsUseCase.execute({
-        collectorMembershipId: id,
-        lenderId: scope.lenderId,
-        from: query.from,
-        to: query.to,
-      }),
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('collector-stats', { id, ...query }),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toCollectorPeriodStatsResponse(
+          await this.getManagedCollectorStatsUseCase.execute({
+            collectorMembershipId: id,
+            lenderId: scope.lenderId,
+            from: query.from,
+            to: query.to,
+          }),
+        ),
     );
   }
 }

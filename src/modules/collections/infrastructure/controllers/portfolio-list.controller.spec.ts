@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ListClientsWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-clients-with-balance.use-case.js';
 import type { ListLoansWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-loans-with-balance.use-case.js';
 import { PortfolioListController } from '@/modules/collections/infrastructure/controllers/portfolio-list.controller.js';
+import { PassthroughReadCache } from '@/shared/infrastructure/cache/passthrough-read-cache.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
 const LOAN_PAGE = {
@@ -60,6 +61,7 @@ function setup() {
   const controller = new PortfolioListController(
     listLoans as unknown as ListLoansWithBalanceUseCase,
     listClients as unknown as ListClientsWithBalanceUseCase,
+    new PassthroughReadCache(),
   );
   return { controller, listLoans, listClients };
 }

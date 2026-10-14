@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Query,
   QueryMethod,
   Res,
@@ -35,6 +36,10 @@ import {
   type LenderPeriodStatsResponseSchema,
 } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import type { ReadCache } from '@/shared/application/ports/read-cache.port.js';
+import { READ_CACHE } from '@/shared/application/ports/read-cache.token.js';
+import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
+import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
@@ -62,6 +67,7 @@ export class LenderDashboardController {
     private readonly getLenderDashboardUseCase: GetLenderDashboardUseCase,
     private readonly getLenderStatsUseCase: GetLenderStatsUseCase,
     private readonly getLenderStatsExportUseCase: GetLenderStatsExportUseCase,
+    @Inject(READ_CACHE) private readonly cache: ReadCache,
   ) {}
 
   /**
@@ -79,8 +85,14 @@ export class LenderDashboardController {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
-    return toLenderDashboardResponse(
-      await this.getLenderDashboardUseCase.execute(scope.lenderId, query),
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('dashboard', query),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toLenderDashboardResponse(
+          await this.getLenderDashboardUseCase.execute(scope.lenderId, query),
+        ),
     );
   }
 
@@ -99,15 +111,21 @@ export class LenderDashboardController {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
-    return toLenderPeriodStatsResponse(
-      await this.getLenderStatsUseCase.execute({
-        lenderId: scope.lenderId,
-        from: query.dateRange?.from,
-        to: query.dateRange?.to,
-        collectorMembershipId: query.collectorMembershipId,
-        portfolioId: query.portfolioId,
-        includePrevious: query.includePrevious,
-      }),
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('stats', query),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toLenderPeriodStatsResponse(
+          await this.getLenderStatsUseCase.execute({
+            lenderId: scope.lenderId,
+            from: query.dateRange?.from,
+            to: query.dateRange?.to,
+            collectorMembershipId: query.collectorMembershipId,
+            portfolioId: query.portfolioId,
+            includePrevious: query.includePrevious,
+          }),
+        ),
     );
   }
 
