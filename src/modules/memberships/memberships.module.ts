@@ -5,6 +5,7 @@ import {
 } from '@/modules/memberships/infrastructure/memberships.providers.js';
 import { MembershipLifecycleController } from '@/modules/memberships/infrastructure/controllers/membership-lifecycle.controller.js';
 import { MembershipController } from '@/modules/memberships/infrastructure/controllers/membership.controller.js';
+import { OwnMembershipController } from '@/modules/memberships/infrastructure/controllers/own-membership.controller.js';
 import { AuthModule } from '@/modules/auth/auth.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
@@ -21,7 +22,11 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  */
 @Module({
   imports: [PersistenceModule, AuthModule, NotificationsModule],
-  controllers: [MembershipController, MembershipLifecycleController],
+  controllers: [
+    OwnMembershipController,
+    MembershipController,
+    MembershipLifecycleController,
+  ],
   providers: membershipsProviders,
   exports: membershipsExports,
 })
