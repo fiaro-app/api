@@ -142,7 +142,7 @@ El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso 
 | `pnpm db:seed:demo` | Llena un negocio de años de datos realistas (necesita `pnpm build`, `.env` y el stack arriba; ver abajo) |
 | `pnpm docs` | Genera documentación (Compodoc) en `docs/` |
 
-El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → tests con cobertura (unitarios y e2e, con un PostgreSQL de servicio) → build → docs → análisis de Sonar en cada PR y en cada push a `dev`. En paralelo, un job `docker` valida los archivos de Compose, construye la imagen de producción, comprueba que arranca y corre la suite en contenedores.
+El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → tests con cobertura (unitarios y e2e, con un PostgreSQL de servicio) → build → docs → análisis de Sonar en cada PR a `dev` o `main` (no en el push al fusionar, ni si el PR solo cambia `.md` o `docs/`; un push nuevo cancela la corrida anterior). La documentación solo se genera en los PRs de release a `main`. En los PRs de release a `main`, un job `docker` valida los archivos de Compose, construye la imagen de producción y comprueba que arranca; la suite en contenedores (`compose.test.yaml`) queda para correrla en local.
 
 ## Convenciones de código
 
