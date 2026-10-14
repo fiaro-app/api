@@ -37,6 +37,36 @@ describe('MailpitEmailSender', () => {
     });
   });
 
+  it('acepta un remitente sin nombre', async () => {
+    fetchMock.mockResolvedValue({ ok: true });
+    new MailpitEmailSender('http://mailpit:8025', ' x@fiaro.dev ').send(
+      MESSAGE,
+    );
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      From: { Name: '', Email: 'x@fiaro.dev' },
+    });
+  });
+
+  it('si la red falla con algo que no es un Error, también lo registra', async () => {
+    fetchMock.mockRejectedValue('caída');
+    const logger = { error: vi.fn() };
+
+    new MailpitEmailSender('http://mailpit:8025', 'x@fiaro.dev', logger).send(
+      MESSAGE,
+    );
+
+    await vi.waitFor(() => {
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('error desconocido'),
+      );
+    });
+  });
+
   it('si Mailpit falla, lo escribe en el log y no lanza', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500 });
     const logger = { error: vi.fn() };

@@ -13,7 +13,7 @@ export const MAILPIT_DEFAULT_FROM = 'Fiaro <no-reply@fiaro.dev>';
 function parseAddress(address: string): { Email: string; Name: string } {
   const match = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(address);
   return match
-    ? { Name: match[1] ?? '', Email: match[2] ?? address }
+    ? { Name: String(match[1]), Email: String(match[2]) }
     : { Name: '', Email: address.trim() };
 }
 
