@@ -1,8 +1,15 @@
 import { InvalidPasswordError } from '@/modules/auth/domain/errors/invalid-password.error.js';
 
-/** Caracteres mínimos de una contraseña (el prototipo pide 8). */
-export const PASSWORD_MIN_LENGTH = 8;
-/** Caracteres máximos de una contraseña; el mismo límite de better-auth. */
+/**
+ * Caracteres mínimos de una contraseña: 15, lo que exige NIST SP 800-63B-4 (§3.1.1.2) cuando la
+ * contraseña es el único factor de inicio de sesión, como aquí. A propósito no se piden
+ * mayúsculas, números ni símbolos: el mismo estándar lo prohíbe, porque empuja a patrones
+ * previsibles (`Clave2026!`); la protección es el largo más la lista de contraseñas débiles
+ * (`assertPasswordStrong`). Solo se aplica al crear o cambiar una contraseña, no al iniciar
+ * sesión (D-121).
+ */
+export const PASSWORD_MIN_LENGTH = 15;
+/** Caracteres máximos de una contraseña; el mismo límite de better-auth (NIST pide al menos 64). */
 export const PASSWORD_MAX_LENGTH = 128;
 
 /**
