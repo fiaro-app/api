@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CountLendersByTenantUseCase } from '@/modules/lenders/application/use-cases/count-lenders-by-tenant.use-case.js';
 import type { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
-import type { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
+import type { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import { GetSubscriptionUseCase } from '@/modules/subscriptions/application/use-cases/get-subscription.use-case.js';
 import { Subscription } from '@/modules/subscriptions/domain/entities/subscription.entity.js';
 import { SubscriptionNotFoundError } from '@/modules/subscriptions/domain/errors/subscription-not-found.error.js';
@@ -23,7 +23,7 @@ function subscriptionEndingIn(days: number): Subscription {
 
 function setup(found: Subscription | null) {
   const findByTenant = vi.fn(() => Promise.resolve(found));
-  const listExecute = vi.fn(() => Promise.resolve({ total: 3 }));
+  const listExecute = vi.fn(() => Promise.resolve(3));
   const useCase = new GetSubscriptionUseCase(
     { create: vi.fn(), findByTenant },
     {
@@ -32,7 +32,7 @@ function setup(found: Subscription | null) {
     {
       execute: vi.fn(() => Promise.resolve(2)),
     } as unknown as CountLendersByTenantUseCase,
-    { execute: listExecute } as unknown as ListMembershipsUseCase,
+    { execute: listExecute } as unknown as CountCollectorSeatsUseCase,
     { now: () => NOW },
   );
   return { useCase, findByTenant, listExecute };
@@ -47,13 +47,7 @@ describe('GetSubscriptionUseCase', () => {
     const details = await useCase.execute('lender-1');
 
     expect(findByTenant).toHaveBeenCalledExactlyOnceWith('tenant-1');
-    expect(listExecute).toHaveBeenCalledExactlyOnceWith({
-      lenderId: 'lender-1',
-      role: 'COLLECTOR',
-      status: 'ACTIVE',
-      page: 1,
-      pageSize: 1,
-    });
+    expect(listExecute).toHaveBeenCalledExactlyOnceWith('lender-1');
     expect(details).toMatchObject({
       planCode: 'TRIAL',
       status: 'ACTIVE',

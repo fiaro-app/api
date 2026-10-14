@@ -1,0 +1,17 @@
+$kind: http-request
+description: "Devuelve el acceso a un colaborador dado de baja, con los mismos roles y cartera; su historial sigue intacto. Si vuelve como cobrador (COLLECTOR sin OWNER) ocupa un cupo del plan: sin cupo responde 403 PLAN_LIMIT_REACHED. Idempotente. Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/memberships/{{membershipsCollectorMembershipId}}/reactivate"
+method: POST
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('vuelve a ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));
+      pm.test('ya no tiene fecha de baja', () => pm.expect(body.deactivatedAt).to.eql(null));
+    language: text/javascript
+order: 12000

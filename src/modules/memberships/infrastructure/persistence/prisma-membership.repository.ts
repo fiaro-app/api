@@ -123,4 +123,56 @@ export class PrismaMembershipRepository implements MembershipRepository {
     ]);
     return { items: rows.map(toMembership), total };
   }
+
+  /**
+   * @param lenderId - El prestamista.
+   * @param nationalId - La cédula ya normalizada.
+   */
+  async findByLenderAndNationalId(
+    lenderId: string,
+    nationalId: string,
+  ): Promise<Membership | null> {
+    const row = await this.prisma.membership.findFirst({
+      where: { lenderId, user: { nationalId } },
+    });
+    return row === null ? null : toMembership(row);
+  }
+
+  /** @param lenderId - El prestamista. */
+  async countCollectorSeats(lenderId: string): Promise<number> {
+    return await this.prisma.membership.count({
+      where: {
+        lenderId,
+        status: 'ACTIVE',
+        roles: { has: 'COLLECTOR' },
+        NOT: { roles: { has: 'OWNER' } },
+      },
+    });
+  }
+
+  /** @param id - La membresía. */
+  async hasHistory(id: string): Promise<boolean> {
+    const row = await this.prisma.membership.findUnique({
+      where: { id },
+      select: {
+        _count: {
+          select: {
+            collectionAssignments: true,
+            collectionVisits: true,
+            settlementsSubmitted: true,
+            settlementsReviewed: true,
+          },
+        },
+      },
+    });
+    return row !== null && Object.values(row._count).some((count) => count > 0);
+  }
+
+  /**
+   * @param id - La membresía.
+   * @param lenderId - El prestamista dueño.
+   */
+  async delete(id: string, lenderId: string): Promise<void> {
+    await this.prisma.membership.delete({ where: { id, lenderId } });
+  }
 }

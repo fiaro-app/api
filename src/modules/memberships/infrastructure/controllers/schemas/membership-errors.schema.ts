@@ -20,3 +20,18 @@ export const MembershipNotFoundSchema = ApiErrorSchema.extend({
 export const MembershipConflictSchema = ApiErrorSchema.extend({
   code: z.literal('CONFLICT'),
 }).meta({ id: 'MembershipConflict' });
+
+/** `409 COLLABORATOR_NATIONAL_ID_TAKEN`: otra persona del negocio ya tiene esa cédula. */
+export const CollaboratorNationalIdTakenSchema = ApiErrorSchema.extend({
+  code: z.literal('COLLABORATOR_NATIONAL_ID_TAKEN'),
+}).meta({ id: 'CollaboratorNationalIdTaken' });
+
+/** `403 PLAN_LIMIT_REACHED`: el plan ya tiene todos sus cupos de cobrador ocupados. */
+export const PlanLimitReachedSchema = ApiErrorSchema.extend({
+  code: z.literal('PLAN_LIMIT_REACHED'),
+}).meta({ id: 'PlanLimitReached' });
+
+/** `409 COLLECTOR_HAS_HISTORY`: la membresía tiene historial; se da de baja en lugar de borrarla. */
+export const CollectorHasHistorySchema = ApiErrorSchema.extend({
+  code: z.literal('COLLECTOR_HAS_HISTORY'),
+}).meta({ id: 'CollectorHasHistory' });

@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
 import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
 import { MembershipNotFoundError } from '@/modules/memberships/domain/errors/membership-not-found.error.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
+import type { LenderLock } from '@/shared/application/ports/lender-lock.port.js';
+
+const immediateLock: LenderLock = { runExclusive: (_lenderId, work) => work() };
 
 const CREATED_AT = new Date('2026-09-30T00:00:00Z');
 
@@ -31,10 +35,24 @@ function setup(found: Membership | null) {
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
     countActiveByPortfolio: vi.fn(),
+    findByLenderAndNationalId: vi.fn(),
+    countCollectorSeats: vi.fn(),
+    hasHistory: vi.fn(),
+    delete: vi.fn(),
     list: vi.fn(),
     update,
   };
-  return { useCase: new ChangeMembershipRolesUseCase(memberships), update };
+  const assertAvailable = vi.fn(() => Promise.resolve());
+  const seats = { assertAvailable } as unknown as CollectorSeats;
+  return {
+    useCase: new ChangeMembershipRolesUseCase(
+      memberships,
+      seats,
+      immediateLock,
+    ),
+    update,
+    assertAvailable,
+  };
 }
 
 describe('ChangeMembershipRolesUseCase', () => {
@@ -90,5 +108,38 @@ describe('ChangeMembershipRolesUseCase', () => {
     await expect(
       useCase.execute('membership-1', 'lender-1', ['LENDER']),
     ).rejects.toBeInstanceOf(MembershipNotFoundError);
+  });
+
+  it('revisa el cupo del plan cuando una membresía activa pasa a ser cobrador', async () => {
+    const { useCase, assertAvailable } = setup(
+      membershipWith(['LENDER'], null),
+    );
+
+    await useCase.execute(
+      'membership-1',
+      'lender-1',
+      ['LENDER', 'COLLECTOR'],
+      'portfolio-1',
+    );
+
+    expect(assertAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
+  });
+
+  it('no revisa el cupo si ya era cobrador o si es el dueño', async () => {
+    const collector = setup(membershipWith(['COLLECTOR'], 'portfolio-1'));
+    await collector.useCase.execute('membership-1', 'lender-1', [
+      'COLLECTOR',
+      'LENDER',
+    ]);
+    const owner = setup(membershipWith(['OWNER', 'LENDER'], null));
+    await owner.useCase.execute(
+      'membership-1',
+      'lender-1',
+      ['OWNER', 'LENDER', 'COLLECTOR'],
+      'portfolio-1',
+    );
+
+    expect(collector.assertAvailable).not.toHaveBeenCalled();
+    expect(owner.assertAvailable).not.toHaveBeenCalled();
   });
 });
