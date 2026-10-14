@@ -12,7 +12,7 @@ body:
   content: |-
     {
       "currentPassword": "{{password}}",
-      "newPassword": "password123"
+      "newPassword": "tequieromucho12"
     }
 scripts:
   - type: afterResponse

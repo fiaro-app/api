@@ -26,9 +26,9 @@ const WEAK_MESSAGE =
 
 describe('contraseña nueva demasiado fácil de adivinar', () => {
   it.each([
-    ['una de las más usadas', 'password123'],
-    ['una de las más usadas en leet', 'P@ssw0rd2026'],
-    ['un patrón', 'abcdefghij'],
+    ['una de las más usadas', 'tequieromucho12'],
+    ['una de las más usadas en leet', 'C0ntr@s3n@s2026'],
+    ['un patrón', 'abcdefghijklmnop'],
     ['una que lleva el celular de la persona', 'ana-3001234567-x'],
   ])(
     'rechaza con 400 PASSWORD_TOO_WEAK %s y no cambia nada',
@@ -86,7 +86,7 @@ describe('contraseña nueva demasiado fácil de adivinar', () => {
       .post('/auth/change-password')
       .set('X-Forwarded-For', nextIp())
       .set('Origin', APP_ORIGIN)
-      .send({ currentPassword: PASSWORD, newPassword: 'password123' });
+      .send({ currentPassword: PASSWORD, newPassword: 'tequieromucho12' });
 
     expect(change.status).toBe(401);
   });
@@ -99,7 +99,7 @@ describe('contraseña nueva demasiado fácil de adivinar', () => {
     });
     const cookie = await login(app);
 
-    await changePassword(app, cookie, 'password123');
+    await changePassword(app, cookie, 'tequieromucho12');
 
     const events = logs
       .entries()
@@ -111,6 +111,6 @@ describe('contraseña nueva demasiado fácil de adivinar', () => {
       reason: 'PASSWORD_TOO_WEAK',
       phone: { last4: '4567' },
     });
-    expect(logs.text()).not.toContain('password123');
+    expect(logs.text()).not.toContain('tequieromucho12');
   });
 });

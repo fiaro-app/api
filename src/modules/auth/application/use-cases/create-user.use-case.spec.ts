@@ -150,8 +150,8 @@ describe('CreateUserUseCase', () => {
   );
 
   it.each([
-    ['una de las más usadas', { password: 'password123' }],
-    ['un patrón', { password: 'abcdefghij' }],
+    ['una de las más usadas', { password: 'tequieromucho12' }],
+    ['un patrón', { password: 'abcdefghijklmnop' }],
     ['una que lleva el celular', { password: 'ana-3001234567-x' }],
     [
       'una que lleva la cédula',
