@@ -276,6 +276,12 @@ Dos proyectos de Vitest en un solo `vitest.config.ts`, con la misma compilación
 
 ## 8. Herramientas, hooks y caché
 
+**Caché de lecturas (D-118, D-123).** Toda escritura por HTTP con prestamista en sesión invalida su
+caché sola (interceptor global). Lo que escribe datos cacheados **sin** pasar por HTTP debe
+invalidar a mano con `READ_CACHE`: un proceso de fondo de la API llama `invalidate(lenderId)`; un
+script o migración de datos llama `invalidateAll()` al terminar (como `seed-dev-tenants` y
+`seed-dev-demo`).
+
 **Hooks de git** (Husky), para que los problemas aparezcan antes del CI:
 
 | Hook | Qué hace |

@@ -33,6 +33,8 @@ const DEV_TENANTS = [
   { businessName: 'Préstamos Ana Pérez', ownerPhone: '+573001234567' },
 ];
 
+const { READ_CACHE } =
+  await import('../dist/shared/application/ports/read-cache.token.js');
 const app = await NestFactory.createApplicationContext(AppModule, {
   logger: false,
 });
@@ -60,4 +62,6 @@ for (const dev of DEV_TENANTS) {
     `creado    ${dev.businessName}  tenant: ${created.tenant.id}  lender: ${created.lender.id}  membresía de dueño: ${created.ownerMembership.id}`,
   );
 }
+// Crea negocios sin pasar por la API: lo que la caché guardó ya no vale (D-123).
+await app.get(READ_CACHE, { strict: false }).invalidateAll();
 await app.close();

@@ -16,4 +16,8 @@ export class PassthroughReadCache implements ReadCache {
   async invalidate(): Promise<void> {
     // Sin caché no hay nada que descartar.
   }
+
+  async invalidateAll(): Promise<void> {
+    // Sin caché no hay nada que descartar.
+  }
 }
