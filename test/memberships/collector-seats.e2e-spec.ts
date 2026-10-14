@@ -216,3 +216,28 @@ describe('DELETE /memberships/:id', () => {
     expect(withHistory.body.code).toBe('COLLECTOR_HAS_HISTORY');
   });
 });
+
+describe('Aislamiento por negocio de reactivar y borrar', () => {
+  it('no se puede reactivar ni borrar la membresía de otro negocio', async () => {
+    app = await startTestApp(START);
+    const mine = await seedBusinessWithCollector(app);
+    const other = await seedBusinessWithCollector(app);
+
+    const reactivate = await app.http
+      .post(`/memberships/${other.collectorMembershipId}/reactivate`)
+      .set(HEADERS)
+      .set('Cookie', mine.ownerCookie);
+    const remove = await app.http
+      .delete(`/memberships/${other.collectorMembershipId}`)
+      .set(HEADERS)
+      .set('Cookie', mine.ownerCookie);
+    const stillThere = await app.http
+      .get(`/memberships/${other.collectorMembershipId}`)
+      .set(HEADERS)
+      .set('Cookie', other.ownerCookie);
+
+    expect(reactivate.status).toBe(404);
+    expect(remove.status).toBe(404);
+    expect(stillThere.status).toBe(200);
+  });
+});

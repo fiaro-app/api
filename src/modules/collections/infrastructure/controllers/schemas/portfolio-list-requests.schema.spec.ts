@@ -40,6 +40,17 @@ describe('ListClientsWithBalanceRequestSchema', () => {
     });
   });
 
+  it('rechaza una búsqueda de más de 80 caracteres', () => {
+    expect(
+      ListClientsWithBalanceRequestSchema.safeParse({ search: 'a'.repeat(81) })
+        .success,
+    ).toBe(false);
+    expect(
+      ListClientsWithBalanceRequestSchema.safeParse({ search: 'a'.repeat(80) })
+        .success,
+    ).toBe(true);
+  });
+
   it('acepta una búsqueda opcional y la recorta', () => {
     expect(
       ListClientsWithBalanceRequestSchema.parse({ search: '  Gómez ' }).search,
