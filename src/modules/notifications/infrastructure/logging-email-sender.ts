@@ -7,8 +7,8 @@ import type { EmailSender } from '@/modules/notifications/application/ports/emai
  * aplicación funciona sin una cuenta de Resend ni un dominio verificado.
  *
  * @remarks
- * No usa Mailpit ni ningún servidor SMTP local: solo el log, que ya es donde se revisa en
- * desarrollo.
+ * Se usa fuera de producción solo cuando no hay `MAILPIT_URL` (con Mailpit, los correos van a su
+ * bandeja de prueba: `MailpitEmailSender`).
  */
 export class LoggingEmailSender implements EmailSender {
   /** @param logger - Dónde se escribe el correo. */

@@ -50,6 +50,10 @@ Las personas de desarrollo (`pnpm docker:seed`; las contraseñas son públicas y
 | Ana Pérez | `+573001234567` | `fiaro-dev-2026` |
 | Luis Gómez (cobrador con contraseña temporal) | `+573109998877` | `temporal-2026` |
 
+**Correos en desarrollo:** fuera de producción la API nunca usa Resend, aunque `.env` tenga su API key: todo correo (códigos de recuperación, verificación, alertas) llega a la bandeja de **Mailpit** (<http://localhost:8025>) para revisar contenido y estilos. `pnpm docker:dev` ya trae `MAILPIT_URL`; con `pnpm start:dev` ponla en `.env` (`MAILPIT_URL=http://localhost:8025`). Sin ella, el correo solo se escribe en el log.
+
+**Datos de demo:** `pnpm db:seed:demo -- --national-id 1092851497` llena el negocio del dueño con esa cédula con historia desde 2023: 3 cobradores (cada uno con su zona), unos 90 deudores de Cúcuta y su área que renuevan préstamos, ~10.000 visitas, pagos en efectivo/Nequi/transferencia, atrasos, castigos, reversiones y cuadres diarios. Las fechas de cuota salen de las mismas funciones de la API, así que saldos y moras cuadran. Los cobradores entran con su celular (`+573154820193`, `+573017741265`, `+573208893412`) y la contraseña `cobrador-demo-2026`. `--reset` borra la demo y la vuelve a sembrar.
+
 La carpeta [`postman/`](./postman) es la que se conecta a Postman (Git nativo): su [`.postman/resources.yaml`](./postman/.postman/resources.yaml) la enlaza con el workspace FIARO, y dentro Postman guarda otra `postman/` con la colección **Fiaro API** (una solicitud por archivo YAML, con sus pruebas automáticas y los errores posibles) y el entorno **Fiaro local**. Hay dos formas de usarla:
 
 - **En la app de Postman:** conecta a tu workspace FIARO la carpeta `postman/` de este repositorio (la de `.postman/`; no la que ella crea dentro). La colección y el entorno aparecen solos en la vista local. Elige el entorno **Fiaro local** y ejecuta la carpeta *Autenticación*.
@@ -72,7 +76,7 @@ Cada servicio queda en tu máquina (solo en `127.0.0.1`) con puertos distintos d
 | Redis | `localhost:6390` | — |
 | MongoDB | `localhost:27040` | `fiaro` / `fiaro` |
 | S3 (SeaweedFS) | <http://localhost:8333>, bucket `fiaro-dev` | `fiaro` / `fiaro-secret` |
-| Mailpit (correos) | SMTP `localhost:1025`, interfaz <http://localhost:8025> | — |
+| Mailpit (correos) | interfaz <http://localhost:8025> (la API le entrega por HTTP) | — |
 
 Con `pnpm docker:dev:obs` se suma la observabilidad:
 
@@ -135,6 +139,7 @@ El CI lo instala con el `GITHUB_TOKEN` del workflow: el paquete debe dar acceso 
 | `pnpm db:deploy` | Aplica las migraciones pendientes |
 | `pnpm db:generate` | Genera el cliente de Prisma (también al instalar y en `pnpm build`) |
 | `pnpm db:seed` | Crea las personas de desarrollo (necesita `pnpm build` y `.env`) |
+| `pnpm db:seed:demo` | Llena un negocio de años de datos realistas (necesita `pnpm build`, `.env` y el stack arriba; ver abajo) |
 | `pnpm docs` | Genera documentación (Compodoc) en `docs/` |
 
 El pipeline de CI (`.github/workflows/ci.yml`) corre lint → formato → typecheck → tests con cobertura (unitarios y e2e, con un PostgreSQL de servicio) → build → docs → análisis de Sonar en cada PR y en cada push a `dev`. En paralelo, un job `docker` valida los archivos de Compose, construye la imagen de producción, comprueba que arranca y corre la suite en contenedores.

@@ -48,6 +48,7 @@
     "docker:dev": "NODE_AUTH_TOKEN=\"${NODE_AUTH_TOKEN:-$(gh auth token)}\" docker compose up -d --build --wait",
     "docker:dev:obs": "NODE_AUTH_TOKEN=\"${NODE_AUTH_TOKEN:-$(gh auth token)}\" docker compose --profile observability up -d --build --wait",
     "docker:test": "NODE_AUTH_TOKEN=\"${NODE_AUTH_TOKEN:-$(gh auth token)}\" docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml run --rm --build test; s=$?; docker compose -p fiaro-test -f compose.yaml -f compose.test.yaml down; exit $s",
+    "db:seed:demo": "node scripts/seed-dev-demo/seed-dev-demo.js",
     "docker:seed": "docker compose exec api node scripts/seed-dev-users.js && docker compose exec api node scripts/seed-dev-storage.js",
     "docker:down": "docker compose --profile observability down",
     "docker:reset": "docker compose --profile observability down --volumes"
