@@ -2,7 +2,6 @@ import { toBusinessDate } from '@fiaro-app/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { GetCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-collector-stats.use-case.js';
 import { GetCollectorDailySummaryUseCase } from '@/modules/collections/application/use-cases/get-collector-daily-summary.use-case.js';
-import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
 import { totalCollection } from '@/modules/dashboard/domain/arrears-stats.js';
 import { buildDashboardAlerts } from '@/modules/dashboard/domain/dashboard-alerts.js';
 import type {
@@ -10,8 +9,7 @@ import type {
   LenderDashboardPeriod,
 } from '@/modules/dashboard/application/dtos/lender-dashboard.dto.js';
 import { fetchAllPages } from '@/modules/dashboard/application/services/fetch-all-pages.js';
-import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
-import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
+import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
 import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import type { SettlementDetails } from '@/modules/settlements/application/dtos/settlement-details.dto.js';
 import { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
@@ -30,13 +28,12 @@ const PAGE_SIZE = 100;
  * @remarks
  * Compone, por la capa de aplicación, `GetCollectorDailySummaryUseCase` (`collections`, D-98) una
  * vez por cobrador activo para "cobrado hoy" y "efectividad general" — nunca se duplica ese
- * cálculo aquí — `ListLoansUseCase`/`GetLoanBalanceUseCase` (`loans`/`collections`) para la
- * cartera y la mora, y `ListSettlementsUseCase` (`settlements`) para los cuadres `PENDING`. Con un
+ * cálculo aquí — la foto de la cartera de las estadísticas (`LoanPortfolioSnapshotService`, en
+ * tandas, D-119) para la cartera y la mora, y `ListSettlementsUseCase` (`settlements`) para los cuadres `PENDING`. Con un
  * período (D-111) suma también lo cobrado y lo esperado de esos días con `GetCollectorStatsUseCase`;
  * la cartera, la mora y los cuadres siguen siendo los de este momento, no los del período. No
- * compone `notifications`: las alertas son de lectura, no generan un aviso nuevo. Sin caché
- * todavía — cada apertura del resumen recalcula todo; si el número de cobradores o préstamos
- * activos crece mucho, esta es la primera ruta que necesitaría una.
+ * compone `notifications`: las alertas son de lectura, no generan un aviso nuevo. El controlador lo
+ * guarda en la caché de lecturas (D-118).
  */
 @Injectable()
 export class GetLenderDashboardUseCase {
@@ -44,8 +41,7 @@ export class GetLenderDashboardUseCase {
     private readonly listMemberships: ListMembershipsUseCase,
     private readonly getCollectorDailySummary: GetCollectorDailySummaryUseCase,
     private readonly getCollectorStats: GetCollectorStatsUseCase,
-    private readonly listLoans: ListLoansUseCase,
-    private readonly getLoanBalance: GetLoanBalanceUseCase,
+    private readonly snapshots: LoanPortfolioSnapshotService,
     private readonly listSettlements: ListSettlementsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -66,7 +62,7 @@ export class GetLenderDashboardUseCase {
       pendingSettlements,
     ] = await Promise.all([
       this.collectorCounts(lenderId),
-      this.portfolioAndArrears(lenderId),
+      this.portfolioAndArrears(lenderId, today),
       this.pendingSettlements(lenderId),
     ]);
 
@@ -162,32 +158,22 @@ export class GetLenderDashboardUseCase {
     return { total: totalPage.total, activeIds: active.map((m) => m.id) };
   }
 
-  /** @returns El saldo total y los clientes distintos con mora, de los préstamos `ACTIVE`. */
-  private async portfolioAndArrears(lenderId: string): Promise<{
+  /** Cartera total y clientes con mora de hoy, de la foto de la cartera (en tandas, D-119). */
+  private async portfolioAndArrears(
+    lenderId: string,
+    today: string,
+  ): Promise<{
     readonly totalPortfolio: number;
     readonly clientsInArrears: number;
   }> {
-    const loans = await fetchAllPages<LoanDetails>(PAGE_SIZE, (page) =>
-      this.listLoans.execute({
-        lenderId,
-        status: 'ACTIVE',
-        page,
-        pageSize: PAGE_SIZE,
-      }),
-    );
-    const clientsInArrears = new Set<string>();
-    const balances = await Promise.all(
-      loans.map(async (loan) => {
-        const balance = await this.getLoanBalance.execute(loan.id, lenderId);
-        if (balance.overdueAmount > 0) {
-          clientsInArrears.add(loan.clientId);
-        }
-        return balance;
-      }),
-    );
+    const records = await this.snapshots.current(lenderId, today);
     return {
-      totalPortfolio: sumBy(balances, (balance) => balance.balance),
-      clientsInArrears: clientsInArrears.size,
+      totalPortfolio: sumBy(records, (record) => record.balance),
+      clientsInArrears: new Set(
+        records
+          .filter((record) => record.overdueAmount > 0)
+          .map((record) => record.clientId),
+      ).size,
     };
   }
 

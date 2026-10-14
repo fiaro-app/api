@@ -5,7 +5,11 @@
  * reversiones y cuadres diarios. Solo desarrollo.
  *
  * Uso (con el stack de Docker arriba y `pnpm build` hecho):
- *   node scripts/seed-dev-demo/seed-dev-demo.js [--national-id 1092851497] [--reset]
+ *   node scripts/seed-dev-demo/seed-dev-demo.js [--national-id 1092851497] [--reset] [--clients 90]
+ *
+ * `--clients` cambia cuántos deudores se siembran (90 por defecto; 900 da el conjunto ×10 de
+ * PERFORMANCE.md). `--reset` solo borra los deudores de ese mismo número: para cambiarlo, usar una
+ * base de datos nueva.
  *
  * `--reset` borra lo que sembró antes (sus deudores, con préstamos, visitas y pagos, y los cuadres
  * de sus cobradores) y vuelve a sembrar. Sin `--reset`, si ya hay datos de la demo, no hace nada.
@@ -39,13 +43,14 @@ const { values: args } = parseArgs({
   options: {
     'national-id': { type: 'string', default: '1092851497' },
     reset: { type: 'boolean', default: false },
+    clients: { type: 'string', default: '90' },
   },
 });
 const today = new Date().toLocaleDateString('en-CA', {
   timeZone: 'America/Bogota',
 });
 const rand = seededRandom(1092851497);
-const clients = buildClients(rand, 90);
+const clients = buildClients(rand, Number(args.clients));
 
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
