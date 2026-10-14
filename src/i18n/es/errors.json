@@ -9,6 +9,7 @@
   "SUBSCRIPTION_READ_ONLY": "La suscripción está en solo lectura: puedes consultar la información, pero no modificarla.",
   "MAINTENANCE": "Estamos en mantenimiento. Intenta de nuevo en unos minutos.",
   "INTERNAL_ERROR": "Algo salió mal de nuestro lado. Intenta de nuevo en unos minutos.",
+  "TURNSTILE_FAILED": "No pudimos verificar que eres una persona. Intenta de nuevo.",
 
   "BAD_REQUEST": "La solicitud no es válida.",
   "UNAUTHORIZED": "Inicia sesión para continuar.",
