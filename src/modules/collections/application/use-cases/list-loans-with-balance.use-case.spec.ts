@@ -227,4 +227,21 @@ describe('ListLoansWithBalanceUseCase', () => {
     expect(page).toEqual({ items: [], total: 0 });
     expect(listLoans).not.toHaveBeenCalled();
   });
+
+  it('sin nombre del cliente o del cobrador deja el nombre vacío y el cobrador en null', async () => {
+    const { useCase, listClientNames, listMembershipNames } = setup();
+    listClientNames.mockResolvedValueOnce(new Map());
+    listMembershipNames.mockResolvedValueOnce(new Map());
+
+    const page = await useCase.execute({
+      lenderId: 'lender-1',
+      page: 1,
+      pageSize: 20,
+    });
+
+    expect(page.items[0]).toMatchObject({
+      clientFullName: '',
+      collector: null,
+    });
+  });
 });
