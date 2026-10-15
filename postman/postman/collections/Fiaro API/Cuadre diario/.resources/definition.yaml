@@ -3,7 +3,5 @@ description: |-
   Cuadre diario de un cobrador (D-86): `POST`/`GET`/`QUERY /daily-settlements`,
   `.../approve` y `.../reject`, protegidas por `LenderScopeGuard`. Autocontenida: registra su
   propio negocio (la dueña nace con OWNER, LENDER y COLLECTOR, D-78). Cierra el día sin nota para
-  ver el 400, lo cierra con nota, lo aprueba, confirma que aprobarlo otra vez da 409, lo reenvía
-  (D-36, vuelve a PENDING y limpia la revisión), lo rechaza con un comentario y lo busca por
-  estado.
+  ver el 400, lo cierra con nota, comprueba que en revisión no se reenvía (409), lo rechaza, lo reenvía (D-36), lo cancela (204, D-130), lo envía de nuevo, lo aprueba, confirma que aprobado no se vuelve a aprobar, reenviar ni cancelar (409) y lo busca por estado.
 order: 1999

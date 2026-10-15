@@ -65,6 +65,20 @@ export interface DailySettlementRepository {
    */
   findById(id: string, lenderId: string): Promise<DailySettlement | null>;
 
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario del cuadre (`AAAA-MM-DD`).
+   * @returns Su cuadre de ese día, o `null` si no lo ha enviado. No filtra por prestamista: el
+   * cobrador pertenece a uno solo.
+   */
+  findByCollectorAndDate(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<DailySettlement | null>;
+
+  /** Borra el cuadre (solo el cobrador que lo envió y mientras sigue `PENDING`, lo decide el caso de uso). @param id - El cuadre. */
+  delete(id: string): Promise<void>;
+
   /** @param criteria - Prestamista, paginación y filtros opcionales. */
   list(criteria: ListSettlementsCriteria): Promise<SettlementsPage>;
 

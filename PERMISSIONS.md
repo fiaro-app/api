@@ -187,6 +187,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /daily-settlements` | `COLLECTOR` | Siempre el propio cuadre (`scope.membershipId`). |
 | `GET /daily-settlements/:id` | Cualquiera | Cualquier rol ve cualquier cuadre del prestamista, no solo el propio. |
 | `QUERY /daily-settlements` | Cualquiera | Igual. Filtros combinables: `collectorMembershipId`, `portfolioId`, `status` y `dateRange` sobre la fecha del cuadre (D-108). |
+| `POST /daily-settlements/:id/cancel` | `COLLECTOR` | Retira el cuadre propio mientras sigue `PENDING` (se borra; `204`). Uno ajeno responde `404`, uno ya revisado `409` (D-130). |
 | `POST /daily-settlements/:id/approve` | `OWNER`, `LENDER` | — |
 | `POST /daily-settlements/:id/reject` | `OWNER`, `LENDER` | — |
 
@@ -225,6 +226,13 @@ notificaciones de todos a la vez, así que no hay "un" prestamista por el que fi
 | `GET /mobile/version` | — | — |
 
 ## Casos especiales
+
+- **El cuadre cierra el día (D-130).** Si el cobrador ya envió el cuadre de un día y sigue en revisión
+  (`PENDING`) o ya se aprobó, no puede registrar más cobros de ese día
+  (`POST /loans/:loanId/collection-visits` → `409 CONFLICT`, día medido por el `occurredAt` de la
+  visita) ni reenviar el cuadre (`POST /daily-settlements` → `409`). Con el cuadre `REJECTED`, o
+  sin cuadre, puede seguir. Para cambiar un cuadre enviado por error o para ajustarlo, lo cancela
+  mientras está `PENDING` (`POST /daily-settlements/:id/cancel`); uno aprobado no se toca.
 
 - **Un cobrador que no administra solo ve lo suyo (D-127).** Quien tiene `COLLECTOR` pero ni
   `OWNER` ni `LENDER` (`isCollectorOnly`) no puede consultar cualquier cosa del prestamista, aunque

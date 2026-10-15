@@ -12,7 +12,7 @@ body:
   type: json
   content: |-
     {
-      "status": "REJECTED"
+      "status": "APPROVED"
     }
 scripts:
   - type: afterResponse
@@ -21,4 +21,4 @@ scripts:
       const body = pm.response.json();
       pm.test('encuentra el cuadre de prueba', () => pm.expect(body.data.some((settlement) => settlement.id === pm.collectionVariables.get('settlementId'))).to.be.true);
     language: text/javascript
-order: 9000
+order: 14000

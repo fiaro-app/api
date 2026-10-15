@@ -22,4 +22,4 @@ scripts:
       pm.test('queda REJECTED', () => pm.expect(body.status).to.eql('REJECTED'));
       pm.test('trae el comentario', () => pm.expect(body.reviewNote).to.eql('Falta soportar el efectivo con un recibo.'));
     language: text/javascript
-order: 8000
+order: 6000

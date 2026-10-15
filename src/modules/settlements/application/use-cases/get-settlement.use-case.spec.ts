@@ -29,6 +29,8 @@ function setup(found: DailySettlement | null) {
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
     upsert: vi.fn(() => Promise.reject(new Error('no usado'))),
     review: vi.fn(() => Promise.reject(new Error('no usado'))),
+    findByCollectorAndDate: vi.fn(() => Promise.resolve(null)),
+    delete: vi.fn(() => Promise.resolve()),
   };
   return { useCase: new GetSettlementUseCase(settlements), findById };
 }

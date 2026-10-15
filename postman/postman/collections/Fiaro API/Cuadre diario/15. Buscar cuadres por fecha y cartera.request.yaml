@@ -21,4 +21,4 @@ scripts:
       const body = pm.response.json();
       pm.test('encuentra el cuadre de prueba dentro del rango', () => pm.expect(body.data.some((settlement) => settlement.id === pm.collectionVariables.get('settlementId'))).to.be.true);
     language: text/javascript
-order: 10000
+order: 15000

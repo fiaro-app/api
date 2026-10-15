@@ -10,6 +10,7 @@ import { InvalidCollectionVisitDataError } from '@/modules/collections/domain/er
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
+import type { IsDaySettledUseCase } from '@/modules/settlements/application/use-cases/is-day-settled.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import type { IdGenerator } from '@/shared/application/ports/id-generator.port.js';
 
@@ -70,6 +71,9 @@ function setup(
     assignments,
     getLoan,
     reconcileLoanStatus,
+    {
+      execute: vi.fn(() => Promise.resolve(false)),
+    } as unknown as IsDaySettledUseCase,
     ids,
     clock,
   );
