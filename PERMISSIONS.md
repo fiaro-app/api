@@ -109,7 +109,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | --- | --- | --- |
 | `GET /lender` | Cualquiera | — |
 | `PATCH /lender` | `OWNER`, `LENDER` | Nombre, logo, días sin cobro y `brandColor` (`#RRGGBB`, D-110). |
-| `POST /lender/logo-upload-url` | `OWNER`, `LENDER` | URL firmada de subida (PUT) y URL pública del logo (D-102). El archivo va directo al bucket; guardar la URL pública exige, aparte, `PATCH /lender { logoUrl }`. |
+| `POST /lender/logo-upload-url` | `OWNER`, `LENDER` | URL firmada de subida (PUT) y URL pública del logo (D-102). Solo PNG o JPEG de hasta 2 MB: el cuerpo lleva `contentType` y `sizeBytes`, la URL firma ambos y el bucket rechaza otra subida; 10 pedidos por minuto por IP (D-132). El archivo va directo al bucket; guardar la URL pública exige, aparte, `PATCH /lender { logoUrl }`, que verifica el archivo (D-132). |
 
 ## Carteras — `/portfolios` (`PortfolioController`)
 
