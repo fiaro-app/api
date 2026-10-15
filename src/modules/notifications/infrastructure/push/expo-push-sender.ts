@@ -167,5 +167,8 @@ function toExpoMessage(message: PushMessage): Record<string, unknown> {
     body: message.body,
     data: message.data,
     sound: 'default',
+    priority: message.priority,
+    ttl: message.ttl,
+    channelId: message.channelId,
   };
 }
