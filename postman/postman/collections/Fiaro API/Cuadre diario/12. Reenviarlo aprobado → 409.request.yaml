@@ -1,0 +1,26 @@
+$kind: http-request
+description: 'Con el cuadre aprobado el día queda cerrado: no se reenvía ni se vuelve a PENDING (D-130; antes, D-36, lo reemplazaba). Tampoco se pueden registrar más cobros ese día (`POST /loans/:id/collection-visits` responde 409).'
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 100000,
+      "collectedCash": 100000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 409', () => pm.response.to.have.status(409));
+      pm.test('código CONFLICT', () => pm.expect(pm.response.json().code).to.eql('CONFLICT'));
+    language: text/javascript
+order: 12000
