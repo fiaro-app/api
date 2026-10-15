@@ -1,15 +1,9 @@
 import type { EmailContent } from '@/modules/memberships/domain/notifications/membership-invite-email.js';
-import { escapeHtml } from '@/shared/domain/text/escape-html.js';
+import { renderEmail } from '@/shared/domain/email/email-layout.js';
 
 /**
- * Arma el correo con la contraseña temporal nueva de un colaborador al que un `OWNER`/`LENDER` le
- * restableció la contraseña (D-93). Es una función pura: no envía nada, solo decide el texto.
- * Canal de cortesía, no el principal: la contraseña se muestra una sola vez en la respuesta de
- * `POST /memberships/:id/reset-password`, para pasarla por WhatsApp, como en la invitación (D-81).
- *
- * @remarks
- * El nombre se escapa en el HTML por la misma razón que en la invitación
- * ({@link membershipInviteEmail}): es texto libre.
+ * Arma el correo con la contraseña temporal nueva de quien administra le restableció, con el
+ * estándar de correos de Fiaro (D-131). Es una función pura: no envía nada, solo decide el texto.
  *
  * @param fullName - Nombre de la persona.
  * @param phone - Su celular, para iniciar sesión.
@@ -20,10 +14,15 @@ export function membershipPasswordResetEmail(
   phone: string,
   tempPassword: string,
 ): EmailContent {
-  const subject = 'Tu contraseña de Fiaro cambió';
-  return {
-    subject,
-    text: `Hola ${fullName}. Te restablecieron la contraseña de Fiaro. Celular: ${phone}. Contraseña temporal: ${tempPassword}. Debes cambiarla al iniciar sesión.`,
-    html: `<p>Hola ${escapeHtml(fullName)}. Te restablecieron la contraseña de Fiaro.</p><p>Celular: <strong>${phone}</strong></p><p>Contraseña temporal: <strong>${tempPassword}</strong></p><p>Debes cambiarla al iniciar sesión.</p>`,
-  };
+  return renderEmail({
+    title: 'Tu contraseña cambió',
+    preheader: 'Te restablecieron la contraseña: usa la temporal para entrar.',
+    paragraphs: [
+      `Hola ${fullName}, te restablecieron la contraseña de Fiaro.`,
+      `Inicia sesión con tu celular ${phone} y esta contraseña temporal. Te pediremos cambiarla al entrar.`,
+    ],
+    highlight: { label: 'Contraseña temporal', value: tempPassword },
+    footnote:
+      'Si no esperabas este cambio, avisa a quien administra tu negocio.',
+  });
 }

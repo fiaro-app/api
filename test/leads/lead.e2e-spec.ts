@@ -43,7 +43,7 @@ describe('POST /leads', () => {
     expect(app.emails.sent).toHaveLength(1);
     expect(app.emails.sent[0]).toMatchObject({
       to: 'ventas@fiaro.co',
-      subject: 'Nuevo contacto de ventas: Ana Pérez',
+      subject: 'Fiaro: Nuevo contacto de ventas: Ana Pérez',
     });
   });
 

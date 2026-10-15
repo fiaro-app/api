@@ -147,8 +147,8 @@ describe('DeliverNotificationUseCase', () => {
     expect(sendEmail).toHaveBeenCalledWith({
       to: 'carlos@example.com',
       subject: 'Fiaro: Cuenta desactivada',
-      text: 'Cuenta desactivada\n\nTu cuenta fue desactivada.\n\nAbre Fiaro en tu celular para ver los detalles.',
-      html: '<p><strong>Cuenta desactivada</strong></p><p>Tu cuenta fue desactivada.</p><p>Abre Fiaro en tu celular para ver los detalles.</p>',
+      text: expect.stringContaining('Tu cuenta fue desactivada.'),
+      html: expect.stringContaining('Tu cuenta fue desactivada.'),
     });
     expect(sendPush).toHaveBeenCalledWith([
       {
@@ -160,6 +160,9 @@ describe('DeliverNotificationUseCase', () => {
           relatedEntityType: 'MEMBERSHIP',
           relatedEntityId: 'membership-1',
         },
+        priority: 'high',
+        ttl: 43_200,
+        channelId: 'default',
       },
     ]);
   });

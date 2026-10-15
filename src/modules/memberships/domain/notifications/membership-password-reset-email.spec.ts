@@ -10,9 +10,9 @@ describe('membershipPasswordResetEmail', () => {
     );
 
     expect(email.html).toContain(
-      'Hola Ana &amp; &lt;b&gt;Luis&lt;/b&gt;. Te restablecieron',
+      'Hola Ana &amp; &lt;b&gt;Luis&lt;/b&gt;, te restablecieron',
     );
-    expect(email.text).toContain('Hola Ana & <b>Luis</b>. Te restablecieron');
+    expect(email.text).toContain('Hola Ana & <b>Luis</b>, te restablecieron');
   });
 
   it('anuncia el cambio con el asunto correcto y lleva la contraseña nueva', () => {
@@ -22,7 +22,7 @@ describe('membershipPasswordResetEmail', () => {
       'Temp-456',
     );
 
-    expect(email.subject).toBe('Tu contraseña de Fiaro cambió');
+    expect(email.subject).toBe('Fiaro: Tu contraseña cambió');
     expect(email.text).toContain('Contraseña temporal: Temp-456');
   });
 });
