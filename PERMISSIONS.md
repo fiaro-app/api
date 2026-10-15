@@ -202,6 +202,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `QUERY /lenders/me/stats/top-arrears` | `OWNER`, `LENDER` | El ranking de mayor mora completo, paginado; `/lenders/me/stats` trae solo los 5 primeros (D-117). |
 | `QUERY /lenders/me/stats/collector-performance` | `OWNER`, `LENDER` | El desempeño de todos los cobradores activos, paginado; `/lenders/me/stats` trae solo los 5 primeros (D-117). |
 | `GET /lenders/me/collectors-today` | `OWNER`, `LENDER` | La jornada de hoy de cada cobrador activo: si empezó su ruta, préstamos visitados y pendientes, esperado y cobrado, primera y última visita y cuadre enviado (D-129). Mismo resumen del día que usa `/lenders/me/dashboard`, así las cifras coinciden. |
+| `QUERY /lenders/me/stats/insights` | `OWNER`, `LENDER` | Cobro diario contra lo esperado, ganancia (interés) y capital que regresa, cobro por medio de pago, colocación, mezcla de resultados de las visitas, integridad de los cuadres y proyección de 7 días, con el período anterior (D-133). Solo lectura sobre su prestamista. |
 | `QUERY /lenders/me/stats/export` | `OWNER`, `LENDER` | El mismo reporte anterior, en un PDF de una página (D-101). Única ruta de la API que no responde JSON: usa `@Res()` directo. |
 
 ## Notificaciones — `/notifications` (`NotificationController`)
