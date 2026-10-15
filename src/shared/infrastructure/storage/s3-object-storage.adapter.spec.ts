@@ -1,4 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  NoSuchKey,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { S3ObjectStorageAdapter } from '@/shared/infrastructure/storage/s3-object-storage.adapter.js';
 
 const CONFIG = {
@@ -75,5 +81,91 @@ describe('S3ObjectStorageAdapter', () => {
     expect(adapter.keyFromPublicUrl(`${base}x/logos/l/a.png`)).toBeNull();
     expect(adapter.keyFromPublicUrl(`${base}/`)).toBeNull();
     expect(adapter.keyFromPublicUrl('javascript:alert(1)')).toBeNull();
+  });
+});
+
+describe('S3ObjectStorageAdapter: leer y borrar', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const body = (bytes: number[]) => ({
+    transformToByteArray: () => Promise.resolve(Uint8Array.from(bytes)),
+  });
+
+  it('lee los primeros bytes y el tamaño real del objeto (de ContentRange)', async () => {
+    const send = vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({
+      ContentRange: 'bytes 0-15/48213',
+      ContentType: 'image/png',
+      Body: body([0x89, 0x50]),
+    } as never);
+
+    const info = await new S3ObjectStorageAdapter(CONFIG).inspectObject(
+      'logos/l/a.png',
+    );
+
+    expect(info).toEqual({
+      sizeBytes: 48_213,
+      contentType: 'image/png',
+      head: Uint8Array.from([0x89, 0x50]),
+    });
+    const command = send.mock.calls[0]?.[0] as GetObjectCommand;
+    expect(command.input).toMatchObject({
+      Bucket: 'fiaro-dev',
+      Key: 'logos/l/a.png',
+      Range: 'bytes=0-15',
+    });
+  });
+
+  it('sin ContentRange usa ContentLength, y sin cuerpo devuelve cero bytes', async () => {
+    vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({
+      ContentLength: 7,
+    } as never);
+
+    const info = await new S3ObjectStorageAdapter(CONFIG).inspectObject(
+      'a.png',
+    );
+
+    expect(info).toEqual({
+      sizeBytes: 7,
+      contentType: undefined,
+      head: new Uint8Array(),
+    });
+  });
+
+  it('sin tamaño en la respuesta lo cuenta como cero', async () => {
+    vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never);
+
+    const info = await new S3ObjectStorageAdapter(CONFIG).inspectObject(
+      'a.png',
+    );
+
+    expect(info?.sizeBytes).toBe(0);
+  });
+
+  it('un objeto que no existe devuelve null; otro error se propaga', async () => {
+    const send = vi.spyOn(S3Client.prototype, 'send');
+    send.mockRejectedValueOnce(new NoSuchKey({ message: 'no', $metadata: {} }));
+    send.mockRejectedValueOnce(new Error('bucket caído'));
+    const adapter = new S3ObjectStorageAdapter(CONFIG);
+
+    await expect(adapter.inspectObject('a.png')).resolves.toBeNull();
+    await expect(adapter.inspectObject('a.png')).rejects.toThrow(
+      'bucket caído',
+    );
+  });
+
+  it('borra el objeto de su bucket', async () => {
+    const send = vi
+      .spyOn(S3Client.prototype, 'send')
+      .mockResolvedValue({} as never);
+
+    await new S3ObjectStorageAdapter(CONFIG).deleteObject('logos/l/a.png');
+
+    const command = send.mock.calls[0]?.[0] as DeleteObjectCommand;
+    expect(command.input).toMatchObject({
+      Bucket: 'fiaro-dev',
+      Key: 'logos/l/a.png',
+    });
   });
 });
