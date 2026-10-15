@@ -48,11 +48,11 @@ describe('mensajes de error traducidos', () => {
 
   describe('la forma del error', () => {
     it('cumple ApiError de contracts: estado, código, mensaje, ruta, hora y detalle', async () => {
-      const api = await startApp();
+      const api = await startApp({ nodeEnv: 'production' });
 
       const { body } = await api.get('/no-existe').expect(404);
 
-      expect(ApiErrorSchema.parse(body)).toEqual(body);
+      expect(body).toMatchObject(ApiErrorSchema.parse(body));
       expect(body).toEqual({
         statusCode: 404,
         code: 'NOT_FOUND',
@@ -60,11 +60,13 @@ describe('mensajes de error traducidos', () => {
         path: '/no-existe',
         timestamp: expect.any(String),
         issues: null,
+        errorCode: expect.stringMatching(/^[A-Z]\d{3}[A-Z]$/),
+        requestId: expect.any(String),
       });
     });
 
     it('no repite el texto en inglés de Nest ni la ruta pedida', async () => {
-      const api = await startApp();
+      const api = await startApp({ nodeEnv: 'production' });
 
       const { body } = await api.get('/no-existe').expect(404);
 
@@ -72,7 +74,7 @@ describe('mensajes de error traducidos', () => {
     });
 
     it('la ruta sale sin la cadena de consulta', async () => {
-      const api = await startApp();
+      const api = await startApp({ nodeEnv: 'production' });
 
       const { body } = await api.get('/no-existe?token=secreto').expect(404);
 
@@ -83,7 +85,7 @@ describe('mensajes de error traducidos', () => {
 
   describe('errores que ocurren antes de llegar a una ruta', () => {
     it('un JSON mal formado responde 400 BAD_REQUEST, sin el texto del parser', async () => {
-      const api = await startApp();
+      const api = await startApp({ nodeEnv: 'production' });
 
       const { body } = await api
         .post('/probe/echo')
@@ -116,7 +118,7 @@ describe('mensajes de error traducidos', () => {
   });
 
   it('un error interno responde 500 INTERNAL_ERROR sin revelar nada', async () => {
-    const api = await startApp();
+    const api = await startApp({ nodeEnv: 'production' });
 
     const { body } = await api
       .post('/probe/unvalidated')

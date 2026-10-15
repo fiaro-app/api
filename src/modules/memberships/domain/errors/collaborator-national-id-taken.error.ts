@@ -9,6 +9,7 @@ import {
  */
 export class CollaboratorNationalIdTakenError extends DomainError {
   readonly code = 'COLLABORATOR_NATIONAL_ID_TAKEN';
+  readonly errorCode = 'M001A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

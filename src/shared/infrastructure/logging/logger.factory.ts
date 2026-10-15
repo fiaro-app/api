@@ -48,7 +48,7 @@ export function createLogger({ level, destination }: LoggerOptions): Logger {
       timestamp: pino.stdTimeFunctions.isoTime,
       formatters: { level: (label) => ({ level: label }) },
       redact: { paths: [...REDACTED_PATHS], censor: REDACTED_TEXT },
-      mixin: () => ({ requestId: currentRequestContext()?.requestId }),
+      mixin: () => ({ ...currentRequestContext() }),
     },
     destination,
   );

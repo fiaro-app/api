@@ -9,6 +9,7 @@ import {
  */
 export class CollectorHasHistoryError extends DomainError {
   readonly code = 'COLLECTOR_HAS_HISTORY';
+  readonly errorCode = 'M002A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

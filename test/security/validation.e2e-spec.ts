@@ -99,7 +99,7 @@ describe('validación', () => {
   });
 
   it('un @Body() sin schema termina en 500 sin revelar el motivo', async () => {
-    const api = await startApp();
+    const api = await startApp({ nodeEnv: 'production' });
 
     const { body } = await api
       .post('/probe/unvalidated')

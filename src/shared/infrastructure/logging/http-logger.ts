@@ -10,8 +10,26 @@ import {
   serializeRequest,
   serializeResponse,
 } from '@/shared/infrastructure/logging/http-log-fields.js';
+import { clientTraceFor } from '@/shared/infrastructure/logging/client-trace.js';
 import { requestIdFor } from '@/shared/infrastructure/logging/request-id.js';
 import { runWithRequestContext } from '@/shared/infrastructure/logging/request-context.js';
+
+/** Los campos de la traza de la petición que van a la línea de log (`traceId`, `spanId`, `sessionId`, `screen`). */
+function traceFieldsOf(req: Request): Record<string, string | undefined> {
+  const { traceId, spanId, sessionId, screen } = clientTraceFor(req);
+  return { traceId, spanId, sessionId, screen };
+}
+
+/**
+ * Lo que el filtro de excepciones dejó en la respuesta para el log: el código único del error, qué
+ * es, qué mirar y lo que dijo la excepción original (D-134). Vacío si la petición no falló.
+ *
+ * @param res - Respuesta de Express.
+ */
+function errorLogOf(res: Response): Record<string, unknown> {
+  const locals: unknown = res.locals.errorLog;
+  return typeof locals === 'object' && locals !== null ? { ...locals } : {};
+}
 
 /**
  * Middleware que escribe una línea de log por cada petición terminada: método, ruta pedida,
@@ -40,16 +58,18 @@ export function createHttpLogger(logger: Logger): RequestHandler {
     customSuccessMessage: () => REQUEST_COMPLETED,
     customErrorMessage: () => REQUEST_COMPLETED,
     customErrorObject: errorLogFields,
-    customProps: (req) => ({
+    customProps: (req, res) => ({
       route: matchedRoute(req),
       userId: getAuthenticatedSession(req)?.user.id,
+      ...traceFieldsOf(req),
+      ...errorLogOf(res),
     }),
   });
   return (req: Request, res: Response, next: NextFunction): void => {
     const requestId = requestIdFor(req, res);
     req.id = requestId;
     log(req, res, () => {
-      runWithRequestContext({ requestId }, next);
+      runWithRequestContext({ requestId, ...clientTraceFor(req) }, next);
     });
   };
 }

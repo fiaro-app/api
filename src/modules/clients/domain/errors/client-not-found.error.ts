@@ -10,6 +10,7 @@ import {
  */
 export class ClientNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'C002A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor(id: string) {

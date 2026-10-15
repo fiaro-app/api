@@ -6,6 +6,7 @@ import {
 /** El correo de contacto ya está verificado. */
 export class ContactEmailAlreadyVerifiedError extends DomainError {
   readonly code = 'CONTACT_EMAIL_ALREADY_VERIFIED';
+  readonly errorCode = 'A001A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

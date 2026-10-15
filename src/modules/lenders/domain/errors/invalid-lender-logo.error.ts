@@ -6,6 +6,7 @@ import {
 /** El logo no es una imagen que esta API haya aceptado subir: se rechaza (`VALIDATION_FAILED` en `logoUrl`). */
 export class InvalidLenderLogoError extends DomainError {
   readonly code = 'VALIDATION_FAILED';
+  readonly errorCode = 'B002V';
   readonly kind: DomainErrorKind = 'INVALID';
   declare readonly issues: readonly {
     path: readonly string[];

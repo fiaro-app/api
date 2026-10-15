@@ -53,6 +53,8 @@ export interface DomainErrorDetail {
  */
 export abstract class DomainError extends Error {
   abstract readonly code: string;
+  /** Código único del catálogo (`error-catalog.ts`, D-134): distingue errores que comparten `code`. */
+  abstract readonly errorCode: string;
   abstract readonly kind: DomainErrorKind;
   readonly params?: DomainErrorParams;
   readonly issues?: readonly DomainIssue[];

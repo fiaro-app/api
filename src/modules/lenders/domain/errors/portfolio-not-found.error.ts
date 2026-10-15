@@ -6,6 +6,7 @@ import {
 /** La cartera no existe, o es de otro prestamista: se responde igual, para no revelar ajenas. */
 export class PortfolioNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'B006A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor(id: string) {

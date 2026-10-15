@@ -10,6 +10,7 @@ import {
  */
 export class WrongPasswordError extends DomainError {
   readonly code = 'INVALID_PASSWORD';
+  readonly errorCode = 'A013A';
   readonly kind: DomainErrorKind = 'INVALID';
 
   constructor() {

@@ -4,6 +4,14 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export interface RequestContext {
   /** Identificador de la petición: sale en cada línea de log escrita mientras se atiende. */
   readonly requestId: string;
+  /** La traza (W3C) a la que pertenece: la misma para todo un flujo si la app la reutiliza. */
+  readonly traceId?: string;
+  /** Esta petición dentro de la traza. */
+  readonly spanId?: string;
+  /** La sesión de la app: todas las peticiones de una apertura de la app la comparten. */
+  readonly sessionId?: string;
+  /** La pantalla desde la que se hizo la petición. */
+  readonly screen?: string;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();

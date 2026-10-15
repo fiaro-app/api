@@ -12,6 +12,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { ENV } from '@/config/env.token.js';
 import { ApiErrorFactory } from '@/shared/infrastructure/filters/api-error.factory.js';
 import { ApiExceptionFilter } from '@/shared/infrastructure/filters/api-exception.filter.js';
 import { SchemaValidationPipe } from '@/shared/infrastructure/http/schema-validation.pipe.js';
@@ -68,6 +69,7 @@ describe('una API con dos idiomas', () => {
           provide: TranslationService,
           useValue: new TranslationService(CATALOGS),
         },
+        { provide: ENV, useValue: { nodeEnv: 'test' } },
         ApiErrorFactory,
         { provide: APP_FILTER, useClass: ApiExceptionFilter },
       ],

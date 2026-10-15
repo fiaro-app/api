@@ -6,6 +6,7 @@ import {
 /** El cuadre no existe, o es de otro prestamista (PRODUCT.md §6: indistinguible por diseño). */
 export class SettlementNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'S003A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor() {
