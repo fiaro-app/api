@@ -10,6 +10,7 @@ import {
 } from '@/shared/infrastructure/filters/api-exception-payload.js';
 import {
   ERROR_CODE_BY_API_CODE,
+  GENERIC_ERROR_CODES,
   PROVIDER_ERROR_CODES,
 } from '@/shared/domain/errors/error-catalog.js';
 import type { MessageParams } from '@/shared/infrastructure/i18n/message-catalog.js';
@@ -88,9 +89,7 @@ function statusOfHttpError(error: unknown): number | undefined {
 
 /** El código único de un error que no es de una clase de dominio: el de su `code`, o el de «sin clasificar». */
 export function errorCodeFor(code: string): string {
-  return (
-    ERROR_CODE_BY_API_CODE[code] ?? ERROR_CODE_BY_API_CODE.UNKNOWN ?? 'P115U'
-  );
+  return ERROR_CODE_BY_API_CODE[code] ?? GENERIC_ERROR_CODES.unknown;
 }
 
 /** Cada proveedor externo y cómo se reconoce su error por el nombre de su clase o su código. */
@@ -126,14 +125,11 @@ const PROVIDER_SIGNATURES: readonly [
 export function providerErrorCode(exception: unknown): string {
   const name =
     typeof exception === 'object' && exception !== null
-      ? exception.constructor.name ||
-        ('name' in exception && typeof exception.name === 'string'
-          ? exception.name
-          : '')
+      ? exception.constructor.name
       : '';
   const hit = PROVIDER_SIGNATURES.find(([, signature]) => signature.test(name));
   return hit === undefined
-    ? (ERROR_CODE_BY_API_CODE.INTERNAL_ERROR ?? 'P900U')
+    ? GENERIC_ERROR_CODES.internal
     : PROVIDER_ERROR_CODES[hit[0]];
 }
 

@@ -60,6 +60,12 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCodeInfo>> =
 export const ERROR_CODE_BY_API_CODE: Readonly<Record<string, string>> =
   data.byApiCode;
 
+/** Los códigos de «sin clasificar» y de «error interno», para cuando nada más aplica. */
+export const GENERIC_ERROR_CODES = {
+  unknown: data.byApiCode.UNKNOWN,
+  internal: data.byApiCode.INTERNAL_ERROR,
+};
+
 /** Código único de un fallo de un proveedor externo. */
 export const PROVIDER_ERROR_CODES = data.providers as {
   readonly DATABASE: string;
