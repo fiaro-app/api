@@ -33,41 +33,36 @@ export class GetClientsRiskUseCase {
 
   /** @param input - El prestamista y los clientes a puntuar. */
   async execute(input: GetClientsRiskInput): Promise<ClientRiskEntry[]> {
-    const loansByClient = await Promise.all(
-      input.clientIds.map((clientId) => this.loansOf(input.lenderId, clientId)),
+    const histories = await Promise.all(
+      input.clientIds.map(async (clientId) => ({
+        clientId,
+        loans: await this.loansOf(input.lenderId, clientId),
+      })),
     );
-    const active = loansByClient
-      .flat()
-      .filter((loan) => loan.status === 'ACTIVE');
     const balances = await this.listLoanBalances.execute({
       lenderId: input.lenderId,
-      loans: active,
+      loans: histories.flatMap(({ loans }) =>
+        loans.filter((loan) => loan.status === 'ACTIVE'),
+      ),
       day: toBusinessDate(this.clock.now()),
     });
-    return input.clientIds.map((clientId, index) => {
-      const loans = (loansByClient[index] ?? []).filter(
-        (loan) => loan.status !== 'CANCELED',
-      );
-      const mine = loans
-        .filter((loan) => loan.status === 'ACTIVE')
-        .map((loan) => balances.get(loan.id));
-      const inArrears = mine.filter(
-        (balance) => (balance?.overdueAmount ?? 0) > 0,
-      );
+    return histories.map(({ clientId, loans }) => {
+      const counted = loans.filter((loan) => loan.status !== 'CANCELED');
+      const inArrears = counted
+        .flatMap((loan) => balances.get(loan.id) ?? [])
+        .filter((balance) => balance.overdueAmount > 0);
+      const balance = counted
+        .flatMap((loan) => balances.get(loan.id) ?? [])
+        .reduce((sum, item) => sum + item.balance, 0);
       const risk = assessClientRisk({
-        paidOffLoans: loans.filter((loan) => loan.status === 'PAID_OFF').length,
+        paidOffLoans: counted.filter((loan) => loan.status === 'PAID_OFF')
+          .length,
         loansInArrears: inArrears.length,
-        maxOverdueDays: Math.max(
-          0,
-          ...inArrears.map((b) => b?.overdueDays ?? 0),
-        ),
-        overdueAmount: inArrears.reduce(
-          (sum, b) => sum + (b?.overdueAmount ?? 0),
-          0,
-        ),
-        balance: mine.reduce((sum, b) => sum + (b?.balance ?? 0), 0),
+        maxOverdueDays: Math.max(0, ...inArrears.map((b) => b.overdueDays)),
+        overdueAmount: inArrears.reduce((sum, b) => sum + b.overdueAmount, 0),
+        balance,
       });
-      return { clientId, loansCount: loans.length, ...risk };
+      return { clientId, loansCount: counted.length, ...risk };
     });
   }
 

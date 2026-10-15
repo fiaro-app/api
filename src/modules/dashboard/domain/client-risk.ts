@@ -37,8 +37,10 @@ const OVERDUE_DAY_BRACKETS: readonly (readonly [number, number])[] = [
   [7, 15],
   [15, 30],
   [30, 50],
-  [Number.POSITIVE_INFINITY, 70],
 ];
+
+/** Los puntos de pasar de 30 días de atraso. */
+const MAX_OVERDUE_DAY_POINTS = 70;
 
 const MAX_OVERDUE_SHARE_POINTS = 15;
 const MULTIPLE_LOANS_POINTS = 10;
@@ -50,7 +52,10 @@ function overdueDayPoints(days: number): number {
   if (days <= 0) {
     return 0;
   }
-  return OVERDUE_DAY_BRACKETS.find(([upTo]) => days <= upTo)?.[1] ?? 0;
+  return (
+    OVERDUE_DAY_BRACKETS.find(([upTo]) => days <= upTo)?.[1] ??
+    MAX_OVERDUE_DAY_POINTS
+  );
 }
 
 /**
