@@ -268,7 +268,28 @@ describe('GetCollectorDailySummaryUseCase', () => {
       expectedAmount: 0,
       collectedAmount: 0,
       collectedByMethod: { CASH: 0, NEQUI: 0, TRANSFER: 0 },
+      routeLoans: 0,
+      visitedLoans: 0,
       visits: [],
     });
+  });
+
+  it('cuenta los préstamos de la ruta y cuántos ya visitó, sin contar visitas de fuera', async () => {
+    const { useCase } = setup({
+      assigned: [assignment('loan-1'), assignment('loan-2')],
+      visitRecords: [
+        paidVisitRecord('loan-1', 10_000, 'CASH'),
+        paidVisitRecord('loan-9', 10_000, 'CASH'),
+      ],
+    });
+
+    const result = await useCase.execute({
+      collectorMembershipId: 'membership-1',
+      lenderId: 'lender-1',
+      date: TODAY,
+    });
+
+    expect(result.routeLoans).toBe(2);
+    expect(result.visitedLoans).toBe(1);
   });
 });
