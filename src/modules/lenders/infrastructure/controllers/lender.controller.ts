@@ -10,6 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
 import { GetLenderLogoUploadUrlUseCase } from '@/modules/lenders/application/use-cases/get-lender-logo-upload-url.use-case.js';
@@ -100,6 +101,7 @@ export class LenderController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Post('logo-upload-url')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiGetLenderLogoUploadUrl()
   async getLenderLogoUploadUrl(
@@ -114,6 +116,7 @@ export class LenderController {
       await this.getLenderLogoUploadUrlUseCase.execute({
         lenderId: scope.lenderId,
         contentType: body.contentType,
+        sizeBytes: body.sizeBytes,
       }),
     );
   }

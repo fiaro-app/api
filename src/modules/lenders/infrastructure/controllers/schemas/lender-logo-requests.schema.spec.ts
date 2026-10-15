@@ -6,7 +6,10 @@ describe('GetLenderLogoUploadUrlRequestSchema', () => {
     'acepta contentType %s',
     (contentType) => {
       expect(
-        GetLenderLogoUploadUrlRequestSchema.safeParse({ contentType }).success,
+        GetLenderLogoUploadUrlRequestSchema.safeParse({
+          contentType,
+          sizeBytes: 1000,
+        }).success,
       ).toBe(true);
     },
   );
@@ -15,6 +18,7 @@ describe('GetLenderLogoUploadUrlRequestSchema', () => {
     expect(
       GetLenderLogoUploadUrlRequestSchema.safeParse({
         contentType: 'application/pdf',
+        sizeBytes: 1000,
       }).success,
     ).toBe(false);
   });
@@ -29,8 +33,23 @@ describe('GetLenderLogoUploadUrlRequestSchema', () => {
     expect(
       GetLenderLogoUploadUrlRequestSchema.safeParse({
         contentType: 'image/png',
+        sizeBytes: 1000,
         nota: 'x',
       }).success,
     ).toBe(false);
+  });
+
+  it('exige el peso y lo limita a 2 MB', () => {
+    const parse = (body: object) =>
+      GetLenderLogoUploadUrlRequestSchema.safeParse({
+        contentType: 'image/png',
+        ...body,
+      }).success;
+
+    expect(parse({})).toBe(false);
+    expect(parse({ sizeBytes: 0 })).toBe(false);
+    expect(parse({ sizeBytes: 2 * 1024 * 1024 })).toBe(true);
+    expect(parse({ sizeBytes: 2 * 1024 * 1024 + 1 })).toBe(false);
+    expect(parse({ sizeBytes: 1.5 })).toBe(false);
   });
 });

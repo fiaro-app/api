@@ -17,7 +17,7 @@ describe('S3ObjectStorageAdapter', () => {
 
     const result = await adapter.getPresignedUploadUrl(
       'logos/lender-1/abc.png',
-      'image/png',
+      { contentType: 'image/png', sizeBytes: 48_000 },
     );
 
     expect(result.uploadUrl).toMatch(
@@ -34,9 +34,46 @@ describe('S3ObjectStorageAdapter', () => {
   it('firma distinto para cada llave', async () => {
     const adapter = new S3ObjectStorageAdapter(CONFIG);
 
-    const a = await adapter.getPresignedUploadUrl('a.png', 'image/png');
-    const b = await adapter.getPresignedUploadUrl('b.png', 'image/png');
+    const a = await adapter.getPresignedUploadUrl('a.png', {
+      contentType: 'image/png',
+      sizeBytes: 10,
+    });
+    const b = await adapter.getPresignedUploadUrl('b.png', {
+      contentType: 'image/png',
+      sizeBytes: 10,
+    });
 
     expect(a.uploadUrl).not.toBe(b.uploadUrl);
+  });
+
+  it('firma el tipo y el peso: el bucket rechaza una subida distinta de lo pedido', async () => {
+    const adapter = new S3ObjectStorageAdapter(CONFIG);
+
+    const { uploadUrl } = await adapter.getPresignedUploadUrl('a.png', {
+      contentType: 'image/png',
+      sizeBytes: 48_000,
+    });
+
+    const signed = new URL(uploadUrl).searchParams.get('X-Amz-SignedHeaders');
+    expect(signed?.split(';').sort()).toEqual([
+      'content-length',
+      'content-type',
+      'host',
+    ]);
+  });
+
+  it('reconoce la llave de un objeto solo si la URL es de este bucket', () => {
+    const adapter = new S3ObjectStorageAdapter(CONFIG);
+    const base = CONFIG.publicUrlBase;
+
+    expect(adapter.keyFromPublicUrl(`${base}/logos/l/a.png`)).toBe(
+      'logos/l/a.png',
+    );
+    expect(
+      adapter.keyFromPublicUrl('https://evil.example/logos/l/a.png'),
+    ).toBeNull();
+    expect(adapter.keyFromPublicUrl(`${base}x/logos/l/a.png`)).toBeNull();
+    expect(adapter.keyFromPublicUrl(`${base}/`)).toBeNull();
+    expect(adapter.keyFromPublicUrl('javascript:alert(1)')).toBeNull();
   });
 });

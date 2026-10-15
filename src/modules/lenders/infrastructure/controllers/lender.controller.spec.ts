@@ -130,7 +130,7 @@ describe('LenderController', () => {
       const { controller, getLenderLogoUploadUrlUseCase } = setup();
 
       const response = await controller.getLenderLogoUploadUrl(
-        { contentType: 'image/png' },
+        { contentType: 'image/png', sizeBytes: 48_000 },
         scopeWith(['OWNER']),
       );
 
@@ -139,6 +139,7 @@ describe('LenderController', () => {
       ).toHaveBeenCalledExactlyOnceWith({
         lenderId: 'lender-1',
         contentType: 'image/png',
+        sizeBytes: 48_000,
       });
       expect(response).toEqual({
         uploadUrl: UPLOAD.uploadUrl,
@@ -152,7 +153,7 @@ describe('LenderController', () => {
 
       const error = await controller
         .getLenderLogoUploadUrl(
-          { contentType: 'image/png' },
+          { contentType: 'image/png', sizeBytes: 48_000 },
           scopeWith(['COLLECTOR']),
         )
         .catch((caught: unknown) => caught);
