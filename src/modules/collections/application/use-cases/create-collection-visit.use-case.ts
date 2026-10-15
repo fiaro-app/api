@@ -10,12 +10,14 @@ import { toCollectionVisitDetails } from '@/modules/collections/application/dtos
 import { validateCollectionVisitData } from '@/modules/collections/application/services/collection-visit-data.validator.js';
 import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
+import { DayAlreadySettledError } from '@/modules/collections/domain/errors/day-already-settled.error.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
 import { CollectorNotAssignedError } from '@/modules/collections/domain/errors/collector-not-assigned.error.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
+import { IsDaySettledUseCase } from '@/modules/settlements/application/use-cases/is-day-settled.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
 import type { IdGenerator } from '@/shared/application/ports/id-generator.port.js';
@@ -54,6 +56,7 @@ export class CreateCollectionVisitUseCase {
     private readonly assignments: CollectionAssignmentRepository,
     private readonly getLoan: GetLoanUseCase,
     private readonly reconcileLoanStatus: ReconcileLoanStatusUseCase,
+    private readonly isDaySettled: IsDaySettledUseCase,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -64,6 +67,8 @@ export class CreateCollectionVisitUseCase {
    * @throws {@link LoanNotFoundError} Si el préstamo no existe, o es de otro prestamista.
    * @throws {@link CollectorNotAssignedError} Si la membresía no tiene una asignación vigente
    * para este préstamo el día de la visita.
+   * @throws {@link DayAlreadySettledError} Si el cobrador ya envió el cuadre de ese día y sigue
+   * en revisión o aprobado (D-130).
    * @throws {@link InvalidCollectionVisitDataError} Si el resultado y lo que trae el pedido no
    * combinan.
    */
@@ -82,6 +87,7 @@ export class CreateCollectionVisitUseCase {
       input.loanId,
       input.occurredAt,
     );
+    await this.assertDayOpen(input.collectorMembershipId, input.occurredAt);
 
     validateCollectionVisitData(input);
 
@@ -122,6 +128,24 @@ export class CreateCollectionVisitUseCase {
     }
 
     return toCollectionVisitDetails({ visit, payment, reversal: null });
+  }
+
+  /**
+   * @param collectorMembershipId - El cobrador que registra la visita.
+   * @param occurredAt - Cuándo ocurrió; el día se mide en hora de Colombia.
+   * @throws {@link DayAlreadySettledError} Si ese día ya envió el cuadre y sigue en revisión o aprobado.
+   */
+  private async assertDayOpen(
+    collectorMembershipId: string,
+    occurredAt: Date,
+  ): Promise<void> {
+    const settled = await this.isDaySettled.execute(
+      collectorMembershipId,
+      toBusinessDate(occurredAt),
+    );
+    if (settled) {
+      throw new DayAlreadySettledError();
+    }
   }
 
   /**

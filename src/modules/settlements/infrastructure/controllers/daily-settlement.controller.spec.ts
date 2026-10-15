@@ -9,6 +9,7 @@ import type { GetSettlementUseCase } from '@/modules/settlements/application/use
 import type { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
 import type { ReviewSettlementUseCase } from '@/modules/settlements/application/use-cases/review-settlement.use-case.js';
 import type { SubmitSettlementUseCase } from '@/modules/settlements/application/use-cases/submit-settlement.use-case.js';
+import type { CancelSettlementUseCase } from '@/modules/settlements/application/use-cases/cancel-settlement.use-case.js';
 import { DailySettlementController } from '@/modules/settlements/infrastructure/controllers/daily-settlement.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -54,6 +55,7 @@ function setup() {
   };
   const controller = new DailySettlementController(
     submitSettlementUseCase as unknown as SubmitSettlementUseCase,
+    { execute: vi.fn() } as unknown as CancelSettlementUseCase,
     getSettlementUseCase as unknown as GetSettlementUseCase,
     listSettlementsUseCase as unknown as ListSettlementsUseCase,
     reviewSettlementUseCase as unknown as ReviewSettlementUseCase,
@@ -74,7 +76,7 @@ const scopeWith = (roles: readonly string[]): LenderScope => ({
 });
 
 describe('DailySettlementController', () => {
-  it('publica POST, GET, QUERY y dos POST de revisión, todas colgando de /daily-settlements', () => {
+  it('publica POST, GET, QUERY, dos POST de revisión y uno de cancelar, todas colgando de /daily-settlements', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       DailySettlementController.prototype,
     )
@@ -90,7 +92,7 @@ describe('DailySettlementController', () => {
       .sort();
 
     expect(publishedRoutes).toEqual(
-      ['POST', 'GET', 'QUERY', 'POST', 'POST'].sort(),
+      ['POST', 'GET', 'QUERY', 'POST', 'POST', 'POST'].sort(),
     );
     expect(Reflect.getMetadata(PATH_METADATA, DailySettlementController)).toBe(
       'daily-settlements',

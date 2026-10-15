@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
+import { CancelSettlementUseCase } from '@/modules/settlements/application/use-cases/cancel-settlement.use-case.js';
 import { GetSettlementUseCase } from '@/modules/settlements/application/use-cases/get-settlement.use-case.js';
 import { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
 import { ReviewSettlementUseCase } from '@/modules/settlements/application/use-cases/review-settlement.use-case.js';
@@ -22,6 +23,7 @@ import {
   ApiGetSettlement,
   ApiListSettlements,
   apiReviewSettlement,
+  ApiCancelSettlement,
   ApiSubmitSettlement,
 } from '@/modules/settlements/infrastructure/controllers/docs/settlement-routes.docs.js';
 import {
@@ -64,6 +66,7 @@ const SettlementIdParamSchema = z.uuid();
 export class DailySettlementController {
   constructor(
     private readonly submitSettlementUseCase: SubmitSettlementUseCase,
+    private readonly cancelSettlementUseCase: CancelSettlementUseCase,
     private readonly getSettlementUseCase: GetSettlementUseCase,
     private readonly listSettlementsUseCase: ListSettlementsUseCase,
     private readonly reviewSettlementUseCase: ReviewSettlementUseCase,
@@ -95,6 +98,27 @@ export class DailySettlementController {
         collectorNote: body.collectorNote ?? null,
       }),
     );
+  }
+
+  /**
+   * @param id - El cuadre.
+   * @param scope - El Lender y la membresía con la que opera la sesión.
+   */
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiCancelSettlement()
+  async cancelSettlement(
+    @Param('id', { schema: SettlementIdParamSchema }) id: string,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<void> {
+    if (!hasAnyRole(scope.roles, SUBMITTER_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    await this.cancelSettlementUseCase.execute({
+      settlementId: id,
+      lenderId: scope.lenderId,
+      collectorMembershipId: scope.membershipId,
+    });
   }
 
   /**

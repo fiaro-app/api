@@ -65,6 +65,25 @@ export class PrismaDailySettlementRepository implements DailySettlementRepositor
   }
 
   /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario del cuadre.
+   */
+  async findByCollectorAndDate(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<DailySettlement | null> {
+    const row = await this.prisma.dailySettlement.findUnique({
+      where: { collectorMembershipId_date: { collectorMembershipId, date } },
+    });
+    return row === null ? null : toDailySettlement(row);
+  }
+
+  /** @param id - El cuadre. */
+  async delete(id: string): Promise<void> {
+    await this.prisma.dailySettlement.delete({ where: { id } });
+  }
+
+  /**
    * @param input - Datos declarados por el cobrador al cerrar. El `upsert` de Prisma resuelve en
    * una sola operación atómica si el envío crea el cuadre o reemplaza uno existente, así que dos
    * envíos a la vez del mismo cobrador y día nunca chocan (a diferencia de buscar y luego decidir
