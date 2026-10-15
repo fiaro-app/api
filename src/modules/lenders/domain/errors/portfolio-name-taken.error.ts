@@ -11,6 +11,7 @@ import {
  */
 export class PortfolioNameTakenError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'B004A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

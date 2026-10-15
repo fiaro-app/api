@@ -50,7 +50,11 @@ describe('iniciar sesión con celular y contraseña', () => {
     });
     const unknownPhone = await signIn(app, { phone: '+573109998877' });
 
-    const withoutTimestamp = (body: object) => ({ ...body, timestamp: '' });
+    const withoutTimestamp = (body: object) => ({
+      ...body,
+      timestamp: '',
+      requestId: '',
+    });
     expect(wrongPassword.status).toBe(401);
     expect(unknownPhone.status).toBe(401);
     expect(withoutTimestamp(unknownPhone.body)).toEqual(

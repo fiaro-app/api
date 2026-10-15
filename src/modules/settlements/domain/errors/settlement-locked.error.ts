@@ -10,6 +10,7 @@ import {
  */
 export class SettlementLockedError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'S001A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

@@ -1,0 +1,638 @@
+{
+  "catalog": {
+    "A001A": {
+      "title": "El correo de contacto ya estaba verificado.",
+      "hint": "Un reintento de la misma persona; si la app lo vuelve a pedir, revisa que el estado verificado llegue en el perfil."
+    },
+    "A002A": {
+      "title": "Se pidió verificar un correo que la persona no ha registrado.",
+      "hint": "La app mandó verificar sin guardar antes el correo de contacto (PATCH /account/profile)."
+    },
+    "A003A": {
+      "title": "El código de verificación del correo venció.",
+      "hint": "Los códigos duran 15 minutos: la persona debe pedir uno nuevo. Si pasa seguido, revisa la hora del servidor."
+    },
+    "A004A": {
+      "title": "El código de verificación del correo no coincide.",
+      "hint": "Dígito mal escrito o código de otra solicitud. Muchos intentos seguidos pueden indicar fuerza bruta: mira la auditoría auth."
+    },
+    "A005A": {
+      "title": "Se intentó cerrar la sesión en uso desde la lista de sesiones.",
+      "hint": "Para cerrar la actual se usa sign-out, no DELETE /account/sessions/:id: revisa el botón de la app."
+    },
+    "A006V": {
+      "title": "La contraseña no cumple el largo permitido.",
+      "hint": "El cliente debe validar el largo antes de enviar (mínimo 15). Revisa si la validación local está desactualizada."
+    },
+    "A007V": {
+      "title": "Los datos de la cuenta no son válidos.",
+      "hint": "Mira los `issues` del error: indican el campo (nombre, celular, cédula, correo)."
+    },
+    "A008A": {
+      "title": "El código para recuperar la contraseña venció.",
+      "hint": "Duran 15 minutos: pedir uno nuevo. Si es frecuente, revisa la demora del correo (cola o proveedor)."
+    },
+    "A009A": {
+      "title": "El código para recuperar la contraseña no coincide.",
+      "hint": "Error de digitación o intento de adivinar el código: mira los eventos auth.password_reset en la auditoría."
+    },
+    "A010A": {
+      "title": "Ya existe una cuenta con ese celular.",
+      "hint": "Registro duplicado: quizá la persona ya tiene cuenta (usa recuperar contraseña) o el celular fue invitado por otro negocio."
+    },
+    "A011A": {
+      "title": "La sesión que se quiso cerrar no existe o no es de la persona.",
+      "hint": "La lista de sesiones del teléfono está vieja, o se intentó cerrar la sesión de otra persona."
+    },
+    "A012V": {
+      "title": "La contraseña es demasiado débil.",
+      "hint": "Está en la lista de contraseñas comunes o repite la cédula/celular: la app debe mostrar el motivo."
+    },
+    "A013A": {
+      "title": "La contraseña actual no es correcta.",
+      "hint": "Confirmación de contraseña fallida (cambiar contraseña o desactivar cuenta). Varios seguidos: posible uso indebido de una sesión abierta."
+    },
+    "C001A": {
+      "title": "Ya hay un cliente con esa cédula en este negocio.",
+      "hint": "Cliente duplicado: busca primero por cédula antes de crear otro."
+    },
+    "C002A": {
+      "title": "El cliente no existe para este negocio.",
+      "hint": "Id viejo en la app o de otro negocio (por diseño ambos dan 404). Si un cobrador lo recibe, revisa que tenga el préstamo asignado."
+    },
+    "C003V": {
+      "title": "Los datos del cliente no son válidos.",
+      "hint": "Mira los `issues`: cédula, celular, nombre o dirección."
+    },
+    "V001A": {
+      "title": "El cobrador tiene asignaciones programadas a futuro.",
+      "hint": "Reasigna o cancela sus asignaciones programadas antes de continuar."
+    },
+    "V002A": {
+      "title": "El cobrador no tiene asignado el préstamo ese día.",
+      "hint": "Registro de visita sobre un préstamo no asignado (modo cobrador): revisa la asignación vigente en la fecha de la visita."
+    },
+    "V003A": {
+      "title": "El cobrador no existe en este negocio.",
+      "hint": "Id de membresía viejo o de otro negocio."
+    },
+    "V004A": {
+      "title": "El cuadre de ese día ya se envió: no se pueden registrar más cobros.",
+      "hint": "Si fue por error, el cobrador cancela el cuadre (si está en revisión). Visitas offline de un día ya cuadrado también caen aquí."
+    },
+    "V005V": {
+      "title": "Los datos de la asignación no son válidos.",
+      "hint": "Mira los `issues`: fechas de vigencia o cobrador."
+    },
+    "V006V": {
+      "title": "Los datos de la visita no son válidos.",
+      "hint": "Resultado y pago no combinan (PAID sin pago, pago sin PAID, reprogramar sin fecha). Revisa el formulario de visita."
+    },
+    "V007A": {
+      "title": "El pago ya estaba reversado.",
+      "hint": "Doble toque o dos administradores a la vez: el pago solo se reversa una vez."
+    },
+    "V008A": {
+      "title": "El pago no existe para este negocio.",
+      "hint": "Id viejo en la app o de otro negocio."
+    },
+    "G001V": {
+      "title": "Los datos del contacto de ventas no son válidos.",
+      "hint": "Mira los `issues`: nombre, celular o correo."
+    },
+    "B001V": {
+      "title": "Los datos del negocio no son válidos.",
+      "hint": "Mira los `issues`: nombre, días sin cobro o color."
+    },
+    "B002V": {
+      "title": "El logo no es un PNG o JPEG válido de este negocio.",
+      "hint": "URL ajena al bucket, llave de otro negocio, archivo que no es imagen o pesa más de 2 MB (el objeto se borra). Revisa la subida del logo."
+    },
+    "B003V": {
+      "title": "Los datos de la cartera no son válidos.",
+      "hint": "Mira los `issues`: nombre."
+    },
+    "B004A": {
+      "title": "Ya hay una cartera con ese nombre en el negocio.",
+      "hint": "Nombre repetido: elegir otro."
+    },
+    "B005A": {
+      "title": "La cartera no se puede borrar.",
+      "hint": "Es la de por defecto o tiene cobradores activos: reasígnalos primero."
+    },
+    "B006A": {
+      "title": "La cartera no existe para este negocio.",
+      "hint": "Id viejo en la app o de otro negocio."
+    },
+    "L001V": {
+      "title": "Los datos del préstamo no son válidos.",
+      "hint": "Mira los `issues`: capital, cuotas, frecuencia, fecha de inicio o cliente."
+    },
+    "L002A": {
+      "title": "El préstamo ya no se puede anular.",
+      "hint": "Solo se anula antes de recibir pagos o si sigue activo: revisa su estado y sus pagos."
+    },
+    "L003A": {
+      "title": "El préstamo no existe para este negocio.",
+      "hint": "Id viejo en la app, de otro negocio o, si es cobrador, de un préstamo que nunca tuvo asignado (D-127)."
+    },
+    "M001A": {
+      "title": "Ya hay una persona con esa cédula en este negocio.",
+      "hint": "Colaborador duplicado: búscalo antes de invitar."
+    },
+    "M002A": {
+      "title": "El cobrador tiene historial: no se puede borrar.",
+      "hint": "Tiene asignaciones, visitas o cuadres: desactívalo en vez de borrarlo."
+    },
+    "M003A": {
+      "title": "El plan no admite más cobradores activos.",
+      "hint": "Límite del plan (D-116): desactiva uno o sube de plan."
+    },
+    "M004V": {
+      "title": "Los datos del colaborador no son válidos.",
+      "hint": "Mira los `issues`: celular, cédula, roles o cartera."
+    },
+    "M005A": {
+      "title": "La persona ya es parte de este negocio.",
+      "hint": "Invitación repetida: reactívala o cambia sus roles."
+    },
+    "M006A": {
+      "title": "El colaborador no existe en este negocio.",
+      "hint": "Id viejo en la app o de otro negocio."
+    },
+    "N001A": {
+      "title": "La notificación no existe para esta persona.",
+      "hint": "Id viejo o de otra persona (por diseño da 404)."
+    },
+    "S001A": {
+      "title": "El cuadre de hoy ya se envió y no se puede reenviar.",
+      "hint": "Está en revisión o aprobado: cancelarlo (si está en revisión) antes de enviar otro."
+    },
+    "S002A": {
+      "title": "El cuadre ya fue revisado: no se puede cancelar.",
+      "hint": "Solo se cancela en revisión; uno aprobado o rechazado se queda así."
+    },
+    "S003A": {
+      "title": "El cuadre no existe para esta persona.",
+      "hint": "Id viejo, de otro negocio o de otro cobrador."
+    },
+    "S004A": {
+      "title": "El cuadre ya fue revisado: no se puede revisar otra vez.",
+      "hint": "Dos administradores a la vez o la lista de la app está vieja."
+    },
+    "S005V": {
+      "title": "Falta la nota: lo cobrado no cuadra con lo esperado.",
+      "hint": "Cuando hay diferencia la nota es obligatoria: la app debe exigirla antes de enviar."
+    },
+    "U001A": {
+      "title": "El negocio no tiene suscripción.",
+      "hint": "Datos inconsistentes: todo negocio nace con su prueba (D-115). Revisa cómo se creó."
+    },
+    "W001H": {
+      "title": "El sistema está en mantenimiento.",
+      "hint": "MAINTENANCE_MODE=true: el balanceador debe sacar la instancia; apágalo al terminar."
+    },
+    "T001V": {
+      "title": "Los datos del registro del negocio no son válidos.",
+      "hint": "Mira los `issues`: nombre del negocio, celular o cédula."
+    },
+    "P001V": {
+      "title": "El celular no es válido.",
+      "hint": "Debe ser un celular colombiano de 10 dígitos que empiece por 3."
+    },
+    "P002F": {
+      "title": "Cloudflare Turnstile no verificó que sea una persona.",
+      "hint": "Token vencido o repetido, llave secreta equivocada, o Cloudflare caído: revisa CLOUDFLARE_TURNSTILE_SECRET_KEY y los hostnames."
+    },
+    "P101A": {
+      "title": "No hay sesión vigente.",
+      "hint": "La cookie venció o no se envió. En la app: ¿sesión expirada? En desarrollo: revisa Origin y CORS_ORIGINS."
+    },
+    "P102A": {
+      "title": "Sin autorización.",
+      "hint": "Credenciales ausentes o inválidas."
+    },
+    "P103A": {
+      "title": "La persona no tiene permiso para esta operación.",
+      "hint": "Revisa el rol de la membresía activa (PERMISSIONS.md) y que opere con el negocio correcto."
+    },
+    "P104A": {
+      "title": "No existe lo que se pidió.",
+      "hint": "Ruta o recurso inexistente, o de otro negocio (no se distingue a propósito)."
+    },
+    "P105A": {
+      "title": "El cambio choca con el estado actual.",
+      "hint": "Algo ya cambió o ya existe: la app debe refrescar y reintentar."
+    },
+    "P106V": {
+      "title": "Los datos enviados no son válidos.",
+      "hint": "Mira los `issues` de la respuesta (campo y motivo)."
+    },
+    "P107V": {
+      "title": "La solicitud no es válida.",
+      "hint": "Cuerpo mal formado o parámetro ilegible."
+    },
+    "P108H": {
+      "title": "Método HTTP no permitido en esta ruta.",
+      "hint": "El cliente usó otro verbo (¿falta QUERY?)."
+    },
+    "P109H": {
+      "title": "El cuerpo enviado es demasiado grande.",
+      "hint": "Revisa el límite del cuerpo y qué se está enviando."
+    },
+    "P110H": {
+      "title": "Formato de contenido no compatible.",
+      "hint": "El Content-Type debe ser application/json."
+    },
+    "P111H": {
+      "title": "Demasiadas solicitudes.",
+      "hint": "Límite de tasa por IP y ruta: ¿bucle de reintentos en la app o un ataque? Mira la ruta y la IP en el log."
+    },
+    "P112A": {
+      "title": "Hay que cambiar la contraseña temporal primero.",
+      "hint": "Contraseña temporal pendiente: la app debe llevar a cambiar contraseña."
+    },
+    "P113A": {
+      "title": "La suscripción está en solo lectura.",
+      "hint": "Plan vencido (GRACE_PERIOD→READ_ONLY): solo consulta hasta renovar."
+    },
+    "P114H": {
+      "title": "Sistema en mantenimiento.",
+      "hint": "Ver W001H."
+    },
+    "P115U": {
+      "title": "Error sin clasificar.",
+      "hint": "Un código de error nuevo de una librería sin texto: agrégalo al catálogo."
+    },
+    "P900U": {
+      "title": "Error interno del servidor.",
+      "hint": "Mira el log con el requestId: traza completa y el proveedor implicado."
+    },
+    "P910D": {
+      "title": "PostgreSQL falló.",
+      "hint": "Conexión, tiempo agotado, migración pendiente o restricción: mira el código de Prisma en el log."
+    },
+    "P911R": {
+      "title": "Redis falló.",
+      "hint": "Caché o cola caída/lenta: las lecturas siguen sin caché y las colas reintentan; revisa REDIS_URL y la memoria."
+    },
+    "P912M": {
+      "title": "MongoDB falló.",
+      "hint": "Registro de logs/auditoría caído: no afecta la petición; revisa MONGODB_URI y el espacio."
+    },
+    "P913S": {
+      "title": "El almacenamiento (S3/R2) falló.",
+      "hint": "Credenciales, bucket o endpoint del almacenamiento: revisa S3_* y que el bucket exista."
+    },
+    "P914E": {
+      "title": "El proveedor de correo falló.",
+      "hint": "Resend: API key, remitente no verificado o proveedor caído. Los correos no bloquean el flujo."
+    },
+    "P915X": {
+      "title": "El proveedor de push (Expo) falló.",
+      "hint": "Expo caído, token inválido (DeviceNotRegistered) o EXPO_ACCESS_TOKEN: los push no bloquean el flujo."
+    },
+    "P916F": {
+      "title": "Cloudflare falló.",
+      "hint": "Turnstile no respondió: revisa conectividad y la llave."
+    },
+    "A101A": {
+      "title": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",
+      "hint": "Inicio de sesión bloqueado por intentos fallidos: espera el tiempo de bloqueo; si es un ataque, mira auth.sign_in.failed en la auditoría."
+    },
+    "A102A": {
+      "title": "Esta cuenta está desactivada.",
+      "hint": "La cuenta fue desactivada (D-71): no puede iniciar sesión; solo soporte la reactiva."
+    },
+    "A103V": {
+      "title": "El celular o la contraseña no son correctos.",
+      "hint": "Celular o contraseña equivocados: no se distingue cuál a propósito. Muchos seguidos de la misma IP: posible fuerza bruta."
+    },
+    "A104V": {
+      "title": "El celular no es válido.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A105A": {
+      "title": "Ya existe una cuenta con ese celular.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A106A": {
+      "title": "No existe una cuenta con ese celular.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A107A": {
+      "title": "El celular no está verificado.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A108A": {
+      "title": "No se puede cambiar el celular.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A109A": {
+      "title": "Ocurrió un error inesperado.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A110A": {
+      "title": "No encontramos el código.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A111A": {
+      "title": "El código venció.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A112V": {
+      "title": "El código no es correcto.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A113A": {
+      "title": "El envío de códigos no está habilitado.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A114A": {
+      "title": "Demasiados intentos. Intenta de nuevo más tarde.",
+      "hint": "Demasiados intentos con un código: pedir uno nuevo."
+    },
+    "A115A": {
+      "title": "No encontramos a esa persona.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A116A": {
+      "title": "No pudimos crear la cuenta.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A117A": {
+      "title": "No pudimos iniciar la sesión.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A118A": {
+      "title": "No pudimos actualizar los datos.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A119A": {
+      "title": "No pudimos leer la sesión.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A120V": {
+      "title": "El correo no es válido.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A121V": {
+      "title": "El correo o la contraseña no son correctos.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A122V": {
+      "title": "La persona no es válida.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A123A": {
+      "title": "Esa cuenta social ya está vinculada.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A124A": {
+      "title": "No encontramos ese proveedor de inicio de sesión.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A125V": {
+      "title": "El enlace o el código ya no es válido.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A126A": {
+      "title": "El enlace o el código venció.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A127A": {
+      "title": "Ese tipo de inicio de sesión no está disponible.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A128A": {
+      "title": "No pudimos obtener los datos de la cuenta.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A129A": {
+      "title": "La cuenta no tiene correo.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A130A": {
+      "title": "Verifica tu correo para continuar.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A131V": {
+      "title": "La contraseña es demasiado corta.",
+      "hint": "La contraseña es más corta que el mínimo (15)."
+    },
+    "A132V": {
+      "title": "La contraseña es demasiado larga.",
+      "hint": "La contraseña es más larga que el máximo permitido."
+    },
+    "A133A": {
+      "title": "Ya existe una cuenta con esos datos.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A134A": {
+      "title": "Ya existe una cuenta con ese correo. Usa otro.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A135A": {
+      "title": "No se puede cambiar el correo.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A136A": {
+      "title": "Cambiar el correo no está habilitado.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A137A": {
+      "title": "No encontramos las credenciales de la cuenta.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A138A": {
+      "title": "Tu sesión venció. Inicia sesión de nuevo.",
+      "hint": "La sesión venció: la app debe volver a iniciar sesión."
+    },
+    "A139A": {
+      "title": "No puedes desvincular tu último método de inicio de sesión.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A140A": {
+      "title": "No encontramos la cuenta.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A141A": {
+      "title": "Esta cuenta ya tiene una contraseña.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A142A": {
+      "title": "Por seguridad, no se puede iniciar sesión desde otro sitio.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A143A": {
+      "title": "La verificación por correo no está habilitada.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A144A": {
+      "title": "El correo ya está verificado.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A145A": {
+      "title": "El correo no coincide.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A146A": {
+      "title": "Por seguridad, vuelve a iniciar sesión para hacer este cambio.",
+      "hint": "La operación exige haber iniciado sesión hace poco: volver a iniciar sesión."
+    },
+    "A147A": {
+      "title": "Esa cuenta ya está vinculada a otra persona.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A148V": {
+      "title": "La petición viene de un origen que no es de confianza.",
+      "hint": "El Origin de la petición no es de confianza: revisa CORS_ORIGINS (web) o MOBILE_APP_SCHEMES (móvil)."
+    },
+    "A149V": {
+      "title": "La petición no dice de dónde viene.",
+      "hint": "La petición con cookie no trajo Origin: la app móvil debe mandar expo-origin."
+    },
+    "A150V": {
+      "title": "La dirección de retorno no es válida.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A151V": {
+      "title": "La dirección de redirección no es válida.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A152V": {
+      "title": "La dirección de error no es válida.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A153V": {
+      "title": "La dirección para personas nuevas no es válida.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A154V": {
+      "title": "Falta la dirección de retorno.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A155A": {
+      "title": "No pudimos crear la verificación.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A156V": {
+      "title": "Ese campo no se puede enviar.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A157V": {
+      "title": "La validación no está disponible.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A158V": {
+      "title": "Los datos enviados no son válidos.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A159V": {
+      "title": "Falta un dato obligatorio.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A160A": {
+      "title": "Esta operación requiere una sesión.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A161V": {
+      "title": "El cuerpo de la petición debe ser un objeto.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    },
+    "A162A": {
+      "title": "La contraseña ya está definida.",
+      "hint": "Error de la librería de autenticación (better-auth): mira el log con el requestId y el flujo de inicio de sesión."
+    }
+  },
+  "byApiCode": {
+    "UNAUTHENTICATED": "P101A",
+    "UNAUTHORIZED": "P102A",
+    "FORBIDDEN": "P103A",
+    "NOT_FOUND": "P104A",
+    "CONFLICT": "P105A",
+    "VALIDATION_FAILED": "P106V",
+    "BAD_REQUEST": "P107V",
+    "METHOD_NOT_ALLOWED": "P108H",
+    "PAYLOAD_TOO_LARGE": "P109H",
+    "UNSUPPORTED_MEDIA_TYPE": "P110H",
+    "RATE_LIMITED": "P111H",
+    "PASSWORD_CHANGE_REQUIRED": "P112A",
+    "SUBSCRIPTION_READ_ONLY": "P113A",
+    "MAINTENANCE": "P114H",
+    "UNKNOWN": "P115U",
+    "INTERNAL_ERROR": "P900U",
+    "TURNSTILE_FAILED": "P002F",
+    "SIGN_IN_LOCKED": "A101A",
+    "ACCOUNT_DEACTIVATED": "A102A",
+    "INVALID_PHONE_NUMBER_OR_PASSWORD": "A103V",
+    "INVALID_PHONE_NUMBER": "A104V",
+    "PHONE_NUMBER_EXIST": "A105A",
+    "PHONE_NUMBER_NOT_EXIST": "A106A",
+    "PHONE_NUMBER_NOT_VERIFIED": "A107A",
+    "PHONE_NUMBER_CANNOT_BE_UPDATED": "A108A",
+    "UNEXPECTED_ERROR": "A109A",
+    "OTP_NOT_FOUND": "A110A",
+    "OTP_EXPIRED": "A111A",
+    "INVALID_OTP": "A112V",
+    "SEND_OTP_NOT_IMPLEMENTED": "A113A",
+    "TOO_MANY_ATTEMPTS": "A114A",
+    "USER_NOT_FOUND": "A115A",
+    "FAILED_TO_CREATE_USER": "A116A",
+    "FAILED_TO_CREATE_SESSION": "A117A",
+    "FAILED_TO_UPDATE_USER": "A118A",
+    "FAILED_TO_GET_SESSION": "A119A",
+    "INVALID_EMAIL": "A120V",
+    "INVALID_EMAIL_OR_PASSWORD": "A121V",
+    "INVALID_USER": "A122V",
+    "SOCIAL_ACCOUNT_ALREADY_LINKED": "A123A",
+    "PROVIDER_NOT_FOUND": "A124A",
+    "INVALID_TOKEN": "A125V",
+    "TOKEN_EXPIRED": "A126A",
+    "ID_TOKEN_NOT_SUPPORTED": "A127A",
+    "FAILED_TO_GET_USER_INFO": "A128A",
+    "USER_EMAIL_NOT_FOUND": "A129A",
+    "EMAIL_NOT_VERIFIED": "A130A",
+    "PASSWORD_TOO_SHORT": "A131V",
+    "PASSWORD_TOO_LONG": "A132V",
+    "USER_ALREADY_EXISTS": "A133A",
+    "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "A134A",
+    "EMAIL_CAN_NOT_BE_UPDATED": "A135A",
+    "CHANGE_EMAIL_DISABLED": "A136A",
+    "CREDENTIAL_ACCOUNT_NOT_FOUND": "A137A",
+    "SESSION_EXPIRED": "A138A",
+    "FAILED_TO_UNLINK_LAST_ACCOUNT": "A139A",
+    "ACCOUNT_NOT_FOUND": "A140A",
+    "USER_ALREADY_HAS_PASSWORD": "A141A",
+    "CROSS_SITE_NAVIGATION_LOGIN_BLOCKED": "A142A",
+    "VERIFICATION_EMAIL_NOT_ENABLED": "A143A",
+    "EMAIL_ALREADY_VERIFIED": "A144A",
+    "EMAIL_MISMATCH": "A145A",
+    "SESSION_NOT_FRESH": "A146A",
+    "LINKED_ACCOUNT_ALREADY_EXISTS": "A147A",
+    "INVALID_ORIGIN": "A148V",
+    "MISSING_OR_NULL_ORIGIN": "A149V",
+    "INVALID_CALLBACK_URL": "A150V",
+    "INVALID_REDIRECT_URL": "A151V",
+    "INVALID_ERROR_CALLBACK_URL": "A152V",
+    "INVALID_NEW_USER_CALLBACK_URL": "A153V",
+    "CALLBACK_URL_REQUIRED": "A154V",
+    "FAILED_TO_CREATE_VERIFICATION": "A155A",
+    "FIELD_NOT_ALLOWED": "A156V",
+    "ASYNC_VALIDATION_NOT_SUPPORTED": "A157V",
+    "VALIDATION_ERROR": "A158V",
+    "MISSING_FIELD": "A159V",
+    "METHOD_NOT_ALLOWED_DEFER_SESSION_REQUIRED": "A160A",
+    "BODY_MUST_BE_AN_OBJECT": "A161V",
+    "PASSWORD_ALREADY_SET": "A162A"
+  },
+  "providers": {
+    "DATABASE": "P910D",
+    "REDIS": "P911R",
+    "MONGO": "P912M",
+    "STORAGE": "P913S",
+    "EMAIL": "P914E",
+    "PUSH": "P915X",
+    "CLOUDFLARE": "P916F"
+  }
+}

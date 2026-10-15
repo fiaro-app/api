@@ -10,6 +10,7 @@ import {
  */
 export class LoanNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'L003A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor(id: string) {

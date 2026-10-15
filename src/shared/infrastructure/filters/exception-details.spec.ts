@@ -15,11 +15,14 @@ import {
 import {
   codeForStatus,
   describeException,
+  errorCodeFor,
+  providerErrorCode,
 } from '@/shared/infrastructure/filters/exception-details.js';
 
 /** Un error de dominio de prueba de la categoría que se pida. */
 class ProbeDomainError extends DomainError {
   readonly code = 'PROBE_FAILED';
+  readonly errorCode = 'P999U';
 
   constructor(
     readonly kind: DomainErrorKind,
@@ -79,7 +82,7 @@ describe('describeException', () => {
         }),
       );
 
-      expect(details).toEqual({
+      expect(details).toMatchObject({
         statusCode: 400,
         code: 'PROBE_FAILED',
         params: { limit: 5 },
@@ -94,18 +97,23 @@ describe('describeException', () => {
     });
 
     it('sin detalle no lleva params ni issues', () => {
-      expect(describeException(new ProbeDomainError('CONFLICT'))).toEqual({
-        statusCode: 409,
-        code: 'PROBE_FAILED',
-        params: undefined,
-        issues: undefined,
-      });
+      expect(describeException(new ProbeDomainError('CONFLICT'))).toMatchObject(
+        {
+          statusCode: 409,
+          code: 'PROBE_FAILED',
+          params: undefined,
+          issues: undefined,
+        },
+      );
     });
 
     it('nunca lleva el mensaje del error: es para el log, no para la persona', () => {
       const details = describeException(new ProbeDomainError('INVALID'));
 
-      expect(JSON.stringify(details)).not.toContain('falló la prueba');
+      expect(JSON.stringify({ ...details, cause: undefined })).not.toContain(
+        'falló la prueba',
+      );
+      expect(details.cause).toBe('falló la prueba');
     });
 
     it('el celular repetido es un 409 PHONE_ALREADY_REGISTERED', () => {
@@ -154,14 +162,14 @@ describe('describeException', () => {
     });
 
     it('sin código en el cuerpo lo deduce del estado, como el 404 de una ruta que no existe', () => {
-      expect(describeException(new NotFoundException('Cannot GET /x'))).toEqual(
-        {
-          statusCode: 404,
-          code: 'NOT_FOUND',
-          params: undefined,
-          issues: undefined,
-        },
-      );
+      expect(
+        describeException(new NotFoundException('Cannot GET /x')),
+      ).toMatchObject({
+        statusCode: 404,
+        code: 'NOT_FOUND',
+        params: undefined,
+        issues: undefined,
+      });
     });
 
     it('lleva los params y los issues del cuerpo', () => {
@@ -181,7 +189,7 @@ describe('describeException', () => {
         }),
       );
 
-      expect(details).toEqual({
+      expect(details).toMatchObject({
         statusCode: 400,
         code: 'VALIDATION_FAILED',
         params: { limit: 5 },
@@ -200,7 +208,7 @@ describe('describeException', () => {
     ])('ignora %s y deduce el código del estado', (_case, body) => {
       const details = describeException(new HttpException(body, 400));
 
-      expect(details).toEqual({
+      expect(details).toMatchObject({
         statusCode: 400,
         code: 'BAD_REQUEST',
         params: undefined,
@@ -214,11 +222,11 @@ describe('describeException', () => {
       Object.assign(new Error('mensaje interno'), { statusCode });
 
     it('conserva el estado HTTP que trae, como los errores de body-parser', () => {
-      expect(describeException(httpError(413))).toEqual({
+      expect(describeException(httpError(413))).toMatchObject({
         statusCode: 413,
         code: 'PAYLOAD_TOO_LARGE',
       });
-      expect(describeException(httpError(400))).toEqual({
+      expect(describeException(httpError(400))).toMatchObject({
         statusCode: 400,
         code: 'BAD_REQUEST',
       });
@@ -227,7 +235,7 @@ describe('describeException', () => {
     it.each([200, 399, 600, 0])(
       'un estado fuera de 400-599 (%i) es un error del servidor',
       (statusCode) => {
-        expect(describeException(httpError(statusCode))).toEqual({
+        expect(describeException(httpError(statusCode))).toMatchObject({
           statusCode: 500,
           code: 'INTERNAL_ERROR',
         });
@@ -243,9 +251,60 @@ describe('describeException', () => {
     ['un objeto sin estado', {}],
     ['un objeto con un estado que no es número', { statusCode: '404' }],
   ])('%s es un 500 INTERNAL_ERROR', (_case, thrown) => {
-    expect(describeException(thrown)).toEqual({
+    expect(describeException(thrown)).toMatchObject({
       statusCode: 500,
       code: 'INTERNAL_ERROR',
     });
+  });
+});
+
+describe('el código único de un error (D-134)', () => {
+  it('un error de dominio lleva el de su clase, aunque comparta `code` con otros', () => {
+    expect(describeException(new PhoneAlreadyRegisteredError()).errorCode).toBe(
+      'A010A',
+    );
+    expect(describeException(new ProbeDomainError('CONFLICT')).errorCode).toBe(
+      'P999U',
+    );
+  });
+
+  it('una excepción de Nest toma el genérico de su código o de su estado', () => {
+    expect(describeException(new NotFoundException()).errorCode).toBe('P104A');
+    expect(
+      describeException(new BadRequestException({ code: 'VALIDATION_FAILED' }))
+        .errorCode,
+    ).toBe('P106V');
+    expect(errorCodeFor('CODIGO_QUE_NO_EXISTE')).toBe('P115U');
+  });
+
+  it('un error inesperado se atribuye al proveedor que lo causó por el nombre de su clase', () => {
+    class PrismaClientKnownRequestError extends Error {}
+    class MongoServerError extends Error {}
+    class ReplyError extends Error {}
+    class S3ServiceException extends Error {}
+    class ResendError extends Error {}
+    class ExpoPushError extends Error {}
+
+    expect(providerErrorCode(new PrismaClientKnownRequestError('x'))).toBe(
+      'P910D',
+    );
+    expect(providerErrorCode(new MongoServerError('x'))).toBe('P912M');
+    expect(providerErrorCode(new ReplyError('x'))).toBe('P911R');
+    expect(providerErrorCode(new S3ServiceException('x'))).toBe('P913S');
+    expect(providerErrorCode(new ResendError('x'))).toBe('P914E');
+    expect(providerErrorCode(new ExpoPushError('x'))).toBe('P915X');
+    expect(providerErrorCode(new Error('cualquier otra cosa'))).toBe('P900U');
+    expect(providerErrorCode('un texto')).toBe('P900U');
+    expect(
+      describeException(new PrismaClientKnownRequestError('x')).errorCode,
+    ).toBe('P910D');
+  });
+
+  it('el mensaje de la excepción queda en `cause`, recortado, y sin mensaje no hay `cause`', () => {
+    expect(describeException(new Error('a'.repeat(500))).cause).toHaveLength(
+      300,
+    );
+    expect(describeException(new Error('')).cause).toBeUndefined();
+    expect(describeException('no es un Error').cause).toBeUndefined();
   });
 });

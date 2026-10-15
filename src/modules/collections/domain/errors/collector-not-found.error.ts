@@ -10,6 +10,7 @@ import {
  */
 export class CollectorNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'V003A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor(id: string) {

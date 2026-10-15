@@ -21,6 +21,7 @@ const twoLanguages = new ApiErrorFactory(
       'validation.too_small.string': 'The minimum length is {minimum}.',
     },
   }),
+  { nodeEnv: 'test' },
 );
 
 describe('ApiErrorFactory', () => {
@@ -29,26 +30,30 @@ describe('ApiErrorFactory', () => {
   describe('create', () => {
     it('arma el error del contrato: estado, código, mensaje del catálogo, ruta y hora', () => {
       const error = errors.create(
-        { statusCode: 404, code: 'NOT_FOUND' },
+        { statusCode: 404, code: 'NOT_FOUND', errorCode: 'P999U' },
         '/loans/1',
       );
 
-      expect(error).toEqual({
+      expect(error).toMatchObject({
         statusCode: 404,
         code: 'NOT_FOUND',
+        errorCode: 'P999U',
         message: 'No encontramos lo que buscas.',
         path: '/loans/1',
         timestamp: expect.any(String),
         issues: null,
+        requestId: null,
       });
-      expect(ApiErrorSchema.parse(error)).toEqual(error);
+      expect(ApiErrorSchema.parse(error)).toMatchObject(
+        ApiErrorSchema.parse(error),
+      );
     });
 
     it('la hora es el instante en que se arma, en ISO 8601', () => {
       const before = Date.now();
 
       const { timestamp } = errors.create(
-        { statusCode: 500, code: 'INTERNAL_ERROR' },
+        { statusCode: 500, code: 'INTERNAL_ERROR', errorCode: 'P999U' },
         '/x',
       );
 
@@ -60,7 +65,12 @@ describe('ApiErrorFactory', () => {
 
     it('llena los marcadores del mensaje con los params', () => {
       const error = twoLanguages.create(
-        { statusCode: 400, code: 'TOO_SHORT', params: { minimum: 3 } },
+        {
+          statusCode: 400,
+          code: 'TOO_SHORT',
+          errorCode: 'P999U',
+          params: { minimum: 3 },
+        },
         '/x',
       );
 
@@ -69,7 +79,7 @@ describe('ApiErrorFactory', () => {
 
     it('un código sin texto usa el del estado, para no quedar sin mensaje', () => {
       const error = errors.create(
-        { statusCode: 403, code: 'CODIGO_NUEVO' },
+        { statusCode: 403, code: 'CODIGO_NUEVO', errorCode: 'P999U' },
         '/x',
       );
 
@@ -81,7 +91,7 @@ describe('ApiErrorFactory', () => {
 
     it('si tampoco el estado tiene texto usa el genérico', () => {
       const error = twoLanguages.create(
-        { statusCode: 409, code: 'CODIGO_NUEVO' },
+        { statusCode: 409, code: 'CODIGO_NUEVO', errorCode: 'P999U' },
         '/x',
       );
 
@@ -91,7 +101,10 @@ describe('ApiErrorFactory', () => {
     it('sale en el idioma de la petición, con el respaldo de cada texto en el de por defecto', () => {
       const error = (code: string) =>
         runWithLanguage('en', () =>
-          twoLanguages.create({ statusCode: 404, code }, '/x'),
+          twoLanguages.create(
+            { statusCode: 404, code, errorCode: 'P999U' },
+            '/x',
+          ),
         );
 
       expect(error('NOT_FOUND').message).toBe('We could not find it.');
@@ -99,10 +112,62 @@ describe('ApiErrorFactory', () => {
     });
   });
 
+  describe('lo que sale en producción y lo que no (D-134)', () => {
+    const details = {
+      statusCode: 404,
+      code: 'NOT_FOUND',
+      errorCode: 'L003A',
+      cause: 'El préstamo 0198 no existe.',
+    };
+
+    it('en producción: el código único y el requestId sí, la explicación nunca', () => {
+      const error = realApiErrors('production').create(details, '/loans/1');
+
+      expect(error.errorCode).toBe('L003A');
+      expect(error).toHaveProperty('requestId');
+      expect(error).not.toHaveProperty('debug');
+      expect(JSON.stringify(error)).not.toContain('0198');
+      expect(JSON.stringify(error)).not.toMatch(/Id viejo/);
+    });
+
+    it('fuera de producción: `debug` explica qué es el error, qué mirar y lo que dijo la excepción', () => {
+      const error = realApiErrors('development').create(details, '/loans/1');
+
+      expect(error.debug).toEqual({
+        title: 'El préstamo no existe para este negocio.',
+        hint: expect.stringContaining('Id viejo'),
+        cause: 'El préstamo 0198 no existe.',
+      });
+    });
+
+    it('un código fuera del catálogo no rompe: `debug` sale con nulos', () => {
+      const error = realApiErrors('development').create(
+        { ...details, errorCode: 'Z999Z', cause: undefined },
+        '/x',
+      );
+
+      expect(error.debug).toEqual({ title: null, hint: null, cause: null });
+    });
+
+    it('annotate deja en la respuesta lo que va al log, también en producción', () => {
+      const res = { locals: {} as Record<string, unknown> };
+
+      realApiErrors('production').annotate(res as never, details);
+
+      expect(res.locals.errorLog).toEqual({
+        errorCode: 'L003A',
+        errorTitle: 'El préstamo no existe para este negocio.',
+        errorHint: expect.stringContaining('Id viejo'),
+        errorCause: 'El préstamo 0198 no existe.',
+      });
+    });
+  });
+
   describe('los issues de un VALIDATION_FAILED', () => {
     const details = (message: string, params?: Record<string, string>) => ({
       statusCode: 400,
       code: 'VALIDATION_FAILED',
+      errorCode: 'P106V',
       issues: [{ path: ['name', 0], message, params }],
     });
 
@@ -153,11 +218,16 @@ describe('ApiErrorFactory', () => {
 
     it('sin issues es null, y con una lista vacía, una lista vacía', () => {
       const none = errors.create(
-        { statusCode: 400, code: 'BAD_REQUEST' },
+        { statusCode: 400, code: 'BAD_REQUEST', errorCode: 'P999U' },
         '/x',
       );
       const empty = errors.create(
-        { statusCode: 400, code: 'VALIDATION_FAILED', issues: [] },
+        {
+          statusCode: 400,
+          code: 'VALIDATION_FAILED',
+          errorCode: 'P106V',
+          issues: [],
+        },
         '/x',
       );
 

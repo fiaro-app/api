@@ -10,6 +10,7 @@ import {
  */
 export class InvalidLenderDataError extends DomainError {
   readonly code = 'VALIDATION_FAILED';
+  readonly errorCode = 'B001V';
   readonly kind: DomainErrorKind = 'INVALID';
   declare readonly issues: readonly DomainIssue[];
 

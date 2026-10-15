@@ -8,6 +8,11 @@ import {
   ApiExceptionPayloadSchema,
   type IssuePayload,
 } from '@/shared/infrastructure/filters/api-exception-payload.js';
+import {
+  ERROR_CODE_BY_API_CODE,
+  GENERIC_ERROR_CODES,
+  PROVIDER_ERROR_CODES,
+} from '@/shared/domain/errors/error-catalog.js';
 import type { MessageParams } from '@/shared/infrastructure/i18n/message-catalog.js';
 
 /** Lo que hace falta saber de una excepción para responder: su estado y el contenido del error. */
@@ -20,6 +25,10 @@ export interface ExceptionDetails {
   readonly params?: MessageParams;
   /** Detalle por campo de un `VALIDATION_FAILED`. */
   readonly issues?: readonly IssuePayload[];
+  /** Código único del catálogo (`error-catalog.ts`, D-134): distingue errores que comparten `code`. */
+  readonly errorCode: string;
+  /** Lo que dijo la excepción original: solo para el log y para `debug` fuera de producción, nunca para producción. */
+  readonly cause?: string;
 }
 
 /** Los códigos generales de `ErrorCodeSchema` y los de HTTP que ningún módulo pone por su cuenta. */
@@ -78,8 +87,62 @@ function statusOfHttpError(error: unknown): number | undefined {
   return undefined;
 }
 
+/** El código único de un error que no es de una clase de dominio: el de su `code`, o el de «sin clasificar». */
+export function errorCodeFor(code: string): string {
+  return ERROR_CODE_BY_API_CODE[code] ?? GENERIC_ERROR_CODES.unknown;
+}
+
+/** Cada proveedor externo y cómo se reconoce su error por el nombre de su clase o su código. */
+const PROVIDER_SIGNATURES: readonly [
+  keyof typeof PROVIDER_ERROR_CODES,
+  RegExp,
+][] = [
+  [
+    'DATABASE',
+    /^(PrismaClient|PrismaClientKnownRequestError|PrismaClientInitializationError|PrismaClientUnknownRequestError|PrismaClientRustPanicError|PrismaClientValidationError)/,
+  ],
+  ['MONGO', /^Mongo/],
+  [
+    'REDIS',
+    /^(ReplyError|MaxRetriesPerRequestError|AbortError|ClusterAllFailedError)$/,
+  ],
+  [
+    'STORAGE',
+    /(S3ServiceException|S3Error|NoSuchBucket|AccessDenied|CredentialsProviderError)/,
+  ],
+  ['EMAIL', /^(ResendError|Resend)/],
+  ['PUSH', /^Expo/],
+  ['CLOUDFLARE', /^Turnstile/],
+];
+
+/**
+ * Qué proveedor externo causó un error inesperado, por el nombre de su clase (`PrismaClient…`,
+ * `MongoServerError`…): así un 500 dice «PostgreSQL» o «el almacenamiento» y no solo «interno».
+ *
+ * @param exception - Lo que se lanzó.
+ * @returns El código único del proveedor, o el genérico de error interno.
+ */
+export function providerErrorCode(exception: unknown): string {
+  const name =
+    typeof exception === 'object' && exception !== null
+      ? exception.constructor.name
+      : '';
+  const hit = PROVIDER_SIGNATURES.find(([, signature]) => signature.test(name));
+  return hit === undefined
+    ? GENERIC_ERROR_CODES.internal
+    : PROVIDER_ERROR_CODES[hit[0]];
+}
+
+/** @param exception - Lo que se lanzó. @returns Su mensaje recortado, para el log y `debug` en desarrollo. */
+function causeOf(exception: unknown): string | undefined {
+  const text = exception instanceof Error ? exception.message : undefined;
+  return text === undefined || text === '' ? undefined : text.slice(0, 300);
+}
+
 function describeDomainError(error: DomainError): ExceptionDetails {
   return {
+    errorCode: error.errorCode,
+    cause: causeOf(error),
     statusCode: STATUS_BY_KIND[error.kind],
     code: error.code,
     params: error.params,
@@ -118,14 +181,24 @@ export function describeException(exception: unknown): ExceptionDetails {
   if (exception instanceof HttpException) {
     const statusCode = exception.getStatus();
     const { code, params, issues } = payloadOf(exception);
+    const resolved = code ?? codeForStatus(statusCode);
     return {
       statusCode,
-      code: code ?? codeForStatus(statusCode),
+      code: resolved,
+      errorCode: errorCodeFor(resolved),
+      cause: causeOf(exception),
       params,
       issues,
     };
   }
   const statusCode =
     statusOfHttpError(exception) ?? HttpStatus.INTERNAL_SERVER_ERROR;
-  return { statusCode, code: codeForStatus(statusCode) };
+  const code = codeForStatus(statusCode);
+  return {
+    statusCode,
+    code,
+    errorCode:
+      statusCode >= 500 ? providerErrorCode(exception) : errorCodeFor(code),
+    cause: causeOf(exception),
+  };
 }

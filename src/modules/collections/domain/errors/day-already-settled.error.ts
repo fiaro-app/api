@@ -9,6 +9,7 @@ import {
  */
 export class DayAlreadySettledError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'V004A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

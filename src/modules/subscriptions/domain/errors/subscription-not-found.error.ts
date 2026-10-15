@@ -10,6 +10,7 @@ import {
  */
 export class SubscriptionNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'U001A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor(tenantId: string) {

@@ -10,6 +10,7 @@ import {
  */
 export class InvalidTenantDataError extends DomainError {
   readonly code = 'VALIDATION_FAILED';
+  readonly errorCode = 'T001V';
   readonly kind: DomainErrorKind = 'INVALID';
   declare readonly issues: readonly DomainIssue[];
 

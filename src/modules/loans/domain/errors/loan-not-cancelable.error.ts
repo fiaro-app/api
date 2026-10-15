@@ -10,6 +10,7 @@ import {
  */
 export class LoanNotCancelableError extends DomainError {
   readonly code = 'LOAN_NOT_CANCELABLE';
+  readonly errorCode = 'L002A';
   readonly kind: DomainErrorKind = 'RULE_VIOLATED';
 
   constructor() {
