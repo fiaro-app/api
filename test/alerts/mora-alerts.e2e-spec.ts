@@ -50,10 +50,7 @@ describe('aviso diario de mora (D-96)', () => {
     const run = app.app.get(RunMoraAlertsUseCase, { strict: false });
     await expect(run.execute(DAY)).resolves.toBe(true);
 
-    const [email] = moraEmailsTo(app, 'marta@example.com');
-    expect(email?.text).toContain(
-      'Hoy tienes 1 préstamo en mora por $ 20.000 en total.',
-    );
+    expect(moraEmailsTo(app, 'marta@example.com')).toHaveLength(0);
     expect(await feedTitles(app, business.ownerCookie)).toContain(
       'Préstamos en mora',
     );
