@@ -9,6 +9,7 @@ import { CollectionVisit } from '@/modules/collections/domain/entities/collectio
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
+import type { LoanPortfolioReadRepository } from '@/modules/collections/domain/repositories/loan-portfolio-read.repository.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
@@ -117,11 +118,13 @@ function setup(options: {
   );
   const listLoans = {
     execute: vi.fn(
-      async (input: { ids: readonly string[]; status: string }) => {
+      async (input: { ids: readonly string[]; status?: string }) => {
         const found = await Promise.all(
           input.ids.map((loanId) => getLoanExecute(loanId)),
         );
-        const active = found.filter((item) => item.status === input.status);
+        const active = found.filter(
+          (item) => input.status === undefined || item.status === input.status,
+        );
         return { items: active, total: active.length };
       },
     ),
@@ -135,6 +138,9 @@ function setup(options: {
     visits,
     listLoans,
     getLender,
+    {
+      listVisitRecordsByLoans: vi.fn(() => Promise.resolve([])),
+    } as unknown as LoanPortfolioReadRepository,
     clock,
   );
   return {
@@ -202,6 +208,27 @@ describe('GetCollectorDailySummaryUseCase', () => {
     });
 
     expect(result.expectedAmount).toBe(0);
+  });
+
+  it('un préstamo que se saldó hoy sigue sumando a lo esperado', async () => {
+    const { useCase } = setup({
+      assigned: [assignment('loan-1')],
+      loans: {
+        'loan-1': loan('loan-1', {
+          startDate: '2026-10-06',
+          status: 'PAID_OFF',
+          closedAt: new Date('2026-10-07T20:00:00Z'),
+        }),
+      },
+    });
+
+    const result = await useCase.execute({
+      collectorMembershipId: 'membership-1',
+      lenderId: 'lender-1',
+      date: TODAY,
+    });
+
+    expect(result.expectedAmount).toBe(10_000);
   });
 
   it('suma lo cobrado del día, desglosado por medio de pago', async () => {
