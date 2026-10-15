@@ -14,4 +14,6 @@ export interface CollectorRouteEntry {
   readonly overdueDays: number;
   /** Próxima fecha en la que se espera un pago; `null` si no le quedan cuotas. */
   readonly nextDueDate: string | null;
+  /** Lo que ya se le cobró hoy (pagos sin reversión de este cobrador); cero si aún no. */
+  readonly collectedToday: number;
 }

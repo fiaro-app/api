@@ -19,6 +19,10 @@ export const CollectorRouteEntryResponseSchema = z
     nextDueDate: z.iso.date().nullable().meta({
       description: 'Próxima fecha en la que se espera un pago, o null.',
     }),
+    collectedToday: z.int().meta({
+      description:
+        'Lo que ya se le cobró hoy; mayor que cero significa que ya pagó y va al final de la ruta.',
+    }),
   })
   .meta({ id: 'CollectorRouteEntryResponse' });
 
@@ -39,5 +43,6 @@ export function toCollectorRouteResponse(
     overdueAmount: entry.overdueAmount,
     overdueDays: entry.overdueDays,
     nextDueDate: entry.nextDueDate,
+    collectedToday: entry.collectedToday,
   }));
 }
