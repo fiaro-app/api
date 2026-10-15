@@ -2,6 +2,7 @@ import type { Provider } from '@nestjs/common';
 import { LenderStatsScope } from '@/modules/dashboard/application/services/lender-stats-scope.js';
 import { LoanPortfolioSnapshotService } from '@/modules/dashboard/application/services/loan-portfolio-snapshot.service.js';
 import { GetCollectorsTodayUseCase } from '@/modules/dashboard/application/use-cases/get-collectors-today.use-case.js';
+import { GetClientsRiskUseCase } from '@/modules/dashboard/application/use-cases/get-clients-risk.use-case.js';
 import { GetLenderInsightsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-insights.use-case.js';
 import { INSIGHTS_READ_REPOSITORY } from '@/modules/dashboard/domain/repositories/insights-read.token.js';
 import { PrismaInsightsReadRepository } from '@/modules/dashboard/infrastructure/persistence/prisma-insights-read.repository.js';
@@ -18,6 +19,7 @@ export const dashboardProviders: Provider[] = [
   GetLenderDashboardUseCase,
   GetCollectorsTodayUseCase,
   GetLenderInsightsUseCase,
+  GetClientsRiskUseCase,
   { provide: INSIGHTS_READ_REPOSITORY, useClass: PrismaInsightsReadRepository },
   GetLenderStatsUseCase,
   GetLenderStatsExportUseCase,

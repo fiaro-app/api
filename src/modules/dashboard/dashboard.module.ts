@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { CollectionsModule } from '@/modules/collections/collections.module.js';
 import { dashboardProviders } from '@/modules/dashboard/infrastructure/dashboard.providers.js';
+import { LenderClientsRiskController } from '@/modules/dashboard/infrastructure/controllers/lender-clients-risk.controller.js';
 import { LenderInsightsController } from '@/modules/dashboard/infrastructure/controllers/lender-insights.controller.js';
 import { LenderStatsListsController } from '@/modules/dashboard/infrastructure/controllers/lender-stats-lists.controller.js';
 import { LenderCollectorsTodayController } from '@/modules/dashboard/infrastructure/controllers/lender-collectors-today.controller.js';
@@ -41,6 +42,7 @@ import { SettlementsModule } from '@/modules/settlements/settlements.module.js';
     LenderStatsListsController,
     LenderCollectorsTodayController,
     LenderInsightsController,
+    LenderClientsRiskController,
   ],
   providers: dashboardProviders,
 })
