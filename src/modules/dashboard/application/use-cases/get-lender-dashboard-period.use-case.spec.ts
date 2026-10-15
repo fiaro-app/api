@@ -32,6 +32,8 @@ function setup() {
       expectedAmount: 100,
       collectedAmount: input.collectorMembershipId === 'm1' ? 80 : 50,
       collectedByMethod: { CASH: 0, NEQUI: 0, TRANSFER: 0 },
+      routeLoans: 0,
+      visitedLoans: 0,
       visits: [],
     } satisfies CollectorDailySummary),
   );

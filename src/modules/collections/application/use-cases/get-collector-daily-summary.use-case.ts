@@ -4,6 +4,7 @@ import type {
   CollectorDailySummary,
   GetCollectorDailySummaryInput,
 } from '@/modules/collections/application/dtos/collector-daily-summary.dto.js';
+import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import { toCollectionVisitDetails } from '@/modules/collections/application/dtos/collection-visit-details.mapper.js';
 import { sumNetPaymentsByMethod } from '@/modules/collections/application/services/sum-net-payments-by-method.js';
 import { computeExpectedForDay } from '@/modules/collections/application/services/compute-expected-for-day.js';
@@ -89,6 +90,8 @@ export class GetCollectorDailySummaryUseCase {
     return {
       date,
       expectedAmount,
+      routeLoans: loans.length,
+      visitedLoans: countVisited(loans, records),
       collectedAmount:
         collectedByMethod.CASH +
         collectedByMethod.NEQUI +
@@ -126,4 +129,17 @@ export class GetCollectorDailySummaryUseCase {
           toBusinessDate(loan.closedAt) >= date),
     );
   }
+}
+
+/**
+ * @param loans - Los préstamos en la ruta de hoy.
+ * @param records - Las visitas de hoy.
+ * @returns Cuántos de esos préstamos tuvieron al menos una visita.
+ */
+function countVisited(
+  loans: readonly LoanDetails[],
+  records: readonly CollectionVisitRecord[],
+): number {
+  const visited = new Set(records.map((record) => record.visit.loanId));
+  return loans.filter((loan) => visited.has(loan.id)).length;
 }

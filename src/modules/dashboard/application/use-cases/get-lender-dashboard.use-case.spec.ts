@@ -34,6 +34,8 @@ function summary(
     expectedAmount: 0,
     collectedAmount: 0,
     collectedByMethod: { CASH: 0, NEQUI: 0, TRANSFER: 0 },
+    routeLoans: 0,
+    visitedLoans: 0,
     visits: [],
     ...overrides,
   };

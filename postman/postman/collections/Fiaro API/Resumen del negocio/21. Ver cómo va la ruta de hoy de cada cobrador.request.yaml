@@ -1,0 +1,24 @@
+$kind: http-request
+description: "La jornada de hoy de cada cobrador activo: si empezó su ruta, cuántos préstamos le faltan, lo esperado y lo cobrado, y el estado de su cuadre. Solo OWNER/LENDER."
+url: "{{baseUrl}}/lenders/me/collectors-today"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae el conteo por estado y un cobrador por activo', () => {
+        pm.expect(body.counts).to.have.all.keys('NO_ROUTE', 'NOT_STARTED', 'IN_PROGRESS', 'FINISHED');
+        pm.expect(body.collectors).to.be.an('array');
+      });
+      pm.test('el cobrador invitado ya cobró los 30.000 de su visita', () => {
+        const collector = body.collectors.find((c) => c.membershipId === pm.collectionVariables.get('dashboardCollectorMembershipId'));
+        pm.expect(collector.collectedAmount).to.eql(30000);
+        pm.expect(collector.firstVisitAt).to.not.eql(null);
+      });
+    language: text/javascript
+order: 21000

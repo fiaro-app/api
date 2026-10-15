@@ -21,6 +21,10 @@ export interface CollectorDailySummary {
   readonly collectedAmount: number;
   /** `collectedAmount`, desglosado por medio de pago. */
   readonly collectedByMethod: PaymentAmountsByMethod;
+  /** Cuántos préstamos tiene hoy en su ruta (los asignados que cuentan para lo esperado). */
+  readonly routeLoans: number;
+  /** De esos, cuántos ya visitó hoy (con cualquier resultado). */
+  readonly visitedLoans: number;
   /** Sus visitas de hoy, de la más antigua a la más nueva. */
   readonly visits: readonly CollectionVisitDetails[];
 }
