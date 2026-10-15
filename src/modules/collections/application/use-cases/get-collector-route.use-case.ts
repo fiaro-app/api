@@ -7,6 +7,9 @@ import type { CollectionAssignmentRepository } from '@/modules/collections/domai
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
+import { groupRecordsByLoan } from '@/modules/collections/application/services/group-records-by-loan.js';
+import { sortRouteByPriority } from '@/modules/collections/application/services/sort-route-by-priority.js';
+import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
@@ -53,7 +56,7 @@ export class GetCollectorRouteUseCase {
     input: GetCollectorRouteInput,
   ): Promise<readonly CollectorRouteEntry[]> {
     const date = input.date ?? toBusinessDate(this.clock.now());
-    const [assigned, promised] = await Promise.all([
+    const [assigned, promised, todays] = await Promise.all([
       this.assignments.findActiveByCollectorAndDate(
         input.collectorMembershipId,
         date,
@@ -62,24 +65,40 @@ export class GetCollectorRouteUseCase {
         input.collectorMembershipId,
         date,
       ),
+      this.visits.listByCollectorAndDateRange(
+        input.collectorMembershipId,
+        date,
+        date,
+      ),
     ]);
+    const collectedByLoan = new Map(
+      [...groupRecordsByLoan(todays)].map(([loanId, records]) => [
+        loanId,
+        sumNetPayments(records),
+      ]),
+    );
     const loanIds = new Set([
       ...assigned.map((assignment) => assignment.loanId),
       ...promised.map((visit) => visit.loanId),
     ]);
 
     const entries = await Promise.all(
-      [...loanIds].map((loanId) => this.toRouteEntry(loanId, input.lenderId)),
+      [...loanIds].map((loanId) =>
+        this.toRouteEntry(
+          loanId,
+          input.lenderId,
+          collectedByLoan.get(loanId) ?? 0,
+        ),
+      ),
     );
-    return entries
-      .filter((entry) => entry !== null)
-      .sort((a, b) => a.clientFullName.localeCompare(b.clientFullName));
+    return sortRouteByPriority(entries.filter((entry) => entry !== null));
   }
 
   /** @returns La fila de la ruta, o `null` si el préstamo ya no está `ACTIVE`. */
   private async toRouteEntry(
     loanId: string,
     lenderId: string,
+    collectedToday: number,
   ): Promise<CollectorRouteEntry | null> {
     const loan = await this.getLoan.execute(loanId, lenderId);
     if (loan.status !== 'ACTIVE') {
@@ -97,6 +116,7 @@ export class GetCollectorRouteUseCase {
       overdueAmount: balance.overdueAmount,
       overdueDays: balance.overdueDays,
       nextDueDate: balance.nextDueDate,
+      collectedToday,
     };
   }
 }

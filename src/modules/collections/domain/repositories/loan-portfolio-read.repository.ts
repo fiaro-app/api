@@ -50,6 +50,16 @@ export interface LoanPortfolioReadRepository {
     lenderId: string,
   ): Promise<ReadonlyMap<string, string>>;
 
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario (`AAAA-MM-DD`).
+   * @returns Los clientes que tienen al menos un préstamo asignado a ese cobrador en esa fecha.
+   */
+  listClientIdsByCollector(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<readonly string[]>;
+
   listCollectorsByLoans(
     loanIds: readonly string[],
     date: string,

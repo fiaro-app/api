@@ -30,6 +30,7 @@ import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { RestrictCollectorTo } from '@/shared/infrastructure/http/restrict-collector.decorator.js';
 
 /** Roles que pueden asignar un cobrador (mismo criterio que crear un préstamo, D-77). */
 const EDITOR_ROLES = ['OWNER', 'LENDER'];
@@ -85,6 +86,7 @@ export class CollectionAssignmentController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get()
+  @RestrictCollectorTo('loan')
   @HttpCode(HttpStatus.OK)
   @ApiListCollectionAssignments()
   async listCollectionAssignments(

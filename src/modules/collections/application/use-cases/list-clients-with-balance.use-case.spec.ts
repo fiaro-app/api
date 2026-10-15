@@ -71,6 +71,7 @@ function setup(options: {
   const listVisitRecordsByLoans = vi.fn(() =>
     Promise.resolve(options.records ?? []),
   );
+  const listClientIdsByCollector = vi.fn(() => Promise.resolve(['c1']));
   const clock: Clock = { now: () => NOW };
   const useCase = new ListClientsWithBalanceUseCase(
     { execute: listClients } as unknown as ListClientsUseCase,
@@ -78,11 +79,16 @@ function setup(options: {
       execute: listActiveLoansByClients,
     } as unknown as ListActiveLoansByClientsUseCase,
     { execute: getLender } as unknown as GetLenderUseCase,
-    { listVisitRecordsByLoans } as unknown as LoanPortfolioReadRepository,
+    {
+      listVisitRecordsByLoans,
+      listClientIdsByCollector,
+    } as unknown as LoanPortfolioReadRepository,
     clock,
   );
   return {
     useCase,
+    listClients,
+    listClientIdsByCollector,
     listActiveLoansByClients,
     getLender,
     listVisitRecordsByLoans,
@@ -92,6 +98,27 @@ function setup(options: {
 const INPUT = { lenderId: 'lender-1', page: 1, pageSize: 20 };
 
 describe('ListClientsWithBalanceUseCase', () => {
+  it('con un cobrador, solo pide los clientes con préstamos asignados a él', async () => {
+    const { useCase, listClients, listClientIdsByCollector } = setup({});
+
+    await useCase.execute({ ...INPUT, collectorMembershipId: 'membership-1' });
+
+    expect(listClientIdsByCollector).toHaveBeenCalledWith(
+      'membership-1',
+      '2026-09-27',
+    );
+    expect(listClients).toHaveBeenCalledWith({ ...INPUT, ids: ['c1'] });
+  });
+
+  it('sin cobrador no filtra por clientes', async () => {
+    const { useCase, listClients, listClientIdsByCollector } = setup({});
+
+    await useCase.execute(INPUT);
+
+    expect(listClientIdsByCollector).not.toHaveBeenCalled();
+    expect(listClients).toHaveBeenCalledWith({ ...INPUT, ids: undefined });
+  });
+
   it('suma el saldo y la mora de los préstamos activos de cada cliente', async () => {
     const { useCase } = setup({
       loans: [

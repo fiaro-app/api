@@ -34,6 +34,7 @@ import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { RestrictCollectorTo } from '@/shared/infrastructure/http/restrict-collector.decorator.js';
 
 /** Roles que pueden dar de alta o editar un cliente (PRODUCT.md §5: `LENDER` administra clientes). */
 const EDITOR_ROLES = ['OWNER', 'LENDER'];
@@ -91,6 +92,7 @@ export class ClientController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get(':id')
+  @RestrictCollectorTo('client')
   @HttpCode(HttpStatus.OK)
   @ApiGetClient()
   async getClient(

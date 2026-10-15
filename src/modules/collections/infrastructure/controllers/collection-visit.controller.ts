@@ -30,6 +30,7 @@ import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { RestrictCollectorTo } from '@/shared/infrastructure/http/restrict-collector.decorator.js';
 
 /**
  * Cobrar en campo es trabajo del rol `COLLECTOR` (PRODUCT.md §5); el operador que trabaja solo
@@ -98,6 +99,7 @@ export class CollectionVisitController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get()
+  @RestrictCollectorTo('loan')
   @HttpCode(HttpStatus.OK)
   @ApiListCollectionVisits()
   async listCollectionVisits(

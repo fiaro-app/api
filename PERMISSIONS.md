@@ -225,6 +225,16 @@ notificaciones de todos a la vez, así que no hay "un" prestamista por el que fi
 
 ## Casos especiales
 
+- **Un cobrador que no administra solo ve lo suyo (D-127).** Quien tiene `COLLECTOR` pero ni
+  `OWNER` ni `LENDER` (`isCollectorOnly`) no puede consultar cualquier cosa del prestamista, aunque
+  la matriz de arriba diga «Cualquiera»: `GET /loans/:id`, `/loans/:loanId/balance`,
+  `/installments`, `/collection-visits`, `/collection-assignments` y `GET /clients/:id` responden
+  `404 NOT_FOUND` (igual que un id de otro prestamista) si nunca tuvo ese préstamo asignado o un
+  préstamo de ese cliente (`@RestrictCollectorTo`, `CollectorAccessGuard`, historial completo de
+  asignaciones). `QUERY /loans` y `QUERY /clients` ignoran el filtro que mande y devuelven solo su
+  cartera de hoy (la caché lleva el cobrador en la clave). `GET /daily-settlements/:id` y
+  `QUERY /daily-settlements` solo muestran sus cuadres. Quien además administra ve todo.
+
 - **"Modo cobrador" (D-89).** Tener el rol `COLLECTOR` en el prestamista no basta para
   `POST /loans/:loanId/collection-visits`: la membresía además necesita una `CollectionAssignment`
   vigente para ese préstamo el día de la visita (`occurredAt`, no la fecha de hoy — una visita

@@ -6,7 +6,10 @@ import type {
 } from '@/modules/collections/application/dtos/collector-daily-summary.dto.js';
 import { toCollectionVisitDetails } from '@/modules/collections/application/dtos/collection-visit-details.mapper.js';
 import { sumNetPaymentsByMethod } from '@/modules/collections/application/services/sum-net-payments-by-method.js';
-import { toLoanScheduleInput } from '@/modules/collections/application/services/to-loan-schedule-input.js';
+import { computeExpectedForDay } from '@/modules/collections/application/services/compute-expected-for-day.js';
+import { groupRecordsByLoan } from '@/modules/collections/application/services/group-records-by-loan.js';
+import type { LoanPortfolioReadRepository } from '@/modules/collections/domain/repositories/loan-portfolio-read.repository.js';
+import { LOAN_PORTFOLIO_READ_REPOSITORY } from '@/modules/collections/domain/tokens/loan-portfolio-read-repository.token.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
@@ -14,7 +17,6 @@ import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
 import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
-import { computeExpectedAmountInRange } from '@/shared/domain/calendar/period-expected.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
 
@@ -40,6 +42,8 @@ export class GetCollectorDailySummaryUseCase {
     private readonly visits: CollectionVisitRepository,
     private readonly listLoans: ListLoansUseCase,
     private readonly getLender: GetLenderUseCase,
+    @Inject(LOAN_PORTFOLIO_READ_REPOSITORY)
+    private readonly portfolio: LoanPortfolioReadRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -64,13 +68,18 @@ export class GetCollectorDailySummaryUseCase {
     const loans = await this.activeLoans(
       assigned.map((assignment) => assignment.loanId),
       input.lenderId,
+      date,
+    );
+    const recordsByLoan = groupRecordsByLoan(
+      await this.portfolio.listVisitRecordsByLoans(loans.map((l) => l.id)),
     );
     const expectedAmount = loans.reduce(
       (sum, loan) =>
         sum +
-        computeExpectedAmountInRange(
-          toLoanScheduleInput(loan, lender),
-          date,
+        computeExpectedForDay(
+          loan,
+          lender,
+          recordsByLoan.get(loan.id) ?? [],
           date,
         ),
       0,
@@ -98,6 +107,7 @@ export class GetCollectorDailySummaryUseCase {
   private async activeLoans(
     loanIds: readonly string[],
     lenderId: string,
+    date: string,
   ): Promise<readonly LoanDetails[]> {
     if (loanIds.length === 0) {
       return [];
@@ -105,10 +115,15 @@ export class GetCollectorDailySummaryUseCase {
     const page = await this.listLoans.execute({
       lenderId,
       ids: loanIds,
-      status: 'ACTIVE',
       page: 1,
       pageSize: loanIds.length,
     });
-    return page.items;
+    return page.items.filter(
+      (loan) =>
+        loan.status === 'ACTIVE' ||
+        (loan.status === 'PAID_OFF' &&
+          loan.closedAt !== null &&
+          toBusinessDate(loan.closedAt) >= date),
+    );
   }
 }

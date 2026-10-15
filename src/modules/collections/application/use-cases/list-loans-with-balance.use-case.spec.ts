@@ -82,6 +82,7 @@ function setup(
       listCollectorsByLoans,
       listClientNames,
       listMembershipNames,
+      listClientIdsByCollector: vi.fn(),
     },
     {
       findActiveByCollectorAndDate,

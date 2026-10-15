@@ -51,6 +51,30 @@ export class PrismaLoanPortfolioReadRepository implements LoanPortfolioReadRepos
   }
 
   /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  async listClientIdsByCollector(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<readonly string[]> {
+    const rows = await this.prisma.loan.findMany({
+      where: {
+        collectionAssignments: {
+          some: {
+            collectorMembershipId,
+            effectiveFrom: { lte: date },
+            OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
+          },
+        },
+      },
+      distinct: ['clientId'],
+      select: { clientId: true },
+    });
+    return rows.map((row) => row.clientId);
+  }
+
+  /**
    * @param clientIds - Los clientes.
    * @param lenderId - El prestamista dueño.
    */
