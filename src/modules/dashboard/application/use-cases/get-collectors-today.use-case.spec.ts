@@ -21,18 +21,20 @@ function summary(
   };
 }
 
-function setup() {
+function setup(extra: Record<string, ReturnType<typeof summary>> = {}) {
   const byCollector: Record<string, ReturnType<typeof summary>> = {
     ana: summary(4, 0),
     beto: summary(5, 2, [FIRST, LAST]),
     carla: summary(3, 3, [FIRST, LAST]),
     dario: summary(0, 0),
+    ...extra,
   };
   const names: Record<string, string> = {
     ana: 'Ana',
     beto: 'Beto',
     carla: 'Carla',
     dario: 'Darío',
+    ...Object.fromEntries(Object.keys(extra).map((id) => [id, id])),
   };
   const useCase = new GetCollectorsTodayUseCase(
     {
@@ -108,5 +110,18 @@ describe('GetCollectorsTodayUseCase', () => {
       pendingLoans: 0,
       settlementStatus: 'PENDING',
     });
+  });
+
+  it('entre quienes no han empezado, primero al que más préstamos le faltan y luego por nombre', async () => {
+    const result = await setup({
+      zeta: summary(4, 0),
+      mucho: summary(9, 0),
+    }).execute('lender-1');
+
+    expect(result.collectors.slice(0, 3).map((c) => c.fullName)).toEqual([
+      'mucho',
+      'Ana',
+      'zeta',
+    ]);
   });
 });
