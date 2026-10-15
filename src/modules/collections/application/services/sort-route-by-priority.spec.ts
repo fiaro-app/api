@@ -50,4 +50,28 @@ describe('sortRouteByPriority', () => {
     ]);
     expect(names(sorted)).toEqual(['Ana', 'Beto', 'Zeta']);
   });
+
+  it('entre los que ya pagaron hoy, desempata por nombre', () => {
+    const sorted = sortRouteByPriority([
+      entry('Zeta', 0, 0, 5_000),
+      entry('Ana', 9, 90_000, 5_000),
+    ]);
+    expect(names(sorted)).toEqual(['Ana', 'Zeta']);
+  });
+
+  it('con mora en días pero sin dinero vencido, ordena por días', () => {
+    const sorted = sortRouteByPriority([
+      entry('Poca', 2, 0),
+      entry('Mucha', 20, 0),
+    ]);
+    expect(names(sorted)).toEqual(['Mucha', 'Poca']);
+  });
+
+  it('con dinero vencido pero sin días, ordena por dinero', () => {
+    const sorted = sortRouteByPriority([
+      entry('Poco', 0, 10_000),
+      entry('Mucho', 0, 90_000),
+    ]);
+    expect(names(sorted)).toEqual(['Mucho', 'Poco']);
+  });
 });

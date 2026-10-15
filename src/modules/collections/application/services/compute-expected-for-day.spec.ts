@@ -94,4 +94,10 @@ describe('computeExpectedForDay', () => {
       computeExpectedForDay(loan('2026-10-03'), LENDER, [], '2026-10-04'),
     ).toBe(10_000);
   });
+
+  it('un préstamo que arranca hoy todavía no tiene cuotas ni mora', () => {
+    expect(
+      computeExpectedForDay(loan('2026-10-04'), LENDER, [], '2026-10-04'),
+    ).toBe(0);
+  });
 });

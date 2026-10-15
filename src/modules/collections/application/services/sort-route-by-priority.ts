@@ -29,18 +29,12 @@ export function sortRouteByPriority(
   const pending = entries.filter((entry) => entry.collectedToday === 0);
   const maxDays = Math.max(0, ...pending.map((entry) => entry.overdueDays));
   const maxAmount = Math.max(0, ...pending.map((entry) => entry.overdueAmount));
-  return [...entries].sort((a, b) => {
-    const aDone = a.collectedToday > 0;
-    const bDone = b.collectedToday > 0;
-    if (aDone !== bDone) {
-      return aDone ? 1 : -1;
-    }
-    const byScore = aDone
-      ? 0
-      : priorityScore(b, maxDays, maxAmount) -
-        priorityScore(a, maxDays, maxAmount);
-    return byScore === 0
-      ? a.clientFullName.localeCompare(b.clientFullName)
-      : byScore;
-  });
+  const paid = (entry: CollectorRouteEntry) => Number(entry.collectedToday > 0);
+  return [...entries].sort(
+    (a, b) =>
+      paid(a) - paid(b) ||
+      priorityScore(b, maxDays, maxAmount) -
+        priorityScore(a, maxDays, maxAmount) ||
+      a.clientFullName.localeCompare(b.clientFullName),
+  );
 }
