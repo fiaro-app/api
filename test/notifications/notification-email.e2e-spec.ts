@@ -130,9 +130,8 @@ describe('correo de las notificaciones (D-94)', () => {
       'cobrador@example.com',
       'Fiaro: Cuadre rechazado',
     );
-    expect(email?.html).toContain(
-      '<p>Revisa &lt;b&gt;el efectivo&lt;/b&gt;.</p>',
-    );
+    expect(email?.html).toContain('Revisa &lt;b&gt;el efectivo&lt;/b&gt;.');
+    expect(email?.html).not.toContain('<b>el efectivo</b>');
     expect(email?.text).toContain('Revisa <b>el efectivo</b>.');
   });
 });
