@@ -33,10 +33,32 @@ describe('QUERY /lenders/me/stats/insights', () => {
       data: { totalPayable: 60_000 },
     });
 
+    await app.prisma.dailySettlement.create({
+      data: {
+        id: uuidv7(),
+        collectorMembershipId: business.membershipId,
+        date: TODAY,
+        expectedAmount: 30_000,
+        collectedAmount: 20_000,
+        collectedCash: 20_000,
+        collectedNequi: 0,
+        collectedTransfer: 0,
+        collectorNote: 'Faltó un cliente',
+        submittedAt: new Date(),
+      },
+    });
+
     const response = await insights(app, business.cookie);
 
     expect(response.status).toBe(200);
     const body = response.body;
+    expect(body.settlements).toEqual({
+      submitted: 1,
+      balanced: 0,
+      withDifference: 1,
+      shortfall: 10_000,
+      surplus: 0,
+    });
     expect(body.income.collected).toBe(20_000);
     expect(body.income.byMethod).toEqual({
       CASH: 20_000,

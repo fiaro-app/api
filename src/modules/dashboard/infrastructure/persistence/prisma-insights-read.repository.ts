@@ -64,7 +64,7 @@ export class PrismaInsightsReadRepository implements InsightsReadRepository {
     to: string,
   ): Promise<IncomeTotals> {
     const { start, end } = businessRangeInstants(from, to);
-    const [row] = await this.prisma.$queryRaw<
+    const rows = await this.prisma.$queryRaw<
       { collected: bigint | null; interest: number | null }[]
     >(
       Prisma.sql`
@@ -78,9 +78,13 @@ export class PrismaInsightsReadRepository implements InsightsReadRepository {
          AND p.occurred_at >= ${start}
          AND p.occurred_at <= ${end}`,
     );
+    const row = rows.reduce((_, current) => current, {
+      collected: null,
+      interest: null,
+    });
     return {
-      collected: Number(row?.collected ?? 0),
-      interest: Math.round(row?.interest ?? 0),
+      collected: Number(row.collected ?? 0),
+      interest: Math.round(row.interest ?? 0),
     };
   }
 
@@ -89,7 +93,7 @@ export class PrismaInsightsReadRepository implements InsightsReadRepository {
     from: string,
     to: string,
   ): Promise<OriginationTotals> {
-    const [row] = await this.prisma.$queryRaw<
+    const rows = await this.prisma.$queryRaw<
       { count: bigint; principal: bigint | null; payable: bigint | null }[]
     >(Prisma.sql`
       SELECT COUNT(*) AS count, SUM(principal_amount) AS principal, SUM(total_payable) AS payable
@@ -98,10 +102,15 @@ export class PrismaInsightsReadRepository implements InsightsReadRepository {
          AND status <> 'CANCELED'
          AND start_date >= ${from}
          AND start_date <= ${to}`);
+    const row = rows.reduce((_, current) => current, {
+      count: 0n,
+      principal: null,
+      payable: null,
+    });
     return {
-      loansCreated: Number(row?.count ?? 0),
-      amountLent: Number(row?.principal ?? 0),
-      totalPayable: Number(row?.payable ?? 0),
+      loansCreated: Number(row.count),
+      amountLent: Number(row.principal ?? 0),
+      totalPayable: Number(row.payable ?? 0),
     };
   }
 
