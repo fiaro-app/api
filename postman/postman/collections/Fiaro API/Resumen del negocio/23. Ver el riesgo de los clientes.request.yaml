@@ -1,0 +1,28 @@
+$kind: http-request
+description: "El riesgo de hasta 50 clientes del negocio: puntaje de 0 a 100, nivel (bajo, medio, alto, muy alto) y los factores que lo explican, solo con el historial en este negocio (D-137). Exige OWNER o LENDER. Método QUERY."
+url: "{{baseUrl}}/lenders/me/clients/risk"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "clientIds": ["{{dashboardClientId}}"]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const [entry] = pm.response.json().data;
+      pm.test('trae el puntaje, el nivel y los factores del cliente', () => {
+        pm.expect(entry.score).to.be.within(0, 100);
+        pm.expect(['LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']).to.include(entry.level);
+        pm.expect(entry.factors).to.be.an('array');
+      });
+    language: text/javascript
+order: 23000
