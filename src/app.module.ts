@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Env } from '@/config/env.js';
 import { EnvModule } from '@/config/env.module.js';
+import { CollectorAccessModule } from '@/shared/infrastructure/access/collector-access.module.js';
 import { CacheModule } from '@/shared/infrastructure/cache/cache.module.js';
 import { ENV } from '@/config/env.token.js';
 import { AlertsModule } from '@/modules/alerts/alerts.module.js';
@@ -47,6 +48,7 @@ import { TurnstileModule } from '@/shared/infrastructure/turnstile/turnstile.mod
     ApiErrorsModule,
     RuntimeModule,
     CacheModule,
+    CollectorAccessModule,
     StorageModule,
     TurnstileModule,
     AuthModule,

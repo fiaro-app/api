@@ -1,4 +1,8 @@
-import { ForbiddenException, RequestMethod } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  RequestMethod,
+} from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { GetSettlementUseCase } from '@/modules/settlements/application/use-cases/get-settlement.use-case.js';
@@ -143,24 +147,39 @@ describe('DailySettlementController', () => {
   });
 
   describe('getSettlement', () => {
-    it('devuelve el cuadre para cualquier rol', async () => {
+    it('devuelve el cuadre propio a un cobrador y cualquiera a quien administra', async () => {
       const { controller, getSettlementUseCase } = setup();
 
       const response = await controller.getSettlement(
         'settlement-1',
         scopeWith(['COLLECTOR']),
       );
+      await controller.getSettlement('settlement-1', {
+        ...scopeWith(['OWNER']),
+        membershipId: 'otro',
+      });
 
-      expect(getSettlementUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+      expect(getSettlementUseCase.execute).toHaveBeenCalledWith(
         'settlement-1',
         'lender-1',
       );
       expect(response.id).toBe('settlement-1');
     });
+
+    it('un cobrador no ve el cuadre de otro: 404, como si no existiera', async () => {
+      const { controller } = setup();
+
+      await expect(
+        controller.getSettlement('settlement-1', {
+          ...scopeWith(['COLLECTOR']),
+          membershipId: 'otro-cobrador',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe('listSettlements', () => {
-    it('devuelve la página de cuadres del prestamista de la sesión', async () => {
+    it('devuelve la página de cuadres del prestamista; un cobrador solo ve los suyos', async () => {
       const { controller, listSettlementsUseCase } = setup();
 
       const response = await controller.listSettlements(
@@ -172,6 +191,7 @@ describe('DailySettlementController', () => {
         lenderId: 'lender-1',
         page: 1,
         pageSize: 20,
+        collectorMembershipId: 'membership-1',
       });
       expect(response.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
       expect(response.data).toHaveLength(1);

@@ -40,7 +40,7 @@ describe('correo de las notificaciones (D-94)', () => {
     ).toHaveLength(0);
   });
 
-  it('manda el correo de un préstamo asignado al correo de contacto verificado', async () => {
+  it('un préstamo asignado es informativo: no sale por correo, ni con el correo verificado (D-125)', async () => {
     app = await startTestApp({ env: CORS });
     const business = await seedBusinessWithCollector(app);
     await verifyContactEmail(
@@ -51,15 +51,9 @@ describe('correo de las notificaciones (D-94)', () => {
 
     await assignNewLoan(app, business);
 
-    const [email] = sentTo(
-      app,
-      'cobrador@example.com',
-      'Fiaro: Préstamo asignado',
-    );
-    expect(email?.text).toBe(
-      'Préstamo asignado\n\nTe asignaron un préstamo para cobrar.\n\nAbre Fiaro en tu celular para ver los detalles.',
-    );
-    expect(email?.html).toContain('<strong>Préstamo asignado</strong>');
+    expect(
+      sentTo(app, 'cobrador@example.com', 'Fiaro: Préstamo asignado'),
+    ).toHaveLength(0);
   });
 
   it('no manda correo a una cuenta desactivada, aunque su correo esté verificado', async () => {
@@ -82,7 +76,7 @@ describe('correo de las notificaciones (D-94)', () => {
     ).toHaveLength(0);
   });
 
-  it('avisa por correo a la dueña cuando un cobrador envía su cuadre', async () => {
+  it('el cuadre enviado es informativo: la dueña lo ve como push y en la app, no por correo (D-125)', async () => {
     app = await startTestApp({ env: CORS });
     const business = await seedBusinessWithCollector(app);
     await verifyContactEmail(app, business.ownerPhone, 'marta@example.com');
@@ -101,7 +95,7 @@ describe('correo de las notificaciones (D-94)', () => {
 
     expect(
       sentTo(app, 'marta@example.com', 'Fiaro: Cuadre por revisar'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it('el correo del cuadre rechazado escapa la nota de quien revisó en el HTML', async () => {

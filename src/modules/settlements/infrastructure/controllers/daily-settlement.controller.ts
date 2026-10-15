@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   QueryMethod,
@@ -35,6 +36,7 @@ import {
   type SettlementsPageResponseSchema,
 } from '@/modules/settlements/infrastructure/controllers/schemas/settlement-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import { isCollectorOnly } from '@/shared/application/security/is-collector-only.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
@@ -106,9 +108,17 @@ export class DailySettlementController {
     @Param('id', { schema: SettlementIdParamSchema }) id: string,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof SettlementResponseSchema>> {
-    return toSettlementResponse(
-      await this.getSettlementUseCase.execute(id, scope.lenderId),
+    const settlement = await this.getSettlementUseCase.execute(
+      id,
+      scope.lenderId,
     );
+    if (
+      isCollectorOnly(scope.roles) &&
+      settlement.collectorMembershipId !== scope.membershipId
+    ) {
+      throw new NotFoundException({ code: ErrorCodeSchema.enum.NOT_FOUND });
+    }
+    return toSettlementResponse(settlement);
   }
 
   /**
@@ -127,7 +137,9 @@ export class DailySettlementController {
       lenderId: scope.lenderId,
       page: query.page,
       pageSize: query.pageSize,
-      collectorMembershipId: query.collectorMembershipId,
+      collectorMembershipId: isCollectorOnly(scope.roles)
+        ? scope.membershipId
+        : query.collectorMembershipId,
       status: query.status,
       portfolioId: query.portfolioId,
       from: query.dateRange?.from,

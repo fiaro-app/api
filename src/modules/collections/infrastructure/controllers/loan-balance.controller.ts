@@ -18,6 +18,7 @@ import type { LenderScope } from '@/shared/application/ports/lender-scope-resolv
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { RestrictCollectorTo } from '@/shared/infrastructure/http/restrict-collector.decorator.js';
 
 /**
  * Estado financiero (saldo, mora, próxima fecha esperada) de un préstamo del prestamista con el
@@ -41,6 +42,7 @@ export class LoanBalanceController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get()
+  @RestrictCollectorTo('loan')
   @HttpCode(HttpStatus.OK)
   @ApiGetLoanBalance()
   async getLoanBalance(
