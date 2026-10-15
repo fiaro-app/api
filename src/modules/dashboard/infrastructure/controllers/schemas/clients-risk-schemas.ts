@@ -29,13 +29,10 @@ export const ClientsRiskResponseSchema = z
         level: z
           .enum(['LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'])
           .meta({ description: 'Bajo, medio, alto o muy alto.' }),
-        loansCount: z
-          .int()
-          .nonnegative()
-          .meta({
-            description:
-              'Préstamos del cliente en este negocio (sin cancelados); 0 si es nuevo.',
-          }),
+        loansCount: z.int().nonnegative().meta({
+          description:
+            'Préstamos del cliente en este negocio (sin cancelados); 0 si es nuevo.',
+        }),
         factors: z.array(
           z.object({
             code: z.enum([
