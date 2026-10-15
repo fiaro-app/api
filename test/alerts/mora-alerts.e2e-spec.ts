@@ -41,7 +41,7 @@ async function feedTitles(testApp: TestApp, cookie: string): Promise<string[]> {
 }
 
 describe('aviso diario de mora (D-96)', () => {
-  it('avisa a quien administra por correo y en el feed, y deja el día registrado', async () => {
+  it('avisa a quien administra en el feed y nunca por correo (D-136), y deja el día registrado', async () => {
     app = await startTestApp({ env: CORS });
     const business = await seedBusinessWithCollector(app);
     await verifyContactEmail(app, business.ownerPhone, 'marta@example.com');
@@ -79,7 +79,8 @@ describe('aviso diario de mora (D-96)', () => {
 
     await expect(run.execute(DAY)).resolves.toBe(false);
 
-    expect(moraEmailsTo(app, 'marta@example.com')).toHaveLength(1);
+    const titles = await feedTitles(app, business.ownerCookie);
+    expect(titles.filter((t) => t === 'Préstamos en mora')).toHaveLength(1);
   });
 
   it('un prestamista sin préstamos en mora no recibe aviso, pero el día queda registrado', async () => {
