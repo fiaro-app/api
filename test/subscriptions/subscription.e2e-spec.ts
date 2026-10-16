@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cookieOf, nextIp, signIn } from '@test/support/auth-flow.js';
 import {
@@ -20,6 +21,7 @@ afterEach(async () => {
 async function registerOwner(testApp: TestApp): Promise<string> {
   const phone = '+573007090001';
   const response = await testApp.http.post('/register').set(HEADERS).send({
+      ...LEGAL_ACCEPTANCE,
     phone,
     fullName: 'Dueña Suscrita',
     password: PASSWORD,

@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import { toBusinessDate } from '@fiaro-app/contracts';
 import { v7 as uuidv7 } from 'uuid';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -116,6 +117,7 @@ describe('GET /lenders/me/dashboard', () => {
       .post('/register')
       .set(HEADERS)
       .send({
+      ...LEGAL_ACCEPTANCE,
         phone,
         fullName: 'Lender Solo',
         password: 'contraseña-de-prueba-1',

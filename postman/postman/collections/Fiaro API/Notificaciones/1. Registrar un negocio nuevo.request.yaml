@@ -16,7 +16,12 @@ body:
       "fullName": "Diana Soto (dueña de prueba de notificaciones)",
       "password": "{{notifOwnerPassword}}",
       "nationalId": "{{notifOwnerNationalId}}",
-      "businessName": "Créditos Diana (prueba de notificaciones)"
+      "businessName": "Créditos Diana (prueba de notificaciones)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
     }
 scripts:
   - type: prerequest

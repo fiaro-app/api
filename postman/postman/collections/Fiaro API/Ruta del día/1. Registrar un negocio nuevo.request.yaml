@@ -16,7 +16,12 @@ body:
       "fullName": "Rosa Camino (dueña de prueba de rutas)",
       "password": "{{routeOwnerPassword}}",
       "nationalId": "{{routeOwnerNationalId}}",
-      "businessName": "Créditos Rosa (prueba de rutas)"
+      "businessName": "Créditos Rosa (prueba de rutas)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
     }
 scripts:
   - type: prerequest

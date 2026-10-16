@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import { expect } from 'vitest';
 import { cookieOf, nextIp, signIn } from '@test/support/auth-flow.js';
 import type { TestApp } from '@test/support/test-app.js';
@@ -52,6 +53,7 @@ export async function seedBusinessWithCollector(
     .post('/register')
     .set(HEADERS)
     .send({
+      ...LEGAL_ACCEPTANCE,
       phone: owner.phone,
       fullName: 'Marta Ríos (dueña de prueba de notificaciones)',
       password: OWNER_PASSWORD,

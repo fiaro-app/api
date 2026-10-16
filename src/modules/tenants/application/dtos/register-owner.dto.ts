@@ -18,6 +18,13 @@ export interface RegisterOwnerInput {
   readonly contactEmail?: string | null;
   /** Nombre del negocio: se guarda igual en el Tenant y en su primer Lender (D-72). */
   readonly businessName: string;
+  /** Qué documentos legales vio y si aceptó recibir novedades (las tres aceptaciones obligatorias ya vienen validadas). */
+  readonly legal: {
+    readonly version: string;
+    readonly marketing: boolean;
+    readonly ipAddress: string | null;
+    readonly userAgent: string | null;
+  };
 }
 
 /** Lo que devuelve el registro: la persona y el negocio recién creados. */

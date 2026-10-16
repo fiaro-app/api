@@ -70,15 +70,31 @@ describe('RegistrationController', () => {
         password: 'una-contraseña-larga',
         nationalId: '1020304050',
         businessName: 'Préstamos Ana',
+        acceptedTerms: true as const,
+        acceptedPrivacy: true as const,
+        acceptedDataResponsibility: true as const,
+        marketingConsent: true,
+        legalVersion: '2026-10-16',
       };
 
       const response = await controller.register(body, undefined, {
         ip: '203.0.113.1',
+        headers: { 'user-agent': 'vitest' },
       } as never);
 
-      expect(registerOwnerUseCase.execute).toHaveBeenCalledExactlyOnceWith(
-        body,
-      );
+      expect(registerOwnerUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        phone: '+573001234567',
+        fullName: 'Ana Pérez',
+        password: 'una-contraseña-larga',
+        nationalId: '1020304050',
+        businessName: 'Préstamos Ana',
+        legal: {
+          version: '2026-10-16',
+          marketing: true,
+          ipAddress: '203.0.113.1',
+          userAgent: 'vitest',
+        },
+      });
       expect(response.user.id).toBe('user-1');
       expect(response.membership.roles).toEqual([
         'OWNER',
@@ -101,11 +117,19 @@ describe('RegistrationController', () => {
         password: 'una-contraseña-larga',
         nationalId: '1020304050',
         businessName: 'Préstamos Ana',
+        acceptedTerms: true as const,
+        acceptedPrivacy: true as const,
+        acceptedDataResponsibility: true as const,
+        marketingConsent: true,
+        legalVersion: '2026-10-16',
         turnstileToken: 'token',
       };
 
       await expect(
-        controller.register(body, undefined, { ip: '203.0.113.1' } as never),
+        controller.register(body, undefined, {
+          ip: '203.0.113.1',
+          headers: {},
+        } as never),
       ).rejects.toBeInstanceOf(TurnstileVerificationError);
       expect(registerOwnerUseCase.execute).not.toHaveBeenCalled();
     });
