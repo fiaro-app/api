@@ -6,7 +6,10 @@ import type {
   LoanRequestDetails,
 } from '@/modules/loan-requests/application/dtos/loan-request-details.dto.js';
 import { FindClientIdByNationalIdUseCase } from '@/modules/loan-requests/application/use-cases/find-client-id-by-national-id.use-case.js';
-import { LoanRequest } from '@/modules/loan-requests/domain/entities/loan-request.entity.js';
+import {
+  LoanRequest,
+  type LoanRequestNewClient,
+} from '@/modules/loan-requests/domain/entities/loan-request.entity.js';
 import { LoanRequestClientDataRequiredError } from '@/modules/loan-requests/domain/errors/loan-request-client-data-required.error.js';
 import type { LoanRequestRepository } from '@/modules/loan-requests/domain/repositories/loan-request.repository.js';
 import { LOAN_REQUEST_REPOSITORY } from '@/modules/loan-requests/domain/tokens/loan-request-repository.token.js';
@@ -49,8 +52,12 @@ export class CreateLoanRequestUseCase {
       input.lenderId,
       nationalId,
     );
-    if (clientId === null && input.client === undefined) {
-      throw new LoanRequestClientDataRequiredError();
+    let newClient: LoanRequestNewClient | null = null;
+    if (clientId === null) {
+      if (input.client === undefined) {
+        throw new LoanRequestClientDataRequiredError();
+      }
+      newClient = input.client;
     }
 
     const request = LoanRequest.create({
@@ -59,7 +66,7 @@ export class CreateLoanRequestUseCase {
       requestedByMembershipId: input.membershipId,
       clientId,
       nationalId,
-      newClient: clientId === null ? (input.client ?? null) : null,
+      newClient,
       terms: {
         principalAmount: input.principalAmount,
         installmentCount: input.installmentCount,

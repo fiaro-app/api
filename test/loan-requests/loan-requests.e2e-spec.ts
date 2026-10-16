@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { nextIp } from '@test/support/auth-flow.js';
+import { cookieOf, nextIp, signIn } from '@test/support/auth-flow.js';
 import {
   HEADERS,
   seedBusinessWithCollector,
@@ -62,6 +62,39 @@ async function request(
   );
   expect(created.status).toBe(201);
   return created.body as { id: string };
+}
+
+let lenderSeq = 0;
+
+/** Invita a un administrador (solo `LENDER`, sin rol de cobrador) y devuelve su cookie ya con la contraseña cambiada. */
+async function inviteLenderOnly(
+  testApp: TestApp,
+  ownerCookie: string,
+): Promise<string> {
+  lenderSeq += 1;
+  const suffix = String(lenderSeq).padStart(5, '0');
+  const phone = `+5730050${suffix}`;
+  const invited = await post(testApp, '/memberships', ownerCookie, {
+    phone,
+    fullName: 'Lucía Administradora',
+    nationalId: `5${suffix}`,
+    contactEmail: `lucia-${suffix}@example.com`,
+    roles: ['LENDER'],
+  });
+  expect(invited.status).toBe(201);
+  const tempPassword = (invited.body as { tempPassword: string }).tempPassword;
+  const session = await signIn(testApp, { phone, password: tempPassword });
+  const changed = await post(
+    testApp,
+    '/auth/change-password',
+    cookieOf(session),
+    {
+      currentPassword: tempPassword,
+      newPassword: 'contraseña-nueva-de-lucia-1',
+    },
+  );
+  expect(changed.status).toBe(200);
+  return cookieOf(changed);
 }
 
 describe('solicitudes de préstamo de un cobrador', () => {
@@ -269,6 +302,25 @@ describe('solicitudes de préstamo de un cobrador', () => {
       {},
     );
     expect(collectorRejects.status).toBe(403);
+
+    const own = await app.http
+      .get(`/loan-requests/${created.id}`)
+      .set(HEADERS)
+      .set('Cookie', business.ownerCookie);
+    expect(own.status).toBe(200);
+
+    const lender = await inviteLenderOnly(app, business.ownerCookie);
+    const lenderCreates = await post(app, '/loan-requests', lender, {
+      nationalId: '51234568',
+      client: NEW_CLIENT,
+      ...TERMS,
+    });
+    expect(lenderCreates.status).toBe(403);
+    const lenderReads = await app.http
+      .get(`/loan-requests/${created.id}`)
+      .set(HEADERS)
+      .set('Cookie', lender);
+    expect(lenderReads.status).toBe(200);
 
     const unknown = await post(
       app,
