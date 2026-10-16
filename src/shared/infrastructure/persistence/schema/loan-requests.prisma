@@ -1,0 +1,41 @@
+/// PENDING: espera al administrador. APPROVED: se creó el préstamo. REJECTED: el administrador la descartó.
+enum LoanRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Solicitud de un cobrador para que el administrador cree un préstamo. `clientId` apunta a un
+/// cliente existente; si es `null`, los campos `client_*` traen los datos del cliente nuevo. Los
+/// montos y la fecha de inicio repiten los de `Loan`.
+model LoanRequest {
+  id                      String            @id @db.Uuid
+  lenderId                String            @map("lender_id") @db.Uuid
+  /// Quién la hizo (sin FK a memberships: es un dato de auditoría, como en `Loan`).
+  requestedByMembershipId String            @map("requested_by_membership_id") @db.Uuid
+  clientId                String?           @map("client_id") @db.Uuid
+  nationalId              String            @map("national_id")
+  clientFullName          String?           @map("client_full_name")
+  clientOccupation        String?           @map("client_occupation")
+  clientPhone             String?           @map("client_phone")
+  clientAddress           String?           @map("client_address")
+  principalAmount         Int               @map("principal_amount")
+  installmentCount        Int               @map("installment_count")
+  installmentValue        Int               @map("installment_value")
+  totalPayable            Int               @map("total_payable")
+  frequency               LoanFrequency
+  startDate               String            @map("start_date")
+  status                  LoanRequestStatus @default(PENDING)
+  resolvedByMembershipId  String?           @map("resolved_by_membership_id") @db.Uuid
+  resolvedAt              DateTime?         @map("resolved_at") @db.Timestamptz(3)
+  rejectionReason         String?           @map("rejection_reason")
+  loanId                  String?           @map("loan_id") @db.Uuid
+  createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+
+  @@index([lenderId, status, createdAt])
+  @@index([requestedByMembershipId])
+  @@map("loan_requests")
+}

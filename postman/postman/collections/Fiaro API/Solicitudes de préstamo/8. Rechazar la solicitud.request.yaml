@@ -1,0 +1,27 @@
+$kind: http-request
+description: "La descarta y le avisa al cobrador con el motivo. Rechazarla otra vez responde 409."
+url: "{{baseUrl}}/loan-requests/{{loanRequestId}}/reject"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "reason": "El cliente todavía debe el préstamo anterior."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('queda REJECTED con el motivo', () => {
+        const body = pm.response.json();
+        pm.expect(body.status).to.eql('REJECTED');
+        pm.expect(body.rejectionReason).to.include('todavía debe');
+      });
+    language: text/javascript
+order: 8000

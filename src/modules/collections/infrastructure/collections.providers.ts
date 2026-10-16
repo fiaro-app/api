@@ -85,4 +85,5 @@ export const collectionsExports = [
   GetCollectorDailySummaryUseCase,
   GetCollectorStatsUseCase,
   ListCollectionAssignmentsUseCase,
+  CreateCollectionAssignmentUseCase,
 ];

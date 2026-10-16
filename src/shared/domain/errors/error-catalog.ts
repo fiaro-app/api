@@ -29,6 +29,7 @@ export const ERROR_AREAS = {
   A: 'Cuenta y sesión',
   C: 'Clientes',
   L: 'Préstamos',
+  Q: 'Solicitudes de préstamo',
   V: 'Cobro en campo',
   S: 'Cuadres',
   M: 'Colaboradores',

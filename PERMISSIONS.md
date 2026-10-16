@@ -147,6 +147,19 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `QUERY /clients` | Cualquiera | Cada fila trae `balance`, `overdueAmount`, `overdueDays` y `activeLoans`, sumados sobre sus préstamos activos (D-113). Vive en `collections` (`PortfolioListController`), no en `ClientController`, porque el saldo sale de los pagos de las visitas y `clients` no puede depender de `collections`. |
 | `PATCH /clients/:id` | `OWNER`, `LENDER` | — |
 
+## Solicitudes de préstamo — `/loan-requests` (`LoanRequestController`)
+
+`LenderScopeGuard` en toda la clase.
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `POST /loan-requests/client-lookup` | Cualquiera | Solo `{ exists }`: nunca datos del cliente, para que un cobrador sepa si debe registrarlo (D-138). |
+| `POST /loan-requests` | `COLLECTOR` | Cédula nueva exige `client`; cédula existente lo ignora. Avisa a los administradores. |
+| `GET /loan-requests/:id` | Cualquiera | `OWNER`/`LENDER` ven cualquiera; un cobrador, solo las suyas (de otro, `404`). |
+| `QUERY /loan-requests` | Cualquiera | `OWNER`/`LENDER` ven todas; un cobrador, solo las suyas. |
+| `POST /loan-requests/:id/approve` | `OWNER`, `LENDER` | Crea cliente, préstamo y asignación. `409` si ya fue resuelta o la cédula del cliente nuevo ya existe. |
+| `POST /loan-requests/:id/reject` | `OWNER`, `LENDER` | Con motivo opcional; avisa al cobrador. `409` si ya fue resuelta. |
+
 ## Préstamos — `/loans` (`LoanController`)
 
 `LenderScopeGuard` en toda la clase.

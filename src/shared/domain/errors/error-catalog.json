@@ -164,6 +164,18 @@
       "title": "La notificación no existe para esta persona.",
       "hint": "Id viejo o de otra persona (por diseño da 404)."
     },
+    "Q001A": {
+      "title": "La solicitud de préstamo no existe para este negocio.",
+      "hint": "Id viejo en la app, de otro negocio o, si es cobrador, de una solicitud que hizo otra persona."
+    },
+    "Q002A": {
+      "title": "La solicitud de préstamo ya fue resuelta.",
+      "hint": "Otro administrador la aceptó o la rechazó antes: recarga la lista."
+    },
+    "Q003V": {
+      "title": "Faltan los datos del cliente en la solicitud.",
+      "hint": "La cédula no es de un cliente del negocio y no vino `client`: la app debe consultar `client-lookup` antes y pedir los datos si no existe."
+    },
     "S001A": {
       "title": "El cuadre de hoy ya se envió y no se puede reenviar.",
       "hint": "Está en revisión o aprobado: cancelarlo (si está en revisión) antes de enviar otro."
