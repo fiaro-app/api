@@ -1,5 +1,5 @@
 $kind: http-request
-description: "El id lo genera el dispositivo (aquí, el script previo con un UUID al azar): también es la llave de idempotencia. Exige rol COLLECTOR."
+description: Sin dinero esta vez; promisedDate hace que el préstamo reaparezca en la ruta ese día.
 url: "{{baseUrl}}/loans/{{visitsLoanId}}/collection-visits"
 method: POST
 headers:
@@ -12,23 +12,21 @@ body:
   type: json
   content: |-
     {
-      "id": "{{visitsPaidVisitId}}",
-      "outcome": "PAID",
-      "occurredAt": "2026-10-01T14:00:00.000Z",
-      "payment": {
-        "amount": 30000
-      }
+      "id": "{{visitsRescheduledVisitId}}",
+      "outcome": "RESCHEDULED",
+      "promisedDate": "2026-10-05",
+      "occurredAt": "2026-10-02T14:00:00.000Z"
     }
 scripts:
   - type: prerequest
     code: |-
-      pm.collectionVariables.set('visitsPaidVisitId', pm.variables.replaceIn('{{$guid}}'));
+      pm.collectionVariables.set('visitsRescheduledVisitId', pm.variables.replaceIn('{{$guid}}'));
     language: text/javascript
   - type: afterResponse
     code: |-
       pm.test('responde 201', () => pm.response.to.have.status(201));
       const body = pm.response.json();
-      pm.test('trae su pago', () => pm.expect(body.payment.amount).to.eql(30000));
-      pm.collectionVariables.set('visitsPaidPaymentId', body.payment.id);
+      pm.test('sin pago', () => pm.expect(body.payment).to.be.null);
+      pm.test('trae la fecha prometida', () => pm.expect(body.promisedDate).to.eql('2026-10-05'));
     language: text/javascript
-order: 9000
+order: 12000

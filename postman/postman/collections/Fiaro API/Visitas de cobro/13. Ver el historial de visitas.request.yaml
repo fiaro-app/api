@@ -1,5 +1,5 @@
 $kind: http-request
-description: Confirma que las dos visitas queden registradas (el reenvío del paso 10 no agregó una tercera).
+description: Confirma que las dos visitas queden registradas (el reenvío del paso 11 no agregó una tercera).
 url: "{{baseUrl}}/loans/{{visitsLoanId}}/collection-visits"
 method: GET
 headers:
@@ -13,4 +13,4 @@ scripts:
       const body = pm.response.json();
       pm.test('tiene las dos visitas, no tres', () => pm.expect(body).to.have.lengthOf(2));
     language: text/javascript
-order: 12000
+order: 13000

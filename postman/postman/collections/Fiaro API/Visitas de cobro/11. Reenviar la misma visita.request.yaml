@@ -25,4 +25,4 @@ scripts:
       pm.test('responde 201', () => pm.response.to.have.status(201));
       pm.test('es el mismo pago, no uno nuevo', () => pm.expect(pm.response.json().payment.id).to.eql(pm.collectionVariables.get('visitsPaidPaymentId')));
     language: text/javascript
-order: 10000
+order: 11000

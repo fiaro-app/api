@@ -21,4 +21,4 @@ scripts:
       pm.test('responde 200', () => pm.response.to.have.status(200));
       pm.test('la cuenta pide cambiar la contraseña', () => pm.expect(pm.response.json().user.mustChangePassword).to.be.true);
     language: text/javascript
-order: 7000
+order: 8000
