@@ -124,6 +124,10 @@
       "title": "La cartera no existe para este negocio.",
       "hint": "Id viejo en la app o de otro negocio."
     },
+    "B007A": {
+      "title": "El negocio ya tiene el máximo de carteras.",
+      "hint": "Son 4 en total, la General incluida: borra una que no uses antes de crear otra. Más adelante el tope lo definirá el plan."
+    },
     "L001V": {
       "title": "Los datos del préstamo no son válidos.",
       "hint": "Mira los `issues`: capital, cuotas, frecuencia, fecha de inicio o cliente."

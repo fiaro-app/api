@@ -117,7 +117,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 
 | Ruta | Rol | Notas |
 | --- | --- | --- |
-| `POST /portfolios` | `OWNER`, `LENDER` | — |
+| `POST /portfolios` | `OWNER`, `LENDER` | Máximo 4 carteras por negocio, la «General» incluida: la quinta da `403 PLAN_LIMIT_REACHED` con `maxPortfolios` (D-141). |
 | `GET /portfolios` | Cualquiera | — |
 | `PATCH /portfolios/:id` | `OWNER`, `LENDER` | Renombra (D-109). Se puede renombrar también la cartera por defecto. Nombre repetido en el prestamista: `409 CONFLICT`. Otro prestamista o inexistente: `404 NOT_FOUND`. |
 | `DELETE /portfolios/:id` | `OWNER`, `LENDER` | Borra (D-109), `204`. `409 CONFLICT` si es la cartera por defecto o si tiene cobradores **activos** asignados; las membresías inactivas que la tenían quedan sin cartera (`ON DELETE SET NULL`). |
