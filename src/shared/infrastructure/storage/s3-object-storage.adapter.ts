@@ -108,6 +108,17 @@ export class S3ObjectStorageAdapter implements ObjectStoragePort {
     }
   }
 
+  async getPresignedDownloadUrl(
+    key: string,
+    ttlSeconds: number,
+  ): Promise<string> {
+    return await getSignedUrl(
+      this.client,
+      new GetObjectCommand({ Bucket: this.config.bucket, Key: key }),
+      { expiresIn: ttlSeconds },
+    );
+  }
+
   async deleteObject(key: string): Promise<void> {
     await this.client.send(
       new DeleteObjectCommand({ Bucket: this.config.bucket, Key: key }),

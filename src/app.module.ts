@@ -12,6 +12,7 @@ import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { CollectionsModule } from '@/modules/collections/collections.module.js';
 import { DashboardModule } from '@/modules/dashboard/dashboard.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
+import { AttachmentsModule } from '@/modules/attachments/attachments.module.js';
 import { LoanRequestsModule } from '@/modules/loan-requests/loan-requests.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
@@ -59,6 +60,7 @@ import { TurnstileModule } from '@/shared/infrastructure/turnstile/turnstile.mod
     ClientsModule,
     LoansModule,
     LoanRequestsModule,
+    AttachmentsModule,
     CollectionsModule,
     SettlementsModule,
     DashboardModule,

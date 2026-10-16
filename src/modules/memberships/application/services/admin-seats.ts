@@ -17,7 +17,7 @@ export function occupiesAdminSeat(roles: readonly Role[]): boolean {
 }
 
 /**
- * Aplica el límite de administradores del plan (D-145). Quien lo llame debe hacerlo con el
+ * Aplica el límite de administradores del plan (D-146). Quien lo llame debe hacerlo con el
  * `LenderLock` del prestamista tomado: contar y después crear no es atómico.
  */
 @Injectable()

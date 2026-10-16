@@ -142,7 +142,7 @@
     },
     "L004A": {
       "title": "El plan no admite más préstamos activos.",
-      "hint": "Límite del plan (D-145): espera a que se cierre alguno o sube de plan; cobrar los que ya hay no se bloquea."
+      "hint": "Límite del plan (D-146): espera a que se cierre alguno o sube de plan; cobrar los que ya hay no se bloquea."
     },
     "M001A": {
       "title": "Ya hay una persona con esa cédula en este negocio.",
@@ -170,7 +170,7 @@
     },
     "M007A": {
       "title": "El plan no admite más administradores.",
-      "hint": "Límite del plan (D-145): la dueña cuenta como una; desactiva a otro administrador o sube de plan."
+      "hint": "Límite del plan (D-146): la dueña cuenta como una; desactiva a otro administrador o sube de plan."
     },
     "N001A": {
       "title": "La notificación no existe para esta persona.",
@@ -319,6 +319,14 @@
     "P916F": {
       "title": "Cloudflare falló.",
       "hint": "Turnstile no respondió: revisa conectividad y la llave."
+    },
+    "P920V": {
+      "title": "La foto no es válida.",
+      "hint": "La llave no es de ese cliente o pago, el archivo no se subió, no es PNG o JPEG, o pesa más de 5 MB (el objeto se borra). Revisa que la app suba con la URL firmada y guarde la llave que esa respuesta devolvió."
+    },
+    "P921A": {
+      "title": "No tienes permiso sobre esta foto.",
+      "hint": "Un cobrador solo toca los comprobantes de sus propios cobros; la foto de un cliente la cambia quien administra."
     },
     "A101A": {
       "title": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",

@@ -29,6 +29,7 @@ model Lender {
   clients       Client[]
   loans         Loan[]
   loanRequests  LoanRequest[]
+  attachments   Attachment[]
   notifications Notification[]
 
   @@index([tenantId])
