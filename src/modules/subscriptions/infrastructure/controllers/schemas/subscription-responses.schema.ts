@@ -1,12 +1,14 @@
 import { SubscriptionStatusSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
+import { SUBSCRIPTION_PLAN_CODES } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 
 /** Respuesta de `GET /subscription`: el plan del negocio, su estado y cuánto de él se usa. */
 export const SubscriptionResponseSchema = z
   .object({
-    planCode: z.literal('TRIAL').meta({
-      description: 'Qué plan es. Hoy solo existe `TRIAL`, la prueba inicial.',
+    planCode: z.enum(SUBSCRIPTION_PLAN_CODES).meta({
+      description:
+        'Qué plan es: `TRIAL` (la prueba inicial), `INDIVIDUAL`, `PRO` o `TEAM`.',
     }),
     status: SubscriptionStatusSchema.meta({
       description:
@@ -35,6 +37,17 @@ export const SubscriptionResponseSchema = z
         }),
         maxCollectors: z.int().meta({
           description: 'Cuántos cobradores activos admite el plan.',
+        }),
+        maxAdmins: z.int().meta({
+          description: 'Cuántos administradores admite cada prestamista.',
+        }),
+        maxPortfolios: z.int().meta({
+          description:
+            'Cuántas carteras admite cada prestamista, la «General» incluida.',
+        }),
+        maxActiveLoans: z.int().nullable().meta({
+          description:
+            'Cuántos préstamos activos admite cada prestamista; `null` si no hay tope.',
         }),
       })
       .meta({ description: 'Los topes del plan.' }),

@@ -12,11 +12,13 @@ scripts:
       pm.test('responde 200', () => pm.response.to.have.status(200));
       const body = pm.response.json();
       pm.test('trae el plan y su estado', () => {
-        pm.expect(body.planCode).to.eql('TRIAL');
+        pm.expect(['TRIAL', 'INDIVIDUAL', 'PRO', 'TEAM']).to.include(body.planCode);
         pm.expect(['ACTIVE', 'GRACE_PERIOD', 'READ_ONLY']).to.include(body.status);
       });
       pm.test('trae los límites y el uso', () => {
         pm.expect(body.limits.maxCollectors).to.be.a('number');
+        pm.expect(body.limits.maxAdmins).to.be.a('number');
+        pm.expect(body.limits.maxPortfolios).to.be.a('number');
         pm.expect(body.usage.activeLenders).to.be.a('number');
       });
     language: text/javascript

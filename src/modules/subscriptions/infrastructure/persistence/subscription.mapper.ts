@@ -15,6 +15,9 @@ export function toSubscriptionCreateInput(
     planCode: subscription.planCode,
     maxActiveLenders: subscription.maxActiveLenders,
     maxCollectors: subscription.maxCollectors,
+    maxAdmins: subscription.maxAdmins,
+    maxPortfolios: subscription.maxPortfolios,
+    maxActiveLoans: subscription.maxActiveLoans,
     currentPeriodEndsAt: subscription.currentPeriodEndsAt,
     createdAt: subscription.createdAt,
   };
@@ -25,10 +28,13 @@ export function toSubscription(row: SubscriptionModel): Subscription {
   return Subscription.create({
     id: row.id,
     tenantId: row.tenantId,
-    // La columna es texto libre para poder añadir planes sin migrar; hoy solo existe `TRIAL`.
+    // La columna es texto libre para poder añadir planes sin migrar; los códigos válidos son los de `SUBSCRIPTION_PLAN_CODES`.
     planCode: row.planCode as SubscriptionPlanCode,
     maxActiveLenders: row.maxActiveLenders,
     maxCollectors: row.maxCollectors,
+    maxAdmins: row.maxAdmins,
+    maxPortfolios: row.maxPortfolios,
+    maxActiveLoans: row.maxActiveLoans,
     currentPeriodEndsAt: row.currentPeriodEndsAt,
     createdAt: row.createdAt,
   });

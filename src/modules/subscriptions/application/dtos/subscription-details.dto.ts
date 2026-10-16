@@ -18,6 +18,10 @@ export interface SubscriptionDetails {
   readonly limits: {
     readonly maxActiveLenders: number;
     readonly maxCollectors: number;
+    readonly maxAdmins: number;
+    readonly maxPortfolios: number;
+    /** `null` si el plan no limita los préstamos activos. */
+    readonly maxActiveLoans: number | null;
   };
   readonly usage: {
     /** Prestamistas del negocio. */

@@ -4,10 +4,16 @@
 model Subscription {
   id                  String   @id @db.Uuid
   tenantId            String   @unique @map("tenant_id") @db.Uuid
-  /// Qué plan es. Hoy solo existe `TRIAL`, la prueba con la que nace todo negocio.
+  /// Qué plan es: `TRIAL` (la prueba con la que nace todo negocio), `INDIVIDUAL`, `PRO` o `TEAM`.
   planCode            String   @map("plan_code")
   maxActiveLenders    Int      @map("max_active_lenders")
   maxCollectors       Int      @map("max_collectors")
+  /// Administradores por prestamista.
+  maxAdmins           Int      @map("max_admins")
+  /// Carteras por prestamista, la «General» incluida.
+  maxPortfolios       Int      @map("max_portfolios")
+  /// Préstamos activos por prestamista; `null` = sin tope.
+  maxActiveLoans      Int?     @map("max_active_loans")
   currentPeriodEndsAt DateTime @map("current_period_ends_at") @db.Timestamptz(3)
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
