@@ -17,6 +17,7 @@ import { startOfBusinessMonth } from '@/shared/domain/calendar/business-date.js'
 import { computeExpectedAmountInRange } from '@/shared/domain/calendar/period-expected.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
+import { effectivenessOf } from '@/shared/domain/effectiveness.js';
 
 /**
  * Métricas personales de desempeño de un cobrador en un período (PROTOTIPO-FLUJOS.md §4.4, D-98):
@@ -89,8 +90,7 @@ export class GetCollectorStatsUseCase {
       to,
       expectedAmount,
       collectedAmount,
-      effectiveness:
-        expectedAmount === 0 ? null : collectedAmount / expectedAmount,
+      effectiveness: effectivenessOf(collectedAmount, expectedAmount),
       visitsCount: summary.visitsCount,
       overdueAmount,
     };
