@@ -1,0 +1,33 @@
+$kind: http-request
+description: El registro de rutas (D-143). Un renglón por cobrador y día con visitas, con la hora de su primera y de su última visita, cuántas visitas hizo, cuántas terminaron en pago y cuánto cobró. Sin rango devuelve solo hoy; aquí debe estar la ruta de la cobradora de las visitas registradas arriba.
+url: "{{baseUrl}}/collection-visits/routes"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la página y el rango consultado', () => {
+        pm.expect(body.meta.total).to.be.a('number');
+        pm.expect(body.range.from).to.eql(body.range.to);
+      });
+      pm.test('cada renglón trae cobrador, horas y cifras', () => {
+        body.data.forEach((route) => {
+          pm.expect(route.collector.fullName).to.be.a('string');
+          pm.expect(new Date(route.startedAt).getTime()).to.be.at.most(new Date(route.endedAt).getTime());
+          pm.expect(route.visitsCount).to.be.at.least(1);
+          pm.expect(route.collectedAmount).to.be.a('number');
+        });
+      });
+    language: text/javascript
+order: 16000

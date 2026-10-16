@@ -22,3 +22,7 @@ export const SearchCollectionVisitsRequestSchema = PageQuerySchema.extend({
     description: 'Solo las visitas que terminaron así.',
   }),
 });
+
+/** Cuerpo de `QUERY /collection-visits/routes`: el mismo rango y los mismos filtros de cobrador y cartera. */
+export const SearchCollectionRoutesRequestSchema =
+  SearchCollectionVisitsRequestSchema.omit({ outcome: true });

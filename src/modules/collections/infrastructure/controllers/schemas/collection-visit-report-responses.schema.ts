@@ -4,7 +4,10 @@ import {
   paginated,
 } from '@fiaro-app/contracts';
 import { z } from 'zod';
-import type { CollectionVisitReportResult } from '@/modules/collections/application/dtos/collection-visit-report.dto.js';
+import type {
+  CollectionRoutesResult,
+  CollectionVisitReportResult,
+} from '@/modules/collections/application/dtos/collection-visit-report.dto.js';
 
 /** Una fila de «Cobros del día». */
 export const CollectionVisitReportEntryResponseSchema = z
@@ -97,6 +100,67 @@ export function toCollectionVisitReportResponse(
       client: entry.client,
       collector: entry.collector,
       payment: entry.payment,
+    })),
+    meta: { page: query.page, pageSize: query.pageSize, total: result.total },
+    range: { from: result.from, to: result.to },
+  };
+}
+
+/** Una fila del registro de rutas: lo que hizo un cobrador en un día. */
+export const CollectionRouteResponseSchema = z
+  .object({
+    date: z.iso.date().meta({ description: 'El día (hora de Colombia).' }),
+    collector: z
+      .object({
+        membershipId: z.uuid().meta({ description: 'La membresía que cobró.' }),
+        fullName: z.string().meta({ description: 'Nombre del cobrador.' }),
+      })
+      .meta({ id: 'CollectionRouteCollector' }),
+    startedAt: z.iso.datetime({ offset: true }).meta({
+      description: 'Hora de su primera visita del día: cuando empezó la ruta.',
+    }),
+    endedAt: z.iso.datetime({ offset: true }).meta({
+      description: 'Hora de su última visita del día: cuando terminó la ruta.',
+    }),
+    visitsCount: z.int().meta({ description: 'Cuántas visitas hizo.' }),
+    paidCount: z.int().meta({ description: 'Cuántas terminaron en pago.' }),
+    expectedAmount: z.int().meta({
+      description:
+        'La suma de las cuotas que se esperaba cobrar en sus visitas.',
+    }),
+    collectedAmount: z.int().meta({
+      description: 'Lo que cobró, sin contar los pagos revertidos.',
+    }),
+  })
+  .meta({ id: 'CollectionRouteResponse' });
+
+/** Respuesta de `QUERY /collection-visits/routes`: una página del registro de rutas y el rango consultado. */
+export const CollectionRoutesResponseSchema = paginated(
+  CollectionRouteResponseSchema,
+)
+  .extend({
+    range: z
+      .object({
+        from: z.iso.date().meta({ description: 'Primera fecha consultada.' }),
+        to: z.iso.date().meta({ description: 'Última fecha consultada.' }),
+      })
+      .meta({ id: 'CollectionRoutesRange' }),
+  })
+  .meta({ id: 'CollectionRoutesResponse' });
+
+/**
+ * @param result - La página, tal como la devuelve el caso de uso.
+ * @param query - La paginación pedida.
+ */
+export function toCollectionRoutesResponse(
+  result: CollectionRoutesResult,
+  query: { readonly page: number; readonly pageSize: number },
+): z.output<typeof CollectionRoutesResponseSchema> {
+  return {
+    data: result.items.map((entry) => ({
+      ...entry,
+      startedAt: entry.startedAt.toISOString(),
+      endedAt: entry.endedAt.toISOString(),
     })),
     meta: { page: query.page, pageSize: query.pageSize, total: result.total },
     range: { from: result.from, to: result.to },

@@ -143,3 +143,58 @@ describe('PrismaCollectionVisitReportRepository.search', () => {
     expect(page.items[1]?.payment).toBeNull();
   });
 });
+
+describe('PrismaCollectionVisitReportRepository.summarizeRoutes', () => {
+  it('pide las visitas del rango y las resume por cobrador y día, sin contar los pagos revertidos', async () => {
+    const { repository, findMany } = setup();
+    findMany.mockResolvedValueOnce([
+      {
+        occurredAt: OCCURRED_AT,
+        outcome: 'PAID',
+        expectedAmount: 10_000,
+        collectorMembershipId: 'membership-1',
+        membership: { user: { fullName: 'Ana Cobradora' } },
+        payment: { amount: 10_000, reversal: null },
+      },
+      {
+        occurredAt: new Date('2026-10-09T18:00:00Z'),
+        outcome: 'PAID',
+        expectedAmount: 10_000,
+        collectorMembershipId: 'membership-1',
+        membership: { user: { fullName: 'Ana Cobradora' } },
+        payment: { amount: 10_000, reversal: { id: 'reversal-1' } },
+      },
+      {
+        occurredAt: new Date('2026-10-09T19:00:00Z'),
+        outcome: 'NOT_FOUND',
+        expectedAmount: 10_000,
+        collectorMembershipId: 'membership-1',
+        membership: { user: { fullName: 'Ana Cobradora' } },
+        payment: null,
+      },
+    ]);
+
+    const days = await repository.summarizeRoutes({
+      lenderId: 'lender-1',
+      from: '2026-10-09',
+      to: '2026-10-09',
+    });
+
+    expect(days).toEqual([
+      {
+        date: '2026-10-09',
+        collectorMembershipId: 'membership-1',
+        collectorFullName: 'Ana Cobradora',
+        startedAt: OCCURRED_AT,
+        endedAt: new Date('2026-10-09T19:00:00Z'),
+        visitsCount: 3,
+        paidCount: 2,
+        expectedAmount: 30_000,
+        collectedAmount: 10_000,
+      },
+    ]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { occurredAt: 'asc' } }),
+    );
+  });
+});

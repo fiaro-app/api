@@ -189,6 +189,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `GET /loans/:loanId/balance` | Cualquiera | Vive en `collections`, no en `loans`, para no crear un ciclo de módulos (D-84) — detalle arquitectónico, no de permisos. |
 | `GET /loans/:loanId/installments` | Cualquiera | Calendario de cuotas (D-103). Mismo motor y mismas fechas que el saldo; vive en `collections` por la misma razón (D-84). |
 | `QUERY /collection-visits` | `OWNER`, `LENDER` | «Cobros del día» (D-105): las visitas de todo el negocio, no de un préstamo. Un `COLLECTOR` recibe `403 FORBIDDEN`; él ve lo suyo por su ruta y su resumen (D-98). |
+| `QUERY /collection-visits/routes` | `OWNER`, `LENDER` | El registro de rutas (D-143): un renglón por cobrador y día con la primera y la última visita, cuántas visitas, cuántas en pago y lo cobrado. Un `COLLECTOR` recibe `403 FORBIDDEN`. |
 | `POST /payments/:id/reversals` | `OWNER`, `LENDER` | Única forma de corregir un pago (D-85). `reversedByMembershipId` siempre de la sesión. |
 
 ## Cuadre diario — `/daily-settlements` (`DailySettlementController`)

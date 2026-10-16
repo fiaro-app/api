@@ -1,7 +1,10 @@
 import { toBusinessDate } from '@fiaro-app/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 import { addDays } from '@/shared/domain/calendar/business-date.js';
-import { seedBusinessWithCollector } from '@test/support/notification-seed.js';
+import {
+  HEADERS,
+  seedBusinessWithCollector,
+} from '@test/support/notification-seed.js';
 import { seedLoan } from '@test/support/seed-loan.js';
 import { httpQuery } from '@test/support/security-app.js';
 import { nextIp } from '@test/support/auth-flow.js';
@@ -177,5 +180,61 @@ describe('QUERY /collection-visits', () => {
     const response = await httpQuery(app.http, '/collection-visits').send({});
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('QUERY /collection-visits/routes', () => {
+  it('resume la ruta de hoy por cobrador: visitas, pagos, lo cobrado y la hora de la primera y la última visita', async () => {
+    app = await startTestApp();
+    const { cookie, membershipId } = await seedToday(app, [10_000, 5_000]);
+
+    const response = await httpQuery(app.http, '/collection-visits/routes')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', nextIp())
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body.range).toEqual({ from: TODAY, to: TODAY });
+    expect(response.body.meta).toEqual({ page: 1, pageSize: 10, total: 1 });
+    const [route] = response.body.data as {
+      date: string;
+      collector: { membershipId: string; fullName: string };
+      startedAt: string;
+      endedAt: string;
+      visitsCount: number;
+      paidCount: number;
+      collectedAmount: number;
+    }[];
+    expect(route).toMatchObject({
+      date: TODAY,
+      collector: { membershipId, fullName: 'Ana Pérez' },
+      visitsCount: 2,
+      paidCount: 2,
+      collectedAmount: 15_000,
+    });
+    expect(new Date(route?.startedAt ?? 0).getTime()).toBeLessThanOrEqual(
+      new Date(route?.endedAt ?? 0).getTime(),
+    );
+  });
+
+  it('un cobrador no puede verlo (403) y un cobrador ajeno no encuentra nada', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const { cookie } = await seedToday(app, [10_000]);
+    const business = await seedBusinessWithCollector(app);
+
+    const forbidden = await httpQuery(app.http, '/collection-visits/routes')
+      .set(HEADERS)
+      .set('Cookie', business.collectorCookie)
+      .set('X-Forwarded-For', nextIp())
+      .send({});
+    expect(forbidden.status).toBe(403);
+
+    const none = await httpQuery(app.http, '/collection-visits/routes')
+      .set(HEADERS)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', nextIp())
+      .send({ collectorMembershipId: business.collectorMembershipId });
+    expect(none.status).toBe(200);
+    expect(none.body.meta.total).toBe(0);
   });
 });
