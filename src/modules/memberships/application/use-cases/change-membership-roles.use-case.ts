@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 import { toMembershipDetails } from '@/modules/memberships/application/dtos/membership-details.mapper.js';
+import { assertNotOwner } from '@/modules/memberships/application/services/assert-not-owner.js';
 import {
   CollectorSeats,
   occupiesCollectorSeat,
@@ -40,7 +41,8 @@ export class ChangeMembershipRolesUseCase {
    * @param portfolioId - La cartera nueva, si trae una.
    * @returns La membresía con sus roles ya actualizados.
    * @throws {@link MembershipNotFoundError} Si no existe o es de otro prestamista.
-   * @throws {@link InvalidMembershipDataError} Si los roles o la cartera no cumplen la regla.
+   * @throws {@link InvalidMembershipDataError} Si los roles o la cartera no cumplen la regla, o
+   * si es la membresía del dueño.
    * @throws {@link CollectorLimitReachedError} Si una membresía activa pasa a ocupar un cupo de
    * cobrador y el plan no tiene cupo.
    */
@@ -66,6 +68,7 @@ export class ChangeMembershipRolesUseCase {
     if (current === null) {
       throw new MembershipNotFoundError(id);
     }
+    assertNotOwner(current.roles, 'cambiar los roles de');
 
     const data = validateMembershipData({
       roles,

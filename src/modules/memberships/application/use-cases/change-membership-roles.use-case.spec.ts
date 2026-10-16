@@ -125,21 +125,25 @@ describe('ChangeMembershipRolesUseCase', () => {
     expect(assertAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
   });
 
-  it('no revisa el cupo si ya era cobrador o si es el dueño', async () => {
+  it('no revisa el cupo si ya era cobrador', async () => {
     const collector = setup(membershipWith(['COLLECTOR'], 'portfolio-1'));
+
     await collector.useCase.execute('membership-1', 'lender-1', [
       'COLLECTOR',
       'LENDER',
     ]);
-    const owner = setup(membershipWith(['OWNER', 'LENDER'], null));
-    await owner.useCase.execute(
-      'membership-1',
-      'lender-1',
-      ['OWNER', 'LENDER', 'COLLECTOR'],
-      'portfolio-1',
-    );
 
     expect(collector.assertAvailable).not.toHaveBeenCalled();
-    expect(owner.assertAvailable).not.toHaveBeenCalled();
+  });
+
+  it('no deja cambiarle los roles al dueño del negocio', async () => {
+    const { useCase, update } = setup(
+      membershipWith(['OWNER', 'LENDER', 'COLLECTOR'], 'portfolio-1'),
+    );
+
+    await expect(
+      useCase.execute('membership-1', 'lender-1', ['LENDER']),
+    ).rejects.toBeInstanceOf(InvalidMembershipDataError);
+    expect(update).not.toHaveBeenCalled();
   });
 });

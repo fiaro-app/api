@@ -3,6 +3,7 @@ import type { AdminResetPasswordUseCase } from '@/modules/auth/application/use-c
 import type { GetUserByIdUseCase } from '@/modules/auth/application/use-cases/get-user-by-id.use-case.js';
 import type { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
+import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
 import { MembershipNotFoundError } from '@/modules/memberships/domain/errors/membership-not-found.error.js';
 import type { EmailSender } from '@/modules/notifications/application/ports/email-sender.port.js';
 
@@ -100,6 +101,20 @@ describe('ResetMembershipPasswordUseCase', () => {
     await expect(
       useCase.execute('membership-1', 'lender-1'),
     ).rejects.toBeInstanceOf(MembershipNotFoundError);
+    expect(adminResetPasswordExecute).not.toHaveBeenCalled();
+  });
+
+  it('no restablece la contraseña del dueño del negocio', async () => {
+    const { useCase, getMembershipExecute, adminResetPasswordExecute } =
+      setup();
+    getMembershipExecute.mockResolvedValueOnce({
+      ...MEMBERSHIP_DETAILS,
+      roles: ['OWNER', 'LENDER', 'COLLECTOR'],
+    } as never);
+
+    await expect(
+      useCase.execute('membership-1', 'lender-1'),
+    ).rejects.toBeInstanceOf(InvalidMembershipDataError);
     expect(adminResetPasswordExecute).not.toHaveBeenCalled();
   });
 });
