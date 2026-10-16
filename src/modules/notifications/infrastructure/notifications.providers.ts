@@ -5,15 +5,19 @@ import type { PushSender } from '@/modules/notifications/application/ports/push-
 import { PUSH_SENDER } from '@/modules/notifications/application/ports/push-sender.token.js';
 import { CountUnreadNotificationsUseCase } from '@/modules/notifications/application/use-cases/count-unread-notifications.use-case.js';
 import { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
+import { DeleteNotificationUseCase } from '@/modules/notifications/application/use-cases/delete-notification.use-case.js';
+import { DeleteNotificationsUseCase } from '@/modules/notifications/application/use-cases/delete-notifications.use-case.js';
 import { DeliverNotificationUseCase } from '@/modules/notifications/application/use-cases/deliver-notification.use-case.js';
 import { ListNotificationsUseCase } from '@/modules/notifications/application/use-cases/list-notifications.use-case.js';
 import { MarkAllNotificationsReadUseCase } from '@/modules/notifications/application/use-cases/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from '@/modules/notifications/application/use-cases/mark-notification-read.use-case.js';
+import { PurgeOldNotificationsUseCase } from '@/modules/notifications/application/use-cases/purge-old-notifications.use-case.js';
 import { RegisterPushTokenUseCase } from '@/modules/notifications/application/use-cases/register-push-token.use-case.js';
 import { RevokePushTokenUseCase } from '@/modules/notifications/application/use-cases/revoke-push-token.use-case.js';
 import type { PushTokenRepository } from '@/modules/notifications/domain/repositories/push-token.repository.js';
 import { NOTIFICATION_REPOSITORY } from '@/modules/notifications/domain/tokens/notification-repository.token.js';
 import { PUSH_TOKEN_REPOSITORY } from '@/modules/notifications/domain/tokens/push-token-repository.token.js';
+import { NotificationRetentionScheduler } from '@/modules/notifications/infrastructure/retention/notification-retention.scheduler.js';
 import { PrismaNotificationRepository } from '@/modules/notifications/infrastructure/persistence/prisma-notification.repository.js';
 import { PrismaPushTokenRepository } from '@/modules/notifications/infrastructure/persistence/prisma-push-token.repository.js';
 import { createPushSender } from '@/modules/notifications/infrastructure/push/push-sender.factory.js';
@@ -33,6 +37,10 @@ export const notificationsProviders: Provider[] = [
   ListNotificationsUseCase,
   MarkNotificationReadUseCase,
   MarkAllNotificationsReadUseCase,
+  DeleteNotificationUseCase,
+  DeleteNotificationsUseCase,
+  PurgeOldNotificationsUseCase,
+  NotificationRetentionScheduler,
   CountUnreadNotificationsUseCase,
   RegisterPushTokenUseCase,
   RevokePushTokenUseCase,

@@ -1,0 +1,23 @@
+$kind: http-request
+description: Borra de una vez las ya leídas y conserva las que siguen sin leer (con `onlyRead` en false borraría todas). Repetirlo no falla, devuelve cero.
+url: "{{baseUrl}}/notifications/clear"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "onlyRead": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('dice cuántas borró', () => pm.expect(pm.response.json().deleted).to.be.a('number'));
+    language: text/javascript
+order: 19000

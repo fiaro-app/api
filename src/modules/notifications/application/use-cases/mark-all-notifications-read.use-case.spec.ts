@@ -14,6 +14,9 @@ function setup(marked: number) {
     markAsRead: vi.fn(),
     countUnread: vi.fn(),
     markAllAsRead,
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+    deleteOlderThan: vi.fn(),
   };
   const clock: Clock = { now: () => NOW };
   return {

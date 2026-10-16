@@ -11,6 +11,9 @@ function setup(unread: number) {
     markAsRead: vi.fn(),
     countUnread,
     markAllAsRead: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+    deleteOlderThan: vi.fn(),
   };
   return {
     useCase: new CountUnreadNotificationsUseCase(notifications),

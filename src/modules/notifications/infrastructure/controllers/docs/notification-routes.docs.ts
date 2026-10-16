@@ -7,6 +7,7 @@ import {
   NotificationValidationErrorSchema,
 } from '@/modules/notifications/infrastructure/controllers/schemas/notification-errors.schema.js';
 import {
+  ClearNotificationsResponseSchema,
   MarkAllReadResponseSchema,
   NotificationResponseSchema,
   NotificationsPageResponseSchema,
@@ -109,6 +110,51 @@ export const ApiCountUnreadNotifications = () =>
     ApiResponse({
       status: 400,
       description: '`lenderId` no es un UUID (`VALIDATION_FAILED`).',
+      standardSchema: NotificationValidationErrorSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+  );
+
+/** Documenta `DELETE /notifications/:id`. */
+export const ApiDeleteNotification = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Borrar una notificación',
+      description:
+        'Borra una notificación propia, sin vuelta atrás. Una ajena o inexistente responde `404`.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({ status: 204, description: 'Notificación borrada.' }),
+    ApiResponse({
+      status: 400,
+      description: 'El id no es un UUID (`VALIDATION_FAILED`).',
+      standardSchema: NotificationValidationErrorSchema,
+    }),
+    ApiUnauthenticatedResponse(),
+    ApiResponse({
+      status: 404,
+      description: 'La notificación no existe para esta persona (`NOT_FOUND`).',
+      standardSchema: NotificationNotFoundSchema,
+    }),
+  );
+
+/** Documenta `POST /notifications/clear`. */
+export const ApiClearNotifications = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Borrar mis notificaciones',
+      description:
+        'Borra de una vez las notificaciones propias: todas, solo las leídas (`onlyRead`) o solo las de un prestamista (`lenderId`). Repetirlo no falla: devuelve cero.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'Cuántas borró.',
+      standardSchema: ClearNotificationsResponseSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'El cuerpo no cumple el contrato (`VALIDATION_FAILED`).',
       standardSchema: NotificationValidationErrorSchema,
     }),
     ApiUnauthenticatedResponse(),

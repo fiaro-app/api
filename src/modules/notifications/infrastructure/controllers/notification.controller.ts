@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -12,16 +13,21 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { CountUnreadNotificationsUseCase } from '@/modules/notifications/application/use-cases/count-unread-notifications.use-case.js';
+import { DeleteNotificationUseCase } from '@/modules/notifications/application/use-cases/delete-notification.use-case.js';
+import { DeleteNotificationsUseCase } from '@/modules/notifications/application/use-cases/delete-notifications.use-case.js';
 import { ListNotificationsUseCase } from '@/modules/notifications/application/use-cases/list-notifications.use-case.js';
 import { MarkAllNotificationsReadUseCase } from '@/modules/notifications/application/use-cases/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from '@/modules/notifications/application/use-cases/mark-notification-read.use-case.js';
 import {
+  ApiClearNotifications,
   ApiCountUnreadNotifications,
+  ApiDeleteNotification,
   ApiListNotifications,
   ApiMarkAllNotificationsRead,
   ApiMarkNotificationRead,
 } from '@/modules/notifications/infrastructure/controllers/docs/notification-routes.docs.js';
 import {
+  ClearNotificationsRequestSchema,
   CountUnreadNotificationsQuerySchema,
   ListNotificationsRequestSchema,
   MarkAllNotificationsReadRequestSchema,
@@ -29,6 +35,7 @@ import {
 import {
   toNotificationResponse,
   toNotificationsPageResponse,
+  type ClearNotificationsResponseSchema,
   type MarkAllReadResponseSchema,
   type NotificationResponseSchema,
   type NotificationsPageResponseSchema,
@@ -56,6 +63,8 @@ export class NotificationController {
     private readonly markNotificationReadUseCase: MarkNotificationReadUseCase,
     private readonly markAllNotificationsReadUseCase: MarkAllNotificationsReadUseCase,
     private readonly countUnreadNotificationsUseCase: CountUnreadNotificationsUseCase,
+    private readonly deleteNotificationUseCase: DeleteNotificationUseCase,
+    private readonly deleteNotificationsUseCase: DeleteNotificationsUseCase,
   ) {}
 
   /**
@@ -129,5 +138,39 @@ export class NotificationController {
       lenderId: query.lenderId,
     });
     return { count };
+  }
+
+  /**
+   * @param body - El prestamista y si solo las leídas, ya validados.
+   * @param user - Quién tiene la sesión.
+   */
+  @Post('clear')
+  @HttpCode(HttpStatus.OK)
+  @ApiClearNotifications()
+  async clearNotifications(
+    @Body({ schema: ClearNotificationsRequestSchema })
+    body: z.output<typeof ClearNotificationsRequestSchema>,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<z.output<typeof ClearNotificationsResponseSchema>> {
+    const deleted = await this.deleteNotificationsUseCase.execute({
+      recipientUserId: user.id,
+      lenderId: body.lenderId,
+      onlyRead: body.onlyRead,
+    });
+    return { deleted };
+  }
+
+  /**
+   * @param id - La notificación.
+   * @param user - Quién tiene la sesión.
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiDeleteNotification()
+  async deleteNotification(
+    @Param('id', { schema: z.uuid() }) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.deleteNotificationUseCase.execute(id, user.id);
   }
 }
