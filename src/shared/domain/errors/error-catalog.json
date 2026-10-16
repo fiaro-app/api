@@ -312,6 +312,14 @@
       "title": "Cloudflare falló.",
       "hint": "Turnstile no respondió: revisa conectividad y la llave."
     },
+    "P920V": {
+      "title": "La foto no es válida.",
+      "hint": "La llave no es de ese cliente o pago, el archivo no se subió, no es PNG o JPEG, o pesa más de 5 MB (el objeto se borra). Revisa que la app suba con la URL firmada y guarde la llave que esa respuesta devolvió."
+    },
+    "P921A": {
+      "title": "No tienes permiso sobre esta foto.",
+      "hint": "Un cobrador solo toca los comprobantes de sus propios cobros; la foto de un cliente la cambia quien administra."
+    },
     "A101A": {
       "title": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",
       "hint": "Inicio de sesión bloqueado por intentos fallidos: espera el tiempo de bloqueo; si es un ataque, mira auth.sign_in.failed en la auditoría."

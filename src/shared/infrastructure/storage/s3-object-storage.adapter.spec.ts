@@ -37,6 +37,21 @@ describe('S3ObjectStorageAdapter', () => {
     expect(result.expiresAt.getTime()).toBeLessThanOrEqual(before + 301_000);
   });
 
+  it('firma una URL de lectura que vence cuando se pide, sin red', async () => {
+    const adapter = new S3ObjectStorageAdapter(CONFIG);
+
+    const url = await adapter.getPresignedDownloadUrl(
+      'client-photos/l/c/a.jpg',
+      600,
+    );
+
+    expect(url).toMatch(
+      /^http:\/\/localhost:8333\/fiaro-dev\/client-photos\/l\/c\/a\.jpg\?/,
+    );
+    expect(url).toContain('X-Amz-Signature=');
+    expect(url).toContain('X-Amz-Expires=600');
+  });
+
   it('firma distinto para cada llave', async () => {
     const adapter = new S3ObjectStorageAdapter(CONFIG);
 

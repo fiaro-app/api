@@ -1,0 +1,21 @@
+$kind: http-request
+description: "La cédula usa {{$timestamp}} para que la carpeta se pueda repetir."
+url: "{{baseUrl}}/clients"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {"nationalId":"{{\$timestamp}}","fullName":"Marta Rodríguez (foto de prueba)","occupation":"Costurera","phone":"+573007778899","address":"Calle 1 # 2-3, Bogotá"}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('photoClientId', pm.response.json().id);
+    language: text/javascript
+order: 2000

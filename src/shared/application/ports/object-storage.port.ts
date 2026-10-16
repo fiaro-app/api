@@ -47,4 +47,13 @@ export interface ObjectStoragePort {
    * lado (otro dominio, otro bucket, otro esquema).
    */
   keyFromPublicUrl(url: string): string | null;
+
+  /**
+   * Una URL firmada de lectura, para archivos que no son públicos (fotos de clientes, comprobantes):
+   * quien la tiene puede verlo hasta que vence, y nadie más.
+   *
+   * @param key - Ruta del objeto.
+   * @param ttlSeconds - Cuánto sirve la URL.
+   */
+  getPresignedDownloadUrl(key: string, ttlSeconds: number): Promise<string>;
 }

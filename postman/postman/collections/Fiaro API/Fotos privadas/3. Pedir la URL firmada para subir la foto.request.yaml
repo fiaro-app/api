@@ -1,0 +1,25 @@
+$kind: http-request
+description: "PNG o JPEG de hasta 5 MB. Devuelve la URL firmada (un PUT directo al bucket, vence en minutos) y la llave con la que después se guarda."
+url: "{{baseUrl}}/clients/{{photoClientId}}/photo/upload-url"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {"contentType":"image/jpeg","sizeBytes":240000}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('trae la URL firmada y la llave del cliente', () => {
+        pm.expect(body.uploadUrl).to.include('X-Amz-Signature');
+        pm.expect(body.key).to.include(pm.collectionVariables.get('photoClientId'));
+      });
+    language: text/javascript
+order: 3000
