@@ -150,6 +150,17 @@ export class PrismaMembershipRepository implements MembershipRepository {
     });
   }
 
+  /** @param lenderId - El prestamista. */
+  async countAdminSeats(lenderId: string): Promise<number> {
+    return await this.prisma.membership.count({
+      where: {
+        lenderId,
+        status: 'ACTIVE',
+        OR: [{ roles: { has: 'LENDER' } }, { roles: { has: 'OWNER' } }],
+      },
+    });
+  }
+
   /** @param id - La membresía. */
   async hasHistory(id: string): Promise<boolean> {
     const row = await this.prisma.membership.findUnique({

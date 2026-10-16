@@ -10,6 +10,10 @@ import type {
 } from '@/modules/memberships/application/dtos/invite-membership.dto.js';
 import { toMembershipDetailsFromCreated } from '@/modules/memberships/application/dtos/membership-details.mapper.js';
 import {
+  AdminSeats,
+  occupiesAdminSeat,
+} from '@/modules/memberships/application/services/admin-seats.js';
+import {
   CollectorSeats,
   occupiesCollectorSeat,
 } from '@/modules/memberships/application/services/collector-seats.js';
@@ -50,8 +54,8 @@ import { TEMP_PASSWORD_GENERATOR } from '@/shared/application/ports/temp-passwor
  * Todo el alta corre con el candado del prestamista (`LenderLock`) tomado, porque antes de crear
  * revisa tres reglas que dos peticiones simultáneas pasarían a la vez: que la persona no tenga ya
  * una membresía aquí, que nadie más del negocio tenga esa cédula (la regla es por prestamista: la
- * misma persona puede trabajar para otro) y que quede un cupo de cobrador en el plan (el dueño no
- * ocupa cupo). Si un alta anterior se cayó entre crear la persona y crear la membresía, la persona
+ * misma persona puede trabajar para otro) y que quede un cupo en el plan: de cobrador (el dueño no
+ * ocupa cupo) o de administrador (la dueña sí cuenta). Si un alta anterior se cayó entre crear la persona y crear la membresía, la persona
  * existe sin membresías y con la contraseña temporal sin cambiar: se completa el alta y se le da
  * una contraseña temporal nueva, para que quien invita no se quede sin ella.
  */
@@ -63,6 +67,7 @@ export class InviteMembershipUseCase {
     private readonly createMembership: CreateMembershipUseCase,
     private readonly adminResetPassword: AdminResetPasswordUseCase,
     private readonly collectorSeats: CollectorSeats,
+    private readonly adminSeats: AdminSeats,
     @Inject(MEMBERSHIP_REPOSITORY)
     private readonly memberships: MembershipRepository,
     @Inject(LENDER_LOCK) private readonly lenderLock: LenderLock,
@@ -84,6 +89,8 @@ export class InviteMembershipUseCase {
    * permitida — nunca debería pasar con {@link TempPasswordGenerator}, pero no se asume.
    * @throws {@link CollaboratorNationalIdTakenError} Si otra persona del negocio tiene esa cédula.
    * @throws {@link CollectorLimitReachedError} Si la persona ocuparía un cupo de cobrador del plan
+   * y no queda ninguno.
+   * @throws {@link AdminLimitReachedError} Si la persona ocuparía un cupo de administrador del plan
    * y no queda ninguno.
    * @throws {@link MembershipAlreadyExistsError} Si esa persona ya tiene una membresía con este
    * prestamista.
@@ -151,6 +158,9 @@ export class InviteMembershipUseCase {
     }
     if (occupiesCollectorSeat(data.roles)) {
       await this.collectorSeats.assertAvailable(lenderId);
+    }
+    if (occupiesAdminSeat(data.roles)) {
+      await this.adminSeats.assertAvailable(lenderId);
     }
   }
 

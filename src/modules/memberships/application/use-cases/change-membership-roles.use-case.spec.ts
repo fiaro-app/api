@@ -1,3 +1,4 @@
+import type { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
@@ -37,6 +38,7 @@ function setup(found: Membership | null) {
     countActiveByPortfolio: vi.fn(),
     findByLenderAndNationalId: vi.fn(),
     countCollectorSeats: vi.fn(),
+    countAdminSeats: vi.fn(),
     hasHistory: vi.fn(),
     delete: vi.fn(),
     list: vi.fn(),
@@ -44,14 +46,20 @@ function setup(found: Membership | null) {
   };
   const assertAvailable = vi.fn(() => Promise.resolve());
   const seats = { assertAvailable } as unknown as CollectorSeats;
+  const assertAdminAvailable = vi.fn(() => Promise.resolve());
+  const adminSeats = {
+    assertAvailable: assertAdminAvailable,
+  } as unknown as AdminSeats;
   return {
     useCase: new ChangeMembershipRolesUseCase(
       memberships,
       seats,
+      adminSeats,
       immediateLock,
     ),
     update,
     assertAvailable,
+    assertAdminAvailable,
   };
 }
 
@@ -123,6 +131,31 @@ describe('ChangeMembershipRolesUseCase', () => {
     );
 
     expect(assertAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
+  });
+
+  it('revisa el cupo de administrador cuando una membresía activa pasa a administrar', async () => {
+    const { useCase, assertAdminAvailable } = setup(
+      membershipWith(['COLLECTOR'], 'portfolio-1'),
+    );
+
+    await useCase.execute('membership-1', 'lender-1', ['COLLECTOR', 'LENDER']);
+
+    expect(assertAdminAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
+  });
+
+  it('no revisa el cupo de administrador si ya administraba', async () => {
+    const { useCase, assertAdminAvailable } = setup(
+      membershipWith(['LENDER'], null),
+    );
+
+    await useCase.execute(
+      'membership-1',
+      'lender-1',
+      ['LENDER', 'COLLECTOR'],
+      'portfolio-1',
+    );
+
+    expect(assertAdminAvailable).not.toHaveBeenCalled();
   });
 
   it('no revisa el cupo si ya era cobrador', async () => {

@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CountLendersByTenantUseCase } from '@/modules/lenders/application/use-cases/count-lenders-by-tenant.use-case.js';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
+import { CountActiveLoansUseCase } from '@/modules/loans/application/use-cases/count-active-loans.use-case.js';
+import { CountAdminSeatsUseCase } from '@/modules/memberships/application/use-cases/count-admin-seats.use-case.js';
 import { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 import { SubscriptionNotFoundError } from '@/modules/subscriptions/domain/errors/subscription-not-found.error.js';
@@ -16,7 +18,8 @@ import { CLOCK } from '@/shared/application/ports/clock.token.js';
  * pantalla de facturación y el aviso de solo lectura le sirven a todos.
  *
  * @remarks
- * Informa; el límite de cobradores lo aplica `memberships` al invitar, reactivar o cambiar roles.
+ * Informa; los límites los aplican quienes crean: `memberships` los de cobradores y administradores
+ * al invitar, reactivar o cambiar roles, `loans` el de préstamos activos y `lenders` el de carteras.
  * El uso de cobradores no cuenta al dueño, igual que el límite. El uso de cobradores es el del prestamista de la sesión,
  * que mientras un Tenant tenga un solo prestamista (D-03) es el de todo el negocio.
  */
@@ -28,6 +31,8 @@ export class GetSubscriptionUseCase {
     private readonly getLender: GetLenderUseCase,
     private readonly countLendersByTenant: CountLendersByTenantUseCase,
     private readonly countCollectorSeats: CountCollectorSeatsUseCase,
+    private readonly countAdminSeats: CountAdminSeatsUseCase,
+    private readonly countActiveLoans: CountActiveLoansUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -41,9 +46,11 @@ export class GetSubscriptionUseCase {
     if (subscription === null) {
       throw new SubscriptionNotFoundError(lender.tenantId);
     }
-    const [activeLenders, collectors] = await Promise.all([
+    const [activeLenders, collectors, admins, loans] = await Promise.all([
       this.countLendersByTenant.execute(lender.tenantId),
       this.countCollectorSeats.execute(lenderId),
+      this.countAdminSeats.execute(lenderId),
+      this.countActiveLoans.execute(lenderId),
     ]);
     const state = computeSubscriptionState(
       subscription.currentPeriodEndsAt,
@@ -64,7 +71,12 @@ export class GetSubscriptionUseCase {
         maxPortfolios: subscription.maxPortfolios,
         maxActiveLoans: subscription.maxActiveLoans,
       },
-      usage: { activeLenders, activeCollectors: collectors },
+      usage: {
+        activeLenders,
+        activeCollectors: collectors,
+        activeAdmins: admins,
+        activeLoans: loans,
+      },
       createdAt: subscription.createdAt,
     };
   }

@@ -58,7 +58,7 @@ export const ApiWrongRoleOrPlanLimitResponse = () =>
   ApiResponse({
     status: 403,
     description:
-      'Sin el rol `OWNER` o `LENDER`, o sobre la propia membresía (`FORBIDDEN`); o el plan ya tiene todos sus cupos de cobrador activos ocupados (`PLAN_LIMIT_REACHED`, con `maxCollectors`; el dueño no ocupa cupo).',
+      'Sin el rol `OWNER` o `LENDER`, o sobre la propia membresía (`FORBIDDEN`); o el plan ya tiene ocupados todos sus cupos de cobrador (`PLAN_LIMIT_REACHED`, con `maxCollectors`; el dueño no ocupa cupo) o de administrador (`PLAN_LIMIT_REACHED`, con `maxAdmins`; la dueña sí cuenta). `errorCode` distingue: `M003A` cobradores, `M007A` administradores.',
     standardSchema: z.union([
       MembershipForbiddenSchema,
       PlanLimitReachedSchema,

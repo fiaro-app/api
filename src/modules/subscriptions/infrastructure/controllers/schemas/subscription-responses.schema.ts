@@ -58,7 +58,14 @@ export const SubscriptionResponseSchema = z
         }),
         activeCollectors: z.int().meta({
           description:
-            'Membresías activas con rol `COLLECTOR` del prestamista de la sesión; incluye a la dueña, que nace con ese rol.',
+            'Cobradores activos del prestamista de la sesión que ocupan cupo: la dueña no cuenta.',
+        }),
+        activeAdmins: z.int().meta({
+          description:
+            'Administradores activos del prestamista de la sesión (`LENDER` u `OWNER`): la dueña cuenta como uno.',
+        }),
+        activeLoans: z.int().meta({
+          description: 'Préstamos activos del prestamista de la sesión.',
         }),
       })
       .meta({ description: 'Cuánto del plan usa el negocio hoy.' }),

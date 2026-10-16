@@ -3,6 +3,10 @@ import type { MembershipDetails } from '@/modules/memberships/application/dtos/m
 import { toMembershipDetails } from '@/modules/memberships/application/dtos/membership-details.mapper.js';
 import { assertNotOwner } from '@/modules/memberships/application/services/assert-not-owner.js';
 import {
+  AdminSeats,
+  occupiesAdminSeat,
+} from '@/modules/memberships/application/services/admin-seats.js';
+import {
   CollectorSeats,
   occupiesCollectorSeat,
 } from '@/modules/memberships/application/services/collector-seats.js';
@@ -31,6 +35,7 @@ export class ChangeMembershipRolesUseCase {
     @Inject(MEMBERSHIP_REPOSITORY)
     private readonly memberships: MembershipRepository,
     private readonly collectorSeats: CollectorSeats,
+    private readonly adminSeats: AdminSeats,
     @Inject(LENDER_LOCK) private readonly lenderLock: LenderLock,
   ) {}
 
@@ -45,6 +50,8 @@ export class ChangeMembershipRolesUseCase {
    * si es la membresía del dueño.
    * @throws {@link CollectorLimitReachedError} Si una membresía activa pasa a ocupar un cupo de
    * cobrador y el plan no tiene cupo.
+   * @throws {@link AdminLimitReachedError} Si una membresía activa pasa a ser administradora y el
+   * plan no tiene cupo.
    */
   async execute(
     id: string,
@@ -81,6 +88,13 @@ export class ChangeMembershipRolesUseCase {
       !occupiesCollectorSeat(current.roles)
     ) {
       await this.collectorSeats.assertAvailable(lenderId);
+    }
+    if (
+      current.status === 'ACTIVE' &&
+      occupiesAdminSeat(data.roles) &&
+      !occupiesAdminSeat(current.roles)
+    ) {
+      await this.adminSeats.assertAvailable(lenderId);
     }
 
     const changed = Membership.create({

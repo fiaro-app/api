@@ -28,6 +28,10 @@ export interface SubscriptionDetails {
     readonly activeLenders: number;
     /** Cobradores activos del prestamista con el que opera la sesión. */
     readonly activeCollectors: number;
+    /** Administradores activos del prestamista de la sesión; la dueña cuenta. */
+    readonly activeAdmins: number;
+    /** Préstamos activos del prestamista de la sesión. */
+    readonly activeLoans: number;
   };
   readonly createdAt: Date;
 }

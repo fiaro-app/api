@@ -1,3 +1,5 @@
+import { AdminLimitReachedError } from '@/modules/memberships/domain/errors/admin-limit-reached.error.js';
+import type { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import { ReactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/reactivate-membership.use-case.js';
@@ -26,15 +28,17 @@ const membership = (
 function setup(found: Membership | null) {
   const update = vi.fn(() => Promise.resolve());
   const assertAvailable = vi.fn(() => Promise.resolve());
+  const assertAdminAvailable = vi.fn(() => Promise.resolve());
   const useCase = new ReactivateMembershipUseCase(
     {
       findById: vi.fn(() => Promise.resolve(found)),
       update,
     } as unknown as MembershipRepository,
     { assertAvailable } as unknown as CollectorSeats,
+    { assertAvailable: assertAdminAvailable } as unknown as AdminSeats,
     { runExclusive: (_lenderId, work) => work() },
   );
-  return { useCase, update, assertAvailable };
+  return { useCase, update, assertAvailable, assertAdminAvailable };
 }
 
 describe('ReactivateMembershipUseCase', () => {
@@ -61,6 +65,37 @@ describe('ReactivateMembershipUseCase', () => {
       useCase.execute('membership-1', 'lender-1'),
     ).rejects.toBeInstanceOf(CollectorLimitReachedError);
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('un administrador revisa el cupo de administrador, no el de cobrador', async () => {
+    const { useCase, assertAvailable, assertAdminAvailable } = setup(
+      membership('INACTIVE', ['LENDER']),
+    );
+
+    await useCase.execute('membership-1', 'lender-1');
+
+    expect(assertAdminAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
+    expect(assertAvailable).not.toHaveBeenCalled();
+  });
+
+  it('sin cupo de administrador no reactiva', async () => {
+    const { useCase, update, assertAdminAvailable } = setup(
+      membership('INACTIVE', ['LENDER']),
+    );
+    assertAdminAvailable.mockRejectedValueOnce(new AdminLimitReachedError(3));
+
+    await expect(
+      useCase.execute('membership-1', 'lender-1'),
+    ).rejects.toBeInstanceOf(AdminLimitReachedError);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('un cobrador no revisa el cupo de administrador', async () => {
+    const { useCase, assertAdminAvailable } = setup(membership('INACTIVE'));
+
+    await useCase.execute('membership-1', 'lender-1');
+
+    expect(assertAdminAvailable).not.toHaveBeenCalled();
   });
 
   it('un rol que no cobra no revisa el cupo', async () => {

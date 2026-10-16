@@ -6,6 +6,7 @@ import {
   LoanForbiddenSchema,
   LoanNotCancelableSchema,
   LoanNotFoundSchema,
+  LoanPlanLimitReachedSchema,
   LoanValidationErrorSchema,
 } from '@/modules/loans/infrastructure/controllers/schemas/loan-errors.schema.js';
 import { LoanResponseSchema } from '@/modules/loans/infrastructure/controllers/schemas/loan-responses.schema.js';
@@ -42,6 +43,15 @@ const ApiWrongRoleResponse = () =>
     standardSchema: LoanForbiddenSchema,
   });
 
+/** El 403 de dar de alta un préstamo: sin el rol, o el plan ya no admite más préstamos activos. */
+const ApiWrongRoleOrPlanLimitResponse = () =>
+  ApiResponse({
+    status: 403,
+    description:
+      'Sin ninguna membresía activa, o sin rol `OWNER` ni `LENDER` (`FORBIDDEN`); o el plan ya tiene todos sus préstamos activos (`PLAN_LIMIT_REACHED`, con `maxActiveLoans`). Cobrar los préstamos que ya existen nunca se bloquea.',
+    standardSchema: z.union([LoanForbiddenSchema, LoanPlanLimitReachedSchema]),
+  });
+
 /** El 400 de un cuerpo que no cumple el contrato. */
 const ApiValidationFailedResponse = () =>
   ApiResponse({
@@ -70,7 +80,7 @@ export const ApiCreateLoan = () =>
     }),
     ApiValidationFailedResponse(),
     ApiUnauthenticatedResponse(),
-    ApiWrongRoleResponse(),
+    ApiWrongRoleOrPlanLimitResponse(),
     ApiNotFoundResponse(
       'El cliente no existe, o es de otro prestamista (`NOT_FOUND`).',
     ),

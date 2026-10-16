@@ -65,7 +65,12 @@ describe('GET /subscription', () => {
         maxActiveLoans: null,
       },
       // La dueña nace con rol COLLECTOR (D-78), pero no ocupa cupo de cobrador.
-      usage: { activeLenders: 1, activeCollectors: 0 },
+      usage: {
+        activeLenders: 1,
+        activeCollectors: 0,
+        activeAdmins: 1,
+        activeLoans: 0,
+      },
     });
     expect(await app.prisma.subscription.count()).toBe(1);
   });

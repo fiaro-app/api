@@ -77,6 +77,12 @@ export class PrismaLoanRepository implements LoanRepository {
   }
 
   /** @param status - El estado de los préstamos. */
+  async countActive(lenderId: string): Promise<number> {
+    return await this.prisma.loan.count({
+      where: { lenderId, status: 'ACTIVE' },
+    });
+  }
+
   async listLenderIdsWithStatus(
     status: LoanStatus,
   ): Promise<readonly string[]> {

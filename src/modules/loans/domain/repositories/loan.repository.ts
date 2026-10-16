@@ -63,6 +63,13 @@ export interface LoanRepository {
   ): Promise<readonly Loan[]>;
 
   /**
+   * Cuántos préstamos `ACTIVE` tiene el prestamista: lo que cuenta contra el tope del plan.
+   *
+   * @param lenderId - El prestamista dueño.
+   */
+  countActive(lenderId: string): Promise<number>;
+
+  /**
    * Los prestamistas que tienen préstamos en ese estado, sin repetir. Es la única consulta que
    * cruza prestamistas: la usa el aviso diario de mora (D-96), que recorre a todos, y por eso no
    * pide un `lenderId` como el resto.

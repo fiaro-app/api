@@ -32,7 +32,7 @@
   "ACCOUNT_DEACTIVATED": "Esta cuenta está desactivada.",
   "CLIENT_NATIONAL_ID_TAKEN": "Ya existe un cliente con esa cédula para este prestamista.",
   "COLLABORATOR_NATIONAL_ID_TAKEN": "Ya hay un colaborador con esa cédula en este negocio.",
-  "PLAN_LIMIT_REACHED": "Tu plan permite hasta {maxCollectors} cobradores activos. Da de baja a uno o mejora tu plan.",
+  "PLAN_LIMIT_REACHED": "Tu plan llegó a uno de sus límites (cobradores, administradores, carteras o préstamos activos). Libera un cupo o mejora tu plan.",
   "COLLECTOR_HAS_HISTORY": "Este cobrador ya tiene historial: dalo de baja en lugar de borrarlo.",
   "LOAN_NOT_CANCELABLE": "Este préstamo ya no está activo, así que no se puede cancelar.",
 

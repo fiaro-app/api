@@ -1,3 +1,5 @@
+import { AdminLimitReachedError } from '@/modules/memberships/domain/errors/admin-limit-reached.error.js';
+import type { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CreatedUser } from '@/modules/auth/application/dtos/create-user.dto.js';
 import type { AdminResetPasswordUseCase } from '@/modules/auth/application/use-cases/admin-reset-password.use-case.js';
@@ -62,6 +64,7 @@ function setup(found: CreatedUser | null) {
     () => Promise.resolve([]),
   );
   const assertAvailable = vi.fn(() => Promise.resolve());
+  const assertAdminAvailable = vi.fn(() => Promise.resolve());
   const adminReset = vi.fn(() => Promise.resolve('TempReset2345'));
   const createUser = vi.fn(() =>
     Promise.resolve({ ...PERSON, id: 'user-new', mustChangePassword: true }),
@@ -92,6 +95,7 @@ function setup(found: CreatedUser | null) {
     } as unknown as CreateMembershipUseCase,
     { execute: adminReset } as unknown as AdminResetPasswordUseCase,
     { assertAvailable } as unknown as CollectorSeats,
+    { assertAvailable: assertAdminAvailable } as unknown as AdminSeats,
     {
       findByLenderAndNationalId,
       findActiveByUserId,
@@ -105,6 +109,7 @@ function setup(found: CreatedUser | null) {
     findByLenderAndNationalId,
     findActiveByUserId,
     assertAvailable,
+    assertAdminAvailable,
     adminReset,
     createUser,
     locked,
@@ -127,6 +132,28 @@ describe('InviteMembershipUseCase: reglas con el candado del prestamista', () =>
     await useCase.execute({ ...COLLECTOR_INPUT, roles: ['LENDER'] });
 
     expect(assertAvailable).not.toHaveBeenCalled();
+  });
+
+  it('revisa el cupo de administrador solo cuando el rol administra', async () => {
+    const admin = setup(PERSON);
+    await admin.useCase.execute({ ...COLLECTOR_INPUT, roles: ['LENDER'] });
+    expect(admin.assertAdminAvailable).toHaveBeenCalledExactlyOnceWith(
+      'lender-1',
+    );
+
+    const collector = setup(null);
+    await collector.useCase.execute(COLLECTOR_INPUT);
+    expect(collector.assertAdminAvailable).not.toHaveBeenCalled();
+  });
+
+  it('sin cupo de administrador no crea a la persona', async () => {
+    const { useCase, assertAdminAvailable, createUser } = setup(null);
+    assertAdminAvailable.mockRejectedValueOnce(new AdminLimitReachedError(3));
+
+    await expect(
+      useCase.execute({ ...COLLECTOR_INPUT, roles: ['LENDER'] }),
+    ).rejects.toBeInstanceOf(AdminLimitReachedError);
+    expect(createUser).not.toHaveBeenCalled();
   });
 
   it('sin cupo no crea a la persona', async () => {
