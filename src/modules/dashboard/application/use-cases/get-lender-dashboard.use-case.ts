@@ -15,6 +15,7 @@ import type { SettlementDetails } from '@/modules/settlements/application/dtos/s
 import { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
+import { effectivenessOf } from '@/shared/domain/effectiveness.js';
 
 /** Cuántos registros se piden por página al recorrer un listado completo (D-96). */
 const PAGE_SIZE = 100;
@@ -82,8 +83,7 @@ export class GetLenderDashboardUseCase {
       collectedToday,
       activeCollectors: activeIds.length,
       totalCollectors,
-      effectivenessToday:
-        expectedToday === 0 ? null : collectedToday / expectedToday,
+      effectivenessToday: effectivenessOf(collectedToday, expectedToday),
       clientsInArrears: portfolio.clientsInArrears,
       alerts: buildDashboardAlerts({
         collectorsWithoutRouteStarted: summaries.filter(

@@ -1,3 +1,5 @@
+import { effectivenessOf } from '@/shared/domain/effectiveness.js';
+
 /** Los 4 buckets fijos de antigüedad de mora (PROTOTIPO-FLUJOS.md §4.9). */
 export type ArrearsAgeLabel = '0-7' | '8-15' | '16-30' | '30+';
 
@@ -146,7 +148,7 @@ export interface CollectionAmounts {
  * Suma lo esperado y lo cobrado, y calcula la efectividad resultante.
  *
  * @param parts - Lo esperado y lo cobrado de cada cobrador.
- * @returns Los totales y `effectiveness = collected / expected` (de 0 a 1; `null` si no había nada esperado).
+ * @returns Los totales y `effectiveness` (de 0 a 1, ver `effectivenessOf`; `null` si no había nada esperado).
  */
 export function totalCollection(
   parts: readonly CollectionAmounts[],
@@ -156,7 +158,6 @@ export function totalCollection(
   return {
     expectedAmount,
     collectedAmount,
-    effectiveness:
-      expectedAmount === 0 ? null : collectedAmount / expectedAmount,
+    effectiveness: effectivenessOf(collectedAmount, expectedAmount),
   };
 }
