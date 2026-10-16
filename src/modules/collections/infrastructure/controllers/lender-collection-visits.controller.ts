@@ -10,11 +10,20 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
+import { SummarizeCollectionRoutesUseCase } from '@/modules/collections/application/use-cases/summarize-collection-routes.use-case.js';
 import { SearchCollectionVisitsUseCase } from '@/modules/collections/application/use-cases/search-collection-visits.use-case.js';
-import { ApiSearchCollectionVisits } from '@/modules/collections/infrastructure/controllers/docs/collection-visit-report-routes.docs.js';
-import { SearchCollectionVisitsRequestSchema } from '@/modules/collections/infrastructure/controllers/schemas/collection-visit-report-requests.schema.js';
 import {
+  ApiSearchCollectionRoutes,
+  ApiSearchCollectionVisits,
+} from '@/modules/collections/infrastructure/controllers/docs/collection-visit-report-routes.docs.js';
+import {
+  SearchCollectionRoutesRequestSchema,
+  SearchCollectionVisitsRequestSchema,
+} from '@/modules/collections/infrastructure/controllers/schemas/collection-visit-report-requests.schema.js';
+import {
+  toCollectionRoutesResponse,
   toCollectionVisitReportResponse,
+  type CollectionRoutesResponseSchema,
   type CollectionVisitReportResponseSchema,
 } from '@/modules/collections/infrastructure/controllers/schemas/collection-visit-report-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
@@ -43,6 +52,7 @@ const VIEWER_ROLES = ['OWNER', 'LENDER'];
 export class LenderCollectionVisitsController {
   constructor(
     private readonly searchCollectionVisitsUseCase: SearchCollectionVisitsUseCase,
+    private readonly summarizeCollectionRoutesUseCase: SummarizeCollectionRoutesUseCase,
   ) {}
 
   /**
@@ -71,5 +81,32 @@ export class LenderCollectionVisitsController {
       pageSize: query.pageSize,
     });
     return toCollectionVisitReportResponse(result, query);
+  }
+
+  /**
+   * @param query - Rango, filtros y paginación, ya validados.
+   * @param scope - El Lender con el que opera la sesión.
+   */
+  @QueryMethod('routes')
+  @HttpCode(HttpStatus.OK)
+  @ApiSearchCollectionRoutes()
+  async searchCollectionRoutes(
+    @Body({ schema: SearchCollectionRoutesRequestSchema })
+    query: z.output<typeof SearchCollectionRoutesRequestSchema>,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<z.output<typeof CollectionRoutesResponseSchema>> {
+    if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    const result = await this.summarizeCollectionRoutesUseCase.execute({
+      lenderId: scope.lenderId,
+      from: query.dateRange?.from,
+      to: query.dateRange?.to,
+      collectorMembershipId: query.collectorMembershipId,
+      portfolioId: query.portfolioId,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return toCollectionRoutesResponse(result, query);
   }
 }

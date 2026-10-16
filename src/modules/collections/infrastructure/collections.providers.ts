@@ -14,6 +14,7 @@ import { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cas
 import { GetLoanInstallmentsUseCase } from '@/modules/collections/application/use-cases/get-loan-installments.use-case.js';
 import { ListCollectionAssignmentsUseCase } from '@/modules/collections/application/use-cases/list-collection-assignments.use-case.js';
 import { ListCollectionVisitsUseCase } from '@/modules/collections/application/use-cases/list-collection-visits.use-case.js';
+import { SummarizeCollectionRoutesUseCase } from '@/modules/collections/application/use-cases/summarize-collection-routes.use-case.js';
 import { SearchCollectionVisitsUseCase } from '@/modules/collections/application/use-cases/search-collection-visits.use-case.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
 import { LOAN_PORTFOLIO_READ_REPOSITORY } from '@/modules/collections/domain/tokens/loan-portfolio-read-repository.token.js';
@@ -56,6 +57,7 @@ export const collectionsProviders: Provider[] = [
   CreateCollectionVisitUseCase,
   ListCollectionVisitsUseCase,
   SearchCollectionVisitsUseCase,
+  SummarizeCollectionRoutesUseCase,
   GetLoanBalanceUseCase,
   GetLoanInstallmentsUseCase,
   CreatePaymentReversalUseCase,
