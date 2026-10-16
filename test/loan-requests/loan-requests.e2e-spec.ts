@@ -108,6 +108,16 @@ describe('solicitudes de préstamo de un cobrador', () => {
       ),
     ).toContain('Solicitud de préstamo');
 
+    const one = await app.http
+      .get(`/loan-requests/${(created.body as { id: string }).id}`)
+      .set(HEADERS)
+      .set('Cookie', business.collectorCookie);
+    expect(one.status).toBe(200);
+    expect(one.body).toMatchObject({
+      nationalId: '51234567',
+      status: 'PENDING',
+    });
+
     const pending = await query(app, '/loan-requests', business.ownerCookie, {
       status: 'PENDING',
     });

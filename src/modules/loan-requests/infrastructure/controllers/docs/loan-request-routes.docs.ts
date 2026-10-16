@@ -103,6 +103,31 @@ export const ApiListLoanRequests = () =>
     ApiForbiddenResponse('Sin ninguna membresía activa (`FORBIDDEN`).'),
   );
 
+/** Documenta `GET /loan-requests/:id`. */
+export const ApiGetLoanRequest = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Ver una solicitud de préstamo',
+      description:
+        'El administrador (`OWNER` o `LENDER`) ve cualquiera del negocio; un cobrador, solo las suyas (de otro es `404`).',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'La solicitud.',
+      standardSchema: LoanRequestResponseSchema,
+    }),
+    ApiValidationFailedResponse(),
+    ApiUnauthenticatedResponse(),
+    ApiForbiddenResponse('Sin ninguna membresía activa (`FORBIDDEN`).'),
+    ApiResponse({
+      status: 404,
+      description:
+        'La solicitud no existe para este prestamista, o es de otro cobrador (`NOT_FOUND`).',
+      standardSchema: LoanRequestNotFoundSchema,
+    }),
+  );
+
 /** Documenta `POST /loan-requests/:id/approve`. */
 export const ApiApproveLoanRequest = () =>
   applyDecorators(

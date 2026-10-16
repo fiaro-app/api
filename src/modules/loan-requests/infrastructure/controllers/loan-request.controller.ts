@@ -4,6 +4,7 @@ import {
   Controller,
   ForbiddenException,
   HttpCode,
+  Get,
   HttpStatus,
   Param,
   Post,
@@ -15,11 +16,13 @@ import { z } from 'zod';
 import { ApproveLoanRequestUseCase } from '@/modules/loan-requests/application/use-cases/approve-loan-request.use-case.js';
 import { CreateLoanRequestUseCase } from '@/modules/loan-requests/application/use-cases/create-loan-request.use-case.js';
 import { FindClientIdByNationalIdUseCase } from '@/modules/loan-requests/application/use-cases/find-client-id-by-national-id.use-case.js';
+import { GetLoanRequestUseCase } from '@/modules/loan-requests/application/use-cases/get-loan-request.use-case.js';
 import { ListLoanRequestsUseCase } from '@/modules/loan-requests/application/use-cases/list-loan-requests.use-case.js';
 import { RejectLoanRequestUseCase } from '@/modules/loan-requests/application/use-cases/reject-loan-request.use-case.js';
 import {
   ApiApproveLoanRequest,
   ApiCreateLoanRequest,
+  ApiGetLoanRequest,
   ApiListLoanRequests,
   ApiLookupClient,
   ApiRejectLoanRequest,
@@ -67,6 +70,7 @@ export class LoanRequestController {
   constructor(
     private readonly findClientId: FindClientIdByNationalIdUseCase,
     private readonly createLoanRequest: CreateLoanRequestUseCase,
+    private readonly getLoanRequest: GetLoanRequestUseCase,
     private readonly listLoanRequests: ListLoanRequestsUseCase,
     private readonly approveLoanRequest: ApproveLoanRequestUseCase,
     private readonly rejectLoanRequest: RejectLoanRequestUseCase,
@@ -134,6 +138,27 @@ export class LoanRequestController {
       ...(isAdmin ? {} : { requestedByMembershipId: scope.membershipId }),
     });
     return toLoanRequestsPageResponse(page, query);
+  }
+
+  /**
+   * @param id - La solicitud.
+   * @param scope - El Lender y la membresía con la que opera la sesión.
+   */
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLoanRequest()
+  async get(
+    @Param('id', { schema: LoanRequestIdParamSchema }) id: string,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<z.output<typeof LoanRequestResponseSchema>> {
+    const isAdmin = hasAnyRole(scope.roles, ADMIN_ROLES);
+    return toLoanRequestResponse(
+      await this.getLoanRequest.execute(
+        id,
+        scope.lenderId,
+        isAdmin ? undefined : scope.membershipId,
+      ),
+    );
   }
 
   /**
