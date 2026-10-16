@@ -108,6 +108,33 @@ describe('RegistrationController', () => {
       );
     });
 
+    it('guarda null cuando la petición no trae IP ni dispositivo', async () => {
+      const { controller, registerOwnerUseCase } = setup();
+
+      await controller.register(
+        {
+          phone: '+573001234567',
+          fullName: 'Ana Pérez',
+          password: 'una-contraseña-larga',
+          nationalId: '1020304050',
+          businessName: 'Préstamos Ana',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+          acceptedDataResponsibility: true,
+          marketingConsent: false,
+          legalVersion: '2026-10-16',
+        },
+        undefined,
+        { headers: {} } as never,
+      );
+
+      expect(registerOwnerUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          legal: expect.objectContaining({ ipAddress: null, userAgent: null }),
+        }),
+      );
+    });
+
     it('no crea la cuenta cuando Turnstile rechaza el token', async () => {
       const { controller, registerOwnerUseCase, validateToken } = setup();
       validateToken.mockResolvedValue(false);
