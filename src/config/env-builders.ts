@@ -1,9 +1,12 @@
+/** Los entornos en que corre la aplicación. */
+type NodeEnvName = 'development' | 'test' | 'production';
+
 /**
  * Si corre el aviso diario de mora (D-96). Por defecto, sí, salvo en las pruebas: un aviso programado
  * dentro de una prueba enviaría correos y crearía notificaciones que los demás casos no esperan.
  */
 export function buildMoraAlertsConfig(env: {
-  readonly NODE_ENV: 'development' | 'test' | 'production';
+  readonly NODE_ENV: NodeEnvName;
   readonly MORA_ALERTS?: boolean;
 }) {
   return { enabled: env.MORA_ALERTS ?? env.NODE_ENV !== 'test' };
@@ -14,7 +17,7 @@ export function buildMoraAlertsConfig(env: {
  * nada. En las pruebas no corre: un borrado programado dentro de una prueba tocaría datos de otras.
  */
 export function buildNotificationRetentionConfig(env: {
-  readonly NODE_ENV: 'development' | 'test' | 'production';
+  readonly NODE_ENV: NodeEnvName;
   readonly NOTIFICATION_RETENTION_DAYS?: number;
 }) {
   return {
@@ -27,7 +30,7 @@ export function buildNotificationRetentionConfig(env: {
  * producción y solo al log en el resto, para que ni las pruebas ni el desarrollo manden push reales.
  */
 export function buildPushConfig(env: {
-  readonly NODE_ENV: 'development' | 'test' | 'production';
+  readonly NODE_ENV: NodeEnvName;
   readonly PUSH_DELIVERY?: 'expo' | 'log';
   readonly EXPO_ACCESS_TOKEN?: string;
 }) {

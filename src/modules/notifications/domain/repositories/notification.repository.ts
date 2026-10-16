@@ -105,7 +105,7 @@ export interface NotificationRepository {
   /**
    * Retención: borra las de cualquier persona creadas antes de `before`.
    *
-   * @param before - Todo lo creado antes de este momento se borra.
+   * @param before - Lo creado antes de este momento se borra.
    * @returns Cuántas borró.
    */
   deleteOlderThan(before: Date): Promise<number>;

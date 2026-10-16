@@ -8,7 +8,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Retención: borra las notificaciones de cualquier persona con más de `retentionDays` días, para que
- * la tabla no crezca sin límite. Las lee y las borra la persona antes si quiere (D-142).
+ * la tabla no crezca sin límite. Quien las prefiera borrar antes puede hacerlo (D-142).
  */
 @Injectable()
 export class PurgeOldNotificationsUseCase {

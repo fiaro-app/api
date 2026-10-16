@@ -124,7 +124,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
     return result.count;
   }
 
-  /** @param before - Todo lo creado antes de este momento se borra. */
+  /** @param before - Lo creado antes de este momento se borra. */
   async deleteOlderThan(before: Date): Promise<number> {
     const result = await this.prisma.notification.deleteMany({
       where: { createdAt: { lt: before } },
