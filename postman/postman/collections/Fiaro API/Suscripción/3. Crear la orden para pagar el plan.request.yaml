@@ -1,0 +1,31 @@
+$kind: http-request
+description: "Crea la orden de pago de un mes del plan Pro (D-149) y devuelve los campos que la web manda a la página de Wompi. Solo OWNER (Ana lo es). El monto sale del precio del plan en el servidor: el cuerpo solo lleva el plan. Responde 503 BILLING_UNAVAILABLE si el entorno no tiene las llaves WOMPI_*. Guarda la referencia para las dos peticiones siguientes."
+url: "{{baseUrl}}/subscription/checkout"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "planCode": "PRO"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201 (o 503 si el entorno no tiene llaves de Wompi)', () => pm.expect([201, 503]).to.include(pm.response.code));
+      if (pm.response.code === 201) {
+        const body = pm.response.json();
+        pm.test('trae la orden y los campos del checkout', () => {
+          pm.expect(body.checkout.amountInCents).to.eql(6900000);
+          pm.expect(body.checkout.currency).to.eql('COP');
+          pm.expect(body.checkout.signatureIntegrity).to.match(/^[0-9a-f]{64}$/);
+        });
+        pm.collectionVariables.set('checkoutReference', body.reference);
+      }
+    language: text/javascript
+order: 3000

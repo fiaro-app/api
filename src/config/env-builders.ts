@@ -60,15 +60,37 @@ export function buildS3Config(env: {
   };
 }
 
-/** Con qué nace la suscripción de prueba de cada negocio (D-115). */
+/**
+ * Con qué nace la suscripción de prueba de cada negocio (D-115) y el cobro con Wompi (D-149). Sin
+ * las cuatro variables `WOMPI_*`, `wompi.enabled` es falso: la API arranca igual y
+ * `POST /subscription/checkout` responde 503.
+ */
 export function buildSubscriptionConfig(env: {
   readonly SUBSCRIPTION_TRIAL_DAYS: number;
   readonly SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: number;
   readonly SUBSCRIPTION_TRIAL_MAX_COLLECTORS: number;
+  readonly WOMPI_PUBLIC_KEY?: string | undefined;
+  readonly WOMPI_INTEGRITY_SECRET?: string | undefined;
+  readonly WOMPI_EVENTS_SECRET?: string | undefined;
+  readonly WOMPI_CHECKOUT_URL: string;
+  readonly WOMPI_REDIRECT_URL?: string | undefined;
 }) {
   return {
     trialDays: env.SUBSCRIPTION_TRIAL_DAYS,
     trialMaxActiveLenders: env.SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS,
     trialMaxCollectors: env.SUBSCRIPTION_TRIAL_MAX_COLLECTORS,
+    wompi: {
+      enabled: Boolean(
+        env.WOMPI_PUBLIC_KEY &&
+        env.WOMPI_INTEGRITY_SECRET &&
+        env.WOMPI_EVENTS_SECRET &&
+        env.WOMPI_REDIRECT_URL,
+      ),
+      publicKey: env.WOMPI_PUBLIC_KEY,
+      integritySecret: env.WOMPI_INTEGRITY_SECRET,
+      eventsSecret: env.WOMPI_EVENTS_SECRET,
+      checkoutUrl: env.WOMPI_CHECKOUT_URL,
+      redirectUrl: env.WOMPI_REDIRECT_URL,
+    },
   };
 }

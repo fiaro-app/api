@@ -31,6 +31,14 @@ describe('loadEnv', () => {
         trialDays: 30,
         trialMaxActiveLenders: 1,
         trialMaxCollectors: 5,
+        wompi: {
+          enabled: false,
+          publicKey: undefined,
+          integritySecret: undefined,
+          eventsSecret: undefined,
+          checkoutUrl: 'https://checkout.wompi.co/p/',
+          redirectUrl: undefined,
+        },
       },
       maintenanceMode: false,
       mobile: {
@@ -104,6 +112,14 @@ describe('loadEnv', () => {
         trialDays: 30,
         trialMaxActiveLenders: 1,
         trialMaxCollectors: 5,
+        wompi: {
+          enabled: false,
+          publicKey: undefined,
+          integritySecret: undefined,
+          eventsSecret: undefined,
+          checkoutUrl: 'https://checkout.wompi.co/p/',
+          redirectUrl: undefined,
+        },
       },
       maintenanceMode: true,
       mobile: {
@@ -186,6 +202,34 @@ describe('loadEnv', () => {
       secretKey: '0x4AAAAAA',
       hostnames: ['localhost', 'fiaro.example'],
       enabled: true,
+    });
+  });
+
+  describe('cobro con Wompi', () => {
+    const KEYS = {
+      WOMPI_PUBLIC_KEY: 'pub_test_abc',
+      WOMPI_INTEGRITY_SECRET: 'test_integrity_abc',
+      WOMPI_EVENTS_SECRET: 'test_events_abc',
+      WOMPI_REDIRECT_URL: 'https://app.fiaro.co/plan',
+    };
+
+    it('queda apagado sin llaves', () => {
+      expect(load().subscription.wompi.enabled).toBe(false);
+    });
+
+    it('se enciende con las cuatro llaves', () => {
+      expect(load(KEYS).subscription.wompi).toMatchObject({
+        enabled: true,
+        publicKey: 'pub_test_abc',
+        checkoutUrl: 'https://checkout.wompi.co/p/',
+        redirectUrl: 'https://app.fiaro.co/plan',
+      });
+    });
+
+    it('rechaza una configuración a medias', () => {
+      expect(() => load({ WOMPI_PUBLIC_KEY: 'pub_test_abc' })).toThrow(
+        /las cuatro juntas/,
+      );
     });
   });
 });

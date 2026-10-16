@@ -12,7 +12,7 @@ describe('AUDIT_ACTIONS', () => {
     expect(new Set(AUDIT_ACTIONS).size).toBe(AUDIT_ACTIONS.length);
   });
 
-  it('incluye los trece hechos de la autenticación', () => {
+  it('incluye los hechos de la autenticación y del cobro de la suscripción', () => {
     expect(AUDIT_ACTIONS).toEqual([
       'auth.sign_in.succeeded',
       'auth.sign_in.failed',
@@ -27,6 +27,10 @@ describe('AUDIT_ACTIONS', () => {
       'auth.email.verified',
       'auth.profile.updated',
       'auth.account.deactivated',
+      'billing.checkout.created',
+      'billing.payment.approved',
+      'billing.payment.not_approved',
+      'billing.webhook.rejected',
     ]);
   });
 });
