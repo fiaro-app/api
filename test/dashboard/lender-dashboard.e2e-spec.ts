@@ -117,7 +117,7 @@ describe('GET /lenders/me/dashboard', () => {
       .post('/register')
       .set(HEADERS)
       .send({
-      ...LEGAL_ACCEPTANCE,
+        ...LEGAL_ACCEPTANCE,
         phone,
         fullName: 'Lender Solo',
         password: 'contraseña-de-prueba-1',
