@@ -1,0 +1,27 @@
+$kind: http-request
+description: "Crea el cliente, el préstamo y su asignación al cobrador. El cuerpo puede traer ajustes (aquí, un monto menor)."
+url: "{{baseUrl}}/loan-requests/{{loanRequestId}}/approve"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "loan": { "principalAmount": 450000 }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('queda APPROVED con su préstamo', () => {
+        pm.expect(body.status).to.eql('APPROVED');
+        pm.expect(body.loanId).to.be.a('string');
+      });
+    language: text/javascript
+order: 5000

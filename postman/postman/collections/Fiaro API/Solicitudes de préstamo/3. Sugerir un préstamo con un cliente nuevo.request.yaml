@@ -1,0 +1,40 @@
+$kind: http-request
+description: "Exige rol COLLECTOR. Como la cédula no existe, trae los datos del cliente. Avisa a los administradores."
+url: "{{baseUrl}}/loan-requests"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "nationalId": "{{requestNationalId}}",
+      "client": {
+        "fullName": "Rosa Elena Pardo (solicitud de prueba)",
+        "occupation": "Tendera",
+        "phone": "+573001112233",
+        "address": "Carrera 7 # 8-9, Bogotá"
+      },
+      "principalAmount": 500000,
+      "installmentCount": 20,
+      "installmentValue": 30000,
+      "totalPayable": 600000,
+      "frequency": "DAILY",
+      "startDate": "2026-12-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('queda PENDING con el cliente propuesto', () => {
+        pm.expect(body.status).to.eql('PENDING');
+        pm.expect(body.newClient.fullName).to.include('Rosa Elena');
+      });
+      pm.collectionVariables.set('loanRequestId', body.id);
+    language: text/javascript
+order: 3000
