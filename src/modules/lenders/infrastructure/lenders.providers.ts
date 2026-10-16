@@ -11,12 +11,15 @@ import { UpdatePortfolioUseCase } from '@/modules/lenders/application/use-cases/
 import { LENDER_REPOSITORY } from '@/modules/lenders/domain/tokens/lender-repository.token.js';
 import { PORTFOLIO_REPOSITORY } from '@/modules/lenders/domain/tokens/portfolio-repository.token.js';
 import { PrismaLenderRepository } from '@/modules/lenders/infrastructure/persistence/prisma-lender.repository.js';
+import { PORTFOLIO_LIMIT } from '@/modules/lenders/application/ports/portfolio-limit.token.js';
+import { PrismaPortfolioLimit } from '@/modules/lenders/infrastructure/persistence/prisma-portfolio-limit.js';
 import { PrismaPortfolioRepository } from '@/modules/lenders/infrastructure/persistence/prisma-portfolio.repository.js';
 
 /** Qué implementa cada puerto del módulo. Vive en `infrastructure` y no en `lenders.module.ts`. */
 export const lendersProviders: Provider[] = [
   { provide: LENDER_REPOSITORY, useClass: PrismaLenderRepository },
   { provide: PORTFOLIO_REPOSITORY, useClass: PrismaPortfolioRepository },
+  { provide: PORTFOLIO_LIMIT, useClass: PrismaPortfolioLimit },
   CreateLenderUseCase,
   GetLenderUseCase,
   CountLendersByTenantUseCase,

@@ -16,6 +16,9 @@ function subscriptionEndingIn(days: number): Subscription {
     planCode: 'TRIAL',
     maxActiveLenders: 1,
     maxCollectors: 5,
+    maxAdmins: 3,
+    maxPortfolios: 4,
+    maxActiveLoans: null,
     currentPeriodEndsAt: new Date(NOW.getTime() + days * DAY_MS),
     createdAt: new Date('2026-09-09T12:00:00Z'),
   });

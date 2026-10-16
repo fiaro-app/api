@@ -10,7 +10,10 @@ import type { IdGenerator } from '@/shared/application/ports/id-generator.port.j
 
 const NOW = new Date('2026-09-30T00:00:00Z');
 
-function setup(existing: readonly Portfolio[] = []) {
+function setup(
+  existing: readonly Portfolio[] = [],
+  maxPortfolios: number | null = 4,
+) {
   const saved: Portfolio[] = [];
   const create = vi.fn((portfolio: Portfolio) => {
     saved.push(portfolio);
@@ -26,7 +29,12 @@ function setup(existing: readonly Portfolio[] = []) {
   const ids: IdGenerator = { next: () => 'id-1' };
   const clock: Clock = { now: () => NOW };
   return {
-    useCase: new CreatePortfolioUseCase(portfolios, ids, clock),
+    useCase: new CreatePortfolioUseCase(
+      portfolios,
+      { maxPortfolios: () => Promise.resolve(maxPortfolios) },
+      ids,
+      clock,
+    ),
     create,
     saved,
   };
@@ -88,6 +96,41 @@ describe('CreatePortfolioUseCase', () => {
       useCase.execute({ lenderId: 'lender-1', name: 'Oriente' }),
     ).rejects.toBeInstanceOf(PortfolioLimitReachedError);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('aplica el tope del plan, no uno fijo', async () => {
+    const existing = ['General', 'Norte'].map((name, index) =>
+      PortfolioEntity.create({
+        id: `portfolio-${String(index)}`,
+        lenderId: 'lender-1',
+        name,
+        isDefault: index === 0,
+        createdAt: NOW,
+      }),
+    );
+    const { useCase, create } = setup(existing, 2);
+
+    await expect(
+      useCase.execute({ lenderId: 'lender-1', name: 'Sur' }),
+    ).rejects.toMatchObject({ params: { maxPortfolios: 2 } });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('sin suscripción no hay tope que aplicar', async () => {
+    const existing = ['General', 'Norte', 'Sur', 'Centro'].map((name, index) =>
+      PortfolioEntity.create({
+        id: `portfolio-${String(index)}`,
+        lenderId: 'lender-1',
+        name,
+        isDefault: index === 0,
+        createdAt: NOW,
+      }),
+    );
+    const { useCase } = setup(existing, null);
+
+    await expect(
+      useCase.execute({ lenderId: 'lender-1', name: 'Oriente' }),
+    ).resolves.toMatchObject({ name: 'Oriente' });
   });
 
   it('deja crear la cuarta', async () => {

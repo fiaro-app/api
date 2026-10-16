@@ -52,7 +52,13 @@ describe('GET /subscription', () => {
       daysRemaining: 30,
       graceDaysRemaining: 0,
       isReadOnly: false,
-      limits: { maxActiveLenders: 1, maxCollectors: 5 },
+      limits: {
+        maxActiveLenders: 1,
+        maxCollectors: 5,
+        maxAdmins: 3,
+        maxPortfolios: 4,
+        maxActiveLoans: null,
+      },
       // La dueña nace con rol COLLECTOR (D-78), pero no ocupa cupo de cobrador.
       usage: { activeLenders: 1, activeCollectors: 0 },
     });

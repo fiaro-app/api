@@ -60,6 +60,9 @@ export class GetSubscriptionUseCase {
       limits: {
         maxActiveLenders: subscription.maxActiveLenders,
         maxCollectors: subscription.maxCollectors,
+        maxAdmins: subscription.maxAdmins,
+        maxPortfolios: subscription.maxPortfolios,
+        maxActiveLoans: subscription.maxActiveLoans,
       },
       usage: { activeLenders, activeCollectors: collectors },
       createdAt: subscription.createdAt,
