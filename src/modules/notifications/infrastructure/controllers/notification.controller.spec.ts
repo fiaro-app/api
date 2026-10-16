@@ -2,6 +2,8 @@ import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CountUnreadNotificationsUseCase } from '@/modules/notifications/application/use-cases/count-unread-notifications.use-case.js';
+import type { DeleteNotificationUseCase } from '@/modules/notifications/application/use-cases/delete-notification.use-case.js';
+import type { DeleteNotificationsUseCase } from '@/modules/notifications/application/use-cases/delete-notifications.use-case.js';
 import type { ListNotificationsUseCase } from '@/modules/notifications/application/use-cases/list-notifications.use-case.js';
 import type { MarkAllNotificationsReadUseCase } from '@/modules/notifications/application/use-cases/mark-all-notifications-read.use-case.js';
 import type { MarkNotificationReadUseCase } from '@/modules/notifications/application/use-cases/mark-notification-read.use-case.js';
@@ -36,11 +38,17 @@ function setup() {
   const countUnreadNotificationsUseCase = {
     execute: vi.fn(() => Promise.resolve(7)),
   };
+  const deleteNotificationUseCase = { execute: vi.fn(() => Promise.resolve()) };
+  const deleteNotificationsUseCase = {
+    execute: vi.fn(() => Promise.resolve(4)),
+  };
   const controller = new NotificationController(
     listNotificationsUseCase as unknown as ListNotificationsUseCase,
     markNotificationReadUseCase as unknown as MarkNotificationReadUseCase,
     markAllNotificationsReadUseCase as unknown as MarkAllNotificationsReadUseCase,
     countUnreadNotificationsUseCase as unknown as CountUnreadNotificationsUseCase,
+    deleteNotificationUseCase as unknown as DeleteNotificationUseCase,
+    deleteNotificationsUseCase as unknown as DeleteNotificationsUseCase,
   );
   return {
     controller,
@@ -48,6 +56,8 @@ function setup() {
     markNotificationReadUseCase,
     markAllNotificationsReadUseCase,
     countUnreadNotificationsUseCase,
+    deleteNotificationUseCase,
+    deleteNotificationsUseCase,
   };
 }
 
@@ -59,7 +69,7 @@ const USER: AuthenticatedUser = {
 };
 
 describe('NotificationController', () => {
-  it('publica QUERY, POST /:id/read, POST /read-all y GET /unread-count, colgando de /notifications', () => {
+  it('publica QUERY, POST /:id/read, POST /read-all, POST /clear, DELETE /:id y GET /unread-count, colgando de /notifications', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       NotificationController.prototype,
     )
@@ -74,7 +84,9 @@ describe('NotificationController', () => {
       })
       .sort();
 
-    expect(publishedRoutes).toEqual(['QUERY', 'POST', 'POST', 'GET'].sort());
+    expect(publishedRoutes).toEqual(
+      ['QUERY', 'POST', 'POST', 'POST', 'DELETE', 'GET'].sort(),
+    );
     expect(Reflect.getMetadata(PATH_METADATA, NotificationController)).toBe(
       'notifications',
     );
@@ -160,6 +172,33 @@ describe('NotificationController', () => {
         lenderId: 'lender-1',
       });
       expect(response).toEqual({ count: 7 });
+    });
+  });
+
+  it('borra una notificación propia', async () => {
+    const { controller, deleteNotificationUseCase } = setup();
+
+    await controller.deleteNotification('notification-1', USER);
+
+    expect(deleteNotificationUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+      'notification-1',
+      'user-1',
+    );
+  });
+
+  it('borra varias de una vez y dice cuántas', async () => {
+    const { controller, deleteNotificationsUseCase } = setup();
+
+    const response = await controller.clearNotifications(
+      { lenderId: 'lender-1', onlyRead: true },
+      USER,
+    );
+
+    expect(response).toEqual({ deleted: 4 });
+    expect(deleteNotificationsUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+      recipientUserId: 'user-1',
+      lenderId: 'lender-1',
+      onlyRead: true,
     });
   });
 });

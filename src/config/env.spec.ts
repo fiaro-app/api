@@ -43,6 +43,7 @@ describe('loadEnv', () => {
         expoAccessToken: undefined,
       },
       moraAlerts: { enabled: true },
+      notificationRetention: { days: 90 },
       s3: {
         endpoint: 'http://localhost:8333',
         region: 'auto',
@@ -115,6 +116,7 @@ describe('loadEnv', () => {
         expoAccessToken: undefined,
       },
       moraAlerts: { enabled: true },
+      notificationRetention: { days: 90 },
       s3: {
         endpoint: PRODUCTION_ENV.S3_ENDPOINT,
         region: 'auto',

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Notification } from '@/modules/notifications/domain/entities/notification.entity.js';
 import type {
+  DeleteNotificationsCriteria,
   ListNotificationsCriteria,
   NotificationRepository,
   NotificationsPage,
@@ -97,6 +98,36 @@ export class PrismaNotificationRepository implements NotificationRepository {
     const result = await this.prisma.notification.updateMany({
       where: unreadWhere(criteria),
       data: { readAt },
+    });
+    return result.count;
+  }
+
+  /**
+   * @param id - La notificación, ya validada como propia.
+   * @param recipientUserId - Quién la recibe.
+   */
+  async delete(id: string, recipientUserId: string): Promise<void> {
+    await this.prisma.notification.deleteMany({
+      where: { id, recipientUserId },
+    });
+  }
+
+  /** @param criteria - Quién las recibe, de qué prestamista y si solo las leídas. */
+  async deleteMany(criteria: DeleteNotificationsCriteria): Promise<number> {
+    const result = await this.prisma.notification.deleteMany({
+      where: {
+        recipientUserId: criteria.recipientUserId,
+        ...(criteria.lenderId ? { lenderId: criteria.lenderId } : {}),
+        ...(criteria.onlyRead ? { readAt: { not: null } } : {}),
+      },
+    });
+    return result.count;
+  }
+
+  /** @param before - Todo lo creado antes de este momento se borra. */
+  async deleteOlderThan(before: Date): Promise<number> {
+    const result = await this.prisma.notification.deleteMany({
+      where: { createdAt: { lt: before } },
     });
     return result.count;
   }

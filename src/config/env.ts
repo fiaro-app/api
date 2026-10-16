@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   buildMoraAlertsConfig,
+  buildNotificationRetentionConfig,
   buildPushConfig,
   buildS3Config,
   buildSubscriptionConfig,
@@ -54,6 +55,7 @@ const EnvSchema = z
     PUSH_DELIVERY: z.enum(['expo', 'log']).optional(),
     EXPO_ACCESS_TOKEN: z.string().optional(),
     MORA_ALERTS: z.stringbool().optional(),
+    NOTIFICATION_RETENTION_DAYS: integer(0, 3650).optional(),
     S3_ENDPOINT: z.url().optional(),
     S3_REGION: z.string().default('auto'),
     S3_BUCKET: z.string().optional(),
@@ -178,6 +180,7 @@ const EnvSchema = z
     },
     push: buildPushConfig(env),
     moraAlerts: buildMoraAlertsConfig(env),
+    notificationRetention: buildNotificationRetentionConfig(env),
     s3: buildS3Config(env),
     turnstile: {
       secretKey: env.CLOUDFLARE_TURNSTILE_SECRET_KEY,

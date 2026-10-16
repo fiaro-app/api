@@ -10,6 +10,19 @@ export function buildMoraAlertsConfig(env: {
 }
 
 /**
+ * Cuántos días se conservan las notificaciones antes de borrarse (D-142). Por defecto 90; `0` no borra
+ * nada. En las pruebas no corre: un borrado programado dentro de una prueba tocaría datos de otras.
+ */
+export function buildNotificationRetentionConfig(env: {
+  readonly NODE_ENV: 'development' | 'test' | 'production';
+  readonly NOTIFICATION_RETENTION_DAYS?: number;
+}) {
+  return {
+    days: env.NOTIFICATION_RETENTION_DAYS ?? (env.NODE_ENV === 'test' ? 0 : 90),
+  };
+}
+
+/**
  * Cómo se mandan las notificaciones push (D-95): con Expo, o solo al log. Por defecto, con Expo en
  * producción y solo al log en el resto, para que ni las pruebas ni el desarrollo manden push reales.
  */

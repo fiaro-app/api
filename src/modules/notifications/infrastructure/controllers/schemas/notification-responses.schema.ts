@@ -94,3 +94,12 @@ export const MarkAllReadResponseSchema = z
     }),
   })
   .meta({ id: 'MarkAllReadResponse' });
+
+/** Respuesta de `POST /notifications/clear`. */
+export const ClearNotificationsResponseSchema = z
+  .object({
+    deleted: z.int().nonnegative().meta({
+      description: 'Cuántas notificaciones borró.',
+    }),
+  })
+  .meta({ id: 'ClearNotificationsResponse' });
