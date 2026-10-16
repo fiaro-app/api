@@ -34,6 +34,7 @@ function setup(
     countActiveByPortfolio: vi.fn(),
     findByLenderAndNationalId: vi.fn(),
     countCollectorSeats: vi.fn(),
+    countAdminSeats: vi.fn(),
     hasHistory: vi.fn(),
     delete: vi.fn(),
     update: vi.fn(),

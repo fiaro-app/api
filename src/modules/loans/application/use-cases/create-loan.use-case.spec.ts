@@ -21,7 +21,7 @@ const VALID_INPUT = {
   startDate: '2026-10-01',
 };
 
-function setup() {
+function setup(max: number | null = null, active = 0) {
   const saved: Loan[] = [];
   const create = vi.fn((loan: Loan) => {
     saved.push(loan);
@@ -29,6 +29,7 @@ function setup() {
   });
   const loans: LoanRepository = {
     listLenderIdsWithStatus: vi.fn(() => Promise.resolve([])),
+    countActive: vi.fn(() => Promise.resolve(active)),
     listActiveByClients: vi.fn(() => Promise.resolve([])),
     create,
     findById: vi.fn(() => Promise.resolve(null)),
@@ -44,6 +45,8 @@ function setup() {
     useCase: new CreateLoanUseCase(
       loans,
       getClientUseCase as unknown as GetClientUseCase,
+      { maxActiveLoans: () => Promise.resolve(max) },
+      { runExclusive: (_lenderId, work) => work() },
       ids,
       clock,
     ),
@@ -97,5 +100,30 @@ describe('CreateLoanUseCase', () => {
       useCase.execute({ ...VALID_INPUT, principalAmount: 0 }),
     ).rejects.toBeInstanceOf(InvalidLoanDataError);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('no deja pasar del tope de préstamos activos del plan', async () => {
+    const { useCase, create } = setup(20, 20);
+
+    await expect(useCase.execute(VALID_INPUT)).rejects.toMatchObject({
+      params: { maxActiveLoans: 20 },
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('deja crear el último préstamo que cabe', async () => {
+    const { useCase, create } = setup(20, 19);
+
+    await useCase.execute(VALID_INPUT);
+
+    expect(create).toHaveBeenCalledOnce();
+  });
+
+  it('sin tope en el plan no cuenta los préstamos', async () => {
+    const { useCase, create } = setup(null, 5000);
+
+    await useCase.execute(VALID_INPUT);
+
+    expect(create).toHaveBeenCalledOnce();
   });
 });

@@ -1,3 +1,4 @@
+import type { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CreatedUser } from '@/modules/auth/application/dtos/create-user.dto.js';
 import type { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
@@ -80,6 +81,7 @@ function setup(foundUser: typeof EXISTING_USER | null) {
     createMembership,
     { execute: vi.fn() } as unknown as AdminResetPasswordUseCase,
     { assertAvailable: vi.fn() } as unknown as CollectorSeats,
+    { assertAvailable: vi.fn() } as unknown as AdminSeats,
     memberships,
     lock,
     tempPasswords,

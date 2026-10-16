@@ -126,7 +126,7 @@
     },
     "B007A": {
       "title": "El negocio ya tiene el máximo de carteras.",
-      "hint": "Son 4 en total, la General incluida: borra una que no uses antes de crear otra. Más adelante el tope lo definirá el plan."
+      "hint": "El tope lo da el plan y la General cuenta: borra una que no uses antes de crear otra o sube de plan."
     },
     "L001V": {
       "title": "Los datos del préstamo no son válidos.",
@@ -139,6 +139,10 @@
     "L003A": {
       "title": "El préstamo no existe para este negocio.",
       "hint": "Id viejo en la app, de otro negocio o, si es cobrador, de un préstamo que nunca tuvo asignado (D-127)."
+    },
+    "L004A": {
+      "title": "El plan no admite más préstamos activos.",
+      "hint": "Límite del plan (D-145): espera a que se cierre alguno o sube de plan; cobrar los que ya hay no se bloquea."
     },
     "M001A": {
       "title": "Ya hay una persona con esa cédula en este negocio.",
@@ -163,6 +167,10 @@
     "M006A": {
       "title": "El colaborador no existe en este negocio.",
       "hint": "Id viejo en la app o de otro negocio."
+    },
+    "M007A": {
+      "title": "El plan no admite más administradores.",
+      "hint": "Límite del plan (D-145): la dueña cuenta como una; desactiva a otro administrador o sube de plan."
     },
     "N001A": {
       "title": "La notificación no existe para esta persona.",

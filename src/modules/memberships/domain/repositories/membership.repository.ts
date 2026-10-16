@@ -94,6 +94,14 @@ export interface MembershipRepository {
   countCollectorSeats(lenderId: string): Promise<number>;
 
   /**
+   * Cuántos cupos de administrador ocupa el prestamista: membresías `ACTIVE` con `LENDER` u
+   * `OWNER` (la dueña cuenta).
+   *
+   * @param lenderId - El prestamista.
+   */
+  countAdminSeats(lenderId: string): Promise<number>;
+
+  /**
    * Si la membresía tiene historial: asignaciones de cobro, visitas o cuadres (enviados o
    * revisados).
    *

@@ -10,7 +10,10 @@ function setup(max: number | null, used: number) {
   const countCollectorSeats = vi.fn(() => Promise.resolve(used));
   const seats = new CollectorSeats(
     { countCollectorSeats } as unknown as MembershipRepository,
-    { maxCollectors: () => Promise.resolve(max) },
+    {
+      maxCollectors: () => Promise.resolve(max),
+      maxAdmins: () => Promise.resolve(null),
+    },
   );
   return { seats, countCollectorSeats };
 }

@@ -27,6 +27,7 @@ function setup(found: Membership | null) {
     countActiveByPortfolio: vi.fn(),
     findByLenderAndNationalId: vi.fn(),
     countCollectorSeats: vi.fn(),
+    countAdminSeats: vi.fn(),
     hasHistory: vi.fn(),
     delete: vi.fn(),
     list: vi.fn(),

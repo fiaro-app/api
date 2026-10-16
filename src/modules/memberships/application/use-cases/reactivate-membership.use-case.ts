@@ -2,6 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 import { toMembershipDetails } from '@/modules/memberships/application/dtos/membership-details.mapper.js';
 import {
+  AdminSeats,
+  occupiesAdminSeat,
+} from '@/modules/memberships/application/services/admin-seats.js';
+import {
   CollectorSeats,
   occupiesCollectorSeat,
 } from '@/modules/memberships/application/services/collector-seats.js';
@@ -14,7 +18,7 @@ import { LENDER_LOCK } from '@/shared/application/ports/lender-lock.token.js';
 
 /**
  * Devuelve el acceso a un colaborador dado de baja, con los mismos roles y cartera que tenía. Su
- * historial nunca se borró, así que sigue igual. Si vuelve como cobrador ocupa un cupo del plan:
+ * historial nunca se borró, así que sigue igual. Si vuelve como cobrador o administrador ocupa un cupo del plan:
  * por eso corre con el candado del prestamista tomado. No le reasigna préstamos: eso se hace
  * aparte, como con cualquier cobrador.
  */
@@ -24,6 +28,7 @@ export class ReactivateMembershipUseCase {
     @Inject(MEMBERSHIP_REPOSITORY)
     private readonly memberships: MembershipRepository,
     private readonly collectorSeats: CollectorSeats,
+    private readonly adminSeats: AdminSeats,
     @Inject(LENDER_LOCK) private readonly lenderLock: LenderLock,
   ) {}
 
@@ -33,6 +38,7 @@ export class ReactivateMembershipUseCase {
    * @returns La membresía activa (sin cambios si ya lo estaba).
    * @throws {@link MembershipNotFoundError} Si no existe o es de otro prestamista.
    * @throws {@link CollectorLimitReachedError} Si vuelve como cobrador y el plan no tiene cupo.
+   * @throws {@link AdminLimitReachedError} Si vuelve como administrador y el plan no tiene cupo.
    */
   async execute(id: string, lenderId: string): Promise<MembershipDetails> {
     return this.lenderLock.runExclusive(lenderId, async () => {
@@ -45,6 +51,9 @@ export class ReactivateMembershipUseCase {
       }
       if (occupiesCollectorSeat(current.roles)) {
         await this.collectorSeats.assertAvailable(lenderId);
+      }
+      if (occupiesAdminSeat(current.roles)) {
+        await this.adminSeats.assertAvailable(lenderId);
       }
       const reactivated = Membership.create({
         id: current.id,

@@ -22,7 +22,12 @@ const DETAILS: SubscriptionDetails = {
     maxPortfolios: 4,
     maxActiveLoans: null,
   },
-  usage: { activeLenders: 1, activeCollectors: 2 },
+  usage: {
+    activeLenders: 1,
+    activeCollectors: 2,
+    activeAdmins: 1,
+    activeLoans: 4,
+  },
   createdAt: new Date('2026-09-08T12:00:00Z'),
 };
 

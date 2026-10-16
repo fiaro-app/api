@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CountLendersByTenantUseCase } from '@/modules/lenders/application/use-cases/count-lenders-by-tenant.use-case.js';
 import type { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
+import type { CountActiveLoansUseCase } from '@/modules/loans/application/use-cases/count-active-loans.use-case.js';
+import type { CountAdminSeatsUseCase } from '@/modules/memberships/application/use-cases/count-admin-seats.use-case.js';
 import type { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import { GetSubscriptionUseCase } from '@/modules/subscriptions/application/use-cases/get-subscription.use-case.js';
 import { Subscription } from '@/modules/subscriptions/domain/entities/subscription.entity.js';
@@ -36,6 +38,12 @@ function setup(found: Subscription | null) {
       execute: vi.fn(() => Promise.resolve(2)),
     } as unknown as CountLendersByTenantUseCase,
     { execute: listExecute } as unknown as CountCollectorSeatsUseCase,
+    {
+      execute: vi.fn(() => Promise.resolve(2)),
+    } as unknown as CountAdminSeatsUseCase,
+    {
+      execute: vi.fn(() => Promise.resolve(7)),
+    } as unknown as CountActiveLoansUseCase,
     { now: () => NOW },
   );
   return { useCase, findByTenant, listExecute };
@@ -58,7 +66,12 @@ describe('GetSubscriptionUseCase', () => {
       graceDaysRemaining: 0,
       isReadOnly: false,
       limits: { maxActiveLenders: 1, maxCollectors: 5 },
-      usage: { activeLenders: 2, activeCollectors: 3 },
+      usage: {
+        activeLenders: 2,
+        activeCollectors: 3,
+        activeAdmins: 2,
+        activeLoans: 7,
+      },
     });
   });
 

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { CollectorSeatLimit } from '@/modules/memberships/application/ports/collector-seat-limit.port.js';
-import { COLLECTOR_SEAT_LIMIT } from '@/modules/memberships/application/ports/collector-seat-limit.token.js';
+import type { PlanSeatLimits } from '@/modules/memberships/application/ports/plan-seat-limits.port.js';
+import { PLAN_SEAT_LIMITS } from '@/modules/memberships/application/ports/plan-seat-limits.token.js';
 import type { Role } from '@/modules/memberships/domain/entities/role.js';
 import { CollectorLimitReachedError } from '@/modules/memberships/domain/errors/collector-limit-reached.error.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
@@ -25,7 +25,7 @@ export class CollectorSeats {
   constructor(
     @Inject(MEMBERSHIP_REPOSITORY)
     private readonly memberships: MembershipRepository,
-    @Inject(COLLECTOR_SEAT_LIMIT) private readonly limit: CollectorSeatLimit,
+    @Inject(PLAN_SEAT_LIMITS) private readonly limits: PlanSeatLimits,
   ) {}
 
   /**
@@ -33,7 +33,7 @@ export class CollectorSeats {
    * @throws {@link CollectorLimitReachedError} Si ya usa todos los cupos de su plan.
    */
   async assertAvailable(lenderId: string): Promise<void> {
-    const max = await this.limit.maxCollectors(lenderId);
+    const max = await this.limits.maxCollectors(lenderId);
     if (max === null) {
       return;
     }

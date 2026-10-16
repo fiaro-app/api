@@ -26,7 +26,7 @@ export const CollaboratorNationalIdTakenSchema = ApiErrorSchema.extend({
   code: z.literal('COLLABORATOR_NATIONAL_ID_TAKEN'),
 }).meta({ id: 'CollaboratorNationalIdTaken' });
 
-/** `403 PLAN_LIMIT_REACHED`: el plan ya tiene todos sus cupos de cobrador ocupados. */
+/** `403 PLAN_LIMIT_REACHED`: el plan ya tiene ocupados todos sus cupos de cobrador o de administrador. */
 export const PlanLimitReachedSchema = ApiErrorSchema.extend({
   code: z.literal('PLAN_LIMIT_REACHED'),
 }).meta({ id: 'PlanLimitReached' });
