@@ -16,7 +16,12 @@ body:
       "fullName": "Elena Vargas (dueña de prueba de visitas)",
       "password": "{{visitsOwnerPassword}}",
       "nationalId": "{{visitsOwnerNationalId}}",
-      "businessName": "Créditos Elena (prueba de visitas)"
+      "businessName": "Créditos Elena (prueba de visitas)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
     }
 scripts:
   - type: prerequest

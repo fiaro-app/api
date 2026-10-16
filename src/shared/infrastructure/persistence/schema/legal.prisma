@@ -1,0 +1,24 @@
+/// Qué se acepta al registrarse (D-146).
+enum LegalDocument {
+  TERMS
+  PRIVACY
+  DATA_RESPONSIBILITY
+  MARKETING
+}
+
+/// Prueba de una aceptación: qué documento, en qué versión, cuándo, desde qué IP y con qué dispositivo. Se conserva aunque la
+/// cuenta se desactive (es la evidencia de la autorización, Ley 1581 de 2012 art. 9 y Ley 527 de 1999).
+model LegalAcceptance {
+  id         String        @id @db.Uuid
+  userId     String        @map("user_id") @db.Uuid
+  document   LegalDocument
+  version    String
+  ipAddress  String?       @map("ip_address")
+  userAgent  String?       @map("user_agent")
+  acceptedAt DateTime      @default(now()) @map("accepted_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("legal_acceptances")
+}

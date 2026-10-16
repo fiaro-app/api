@@ -320,6 +320,10 @@
       "title": "No tienes permiso sobre esta foto.",
       "hint": "Un cobrador solo toca los comprobantes de sus propios cobros; la foto de un cliente la cambia quien administra."
     },
+    "P930V": {
+      "title": "Los documentos legales cambiaron.",
+      "hint": "La persona aceptó una versión que ya no es la vigente. Recarga los términos y la política de privacidad, muéstrale la versión nueva y envía de nuevo el registro con `legalVersion` actualizada."
+    },
     "A101A": {
       "title": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",
       "hint": "Inicio de sesión bloqueado por intentos fallidos: espera el tiempo de bloqueo; si es un ataque, mira auth.sign_in.failed en la auditoría."

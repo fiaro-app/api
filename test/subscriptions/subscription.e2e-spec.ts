@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cookieOf, nextIp, signIn } from '@test/support/auth-flow.js';
 import {
@@ -19,13 +20,17 @@ afterEach(async () => {
 /** Registra un negocio nuevo y devuelve la cookie de su dueña. */
 async function registerOwner(testApp: TestApp): Promise<string> {
   const phone = '+573007090001';
-  const response = await testApp.http.post('/register').set(HEADERS).send({
-    phone,
-    fullName: 'Dueña Suscrita',
-    password: PASSWORD,
-    nationalId: '70900001',
-    businessName: 'Negocio con plan',
-  });
+  const response = await testApp.http
+    .post('/register')
+    .set(HEADERS)
+    .send({
+      ...LEGAL_ACCEPTANCE,
+      phone,
+      fullName: 'Dueña Suscrita',
+      password: PASSWORD,
+      nationalId: '70900001',
+      businessName: 'Negocio con plan',
+    });
   expect(response.status).toBe(201);
   return cookieOf(await signIn(testApp, { phone, password: PASSWORD }));
 }

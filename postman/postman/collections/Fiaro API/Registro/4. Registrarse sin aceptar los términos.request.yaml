@@ -1,0 +1,31 @@
+$kind: http-request
+description: "El registro exige aceptar los términos, la política de privacidad y el compromiso sobre los datos de los clientes (D-146). Sin marcar uno, la cuenta no se crea."
+url: "{{baseUrl}}/register"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "phone": "+573001112299",
+      "fullName": "Persona sin aceptar",
+      "password": "contraseña-de-prueba-1",
+      "nationalId": "1000000099",
+      "businessName": "No debe crearse",
+      "acceptedTerms": false,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400: no se crea la cuenta', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 4000

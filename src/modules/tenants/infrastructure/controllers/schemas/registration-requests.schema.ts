@@ -41,5 +41,26 @@ export const RegisterOwnerRequestSchema = z.strictObject({
     description: 'Nombre del negocio.',
     example: 'Préstamos Ana Pérez',
   }),
+  acceptedTerms: z.literal(true).meta({
+    description:
+      'Aceptó los Términos y Condiciones. Obligatorio: debe ser `true`.',
+  }),
+  acceptedPrivacy: z.literal(true).meta({
+    description:
+      'Autorizó el tratamiento de sus datos según la Política de Privacidad (Ley 1581 de 2012). Obligatorio: debe ser `true`.',
+  }),
+  acceptedDataResponsibility: z.literal(true).meta({
+    description:
+      'Se comprometió a tener la autorización de sus clientes y a cumplir la ley en su cobranza. Obligatorio: debe ser `true`.',
+  }),
+  marketingConsent: z.boolean().default(false).meta({
+    description:
+      'Autoriza recibir novedades y ofertas. Opcional: nunca condiciona el registro.',
+  }),
+  legalVersion: z.string().min(1).meta({
+    description:
+      'Versión de los documentos legales que la persona vio (la vigente está publicada en la web, en `/terminos`). Si ya no es la vigente, el registro responde `P930V`.',
+    example: '2026-10-16',
+  }),
   turnstileToken: TurnstileTokenSchema.optional(),
 });

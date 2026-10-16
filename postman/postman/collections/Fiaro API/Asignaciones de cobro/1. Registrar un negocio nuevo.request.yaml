@@ -16,7 +16,12 @@ body:
       "fullName": "Carla Ríos (dueña de prueba de asignaciones)",
       "password": "{{assignmentsOwnerPassword}}",
       "nationalId": "{{assignmentsOwnerNationalId}}",
-      "businessName": "Créditos Carla (prueba de asignaciones)"
+      "businessName": "Créditos Carla (prueba de asignaciones)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
     }
 scripts:
   - type: prerequest

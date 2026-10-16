@@ -16,7 +16,12 @@ body:
       "fullName": "Beatriz Londoño (dueña de prueba de colaboradores)",
       "password": "{{membershipsOwnerPassword}}",
       "nationalId": "{{membershipsOwnerNationalId}}",
-      "businessName": "Créditos Beatriz (prueba de colaboradores)"
+      "businessName": "Créditos Beatriz (prueba de colaboradores)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
     }
 scripts:
   - type: prerequest

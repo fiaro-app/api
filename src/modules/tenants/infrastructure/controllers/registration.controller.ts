@@ -70,6 +70,12 @@ export class RegistrationController {
         nationalId: body.nationalId,
         contactEmail: body.contactEmail,
         businessName: body.businessName,
+        legal: {
+          version: body.legalVersion,
+          marketing: body.marketingConsent,
+          ipAddress: request.ip ?? null,
+          userAgent: request.headers['user-agent'] ?? null,
+        },
       }),
     );
   }

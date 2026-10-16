@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import type { Response } from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cookieOf, nextIp, signIn } from '@test/support/auth-flow.js';
@@ -31,6 +32,7 @@ async function seedBusiness(testApp: TestApp): Promise<{ cookie: string }> {
     .post('/register')
     .set(HEADERS)
     .send({
+      ...LEGAL_ACCEPTANCE,
       phone,
       fullName: 'Ana Prueba',
       password: 'contraseña-de-prueba-1',
