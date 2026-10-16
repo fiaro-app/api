@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  La foto de un cliente (D-144): `POST /clients/:id/photo/upload-url`, `GET` y `DELETE /clients/:id/photo`. Autocontenida:
+  crea su propio cliente de prueba. La subida del archivo en sí (un PUT con el cuerpo binario a la URL firmada) y el
+  `POST /clients/:id/photo` que la guarda no se prueban aquí porque Postman no adjunta archivos desde el repositorio; los
+  cubren las pruebas e2e y unitarias. El comprobante de un pago (`/payments/:id/proof`) funciona igual.
+order: 5200

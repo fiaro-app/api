@@ -1,0 +1,22 @@
+/// A qué pertenece una foto privada: la foto de un cliente o el comprobante de un pago (D-145).
+enum AttachmentKind {
+  CLIENT_PHOTO
+  PAYMENT_PROOF
+}
+
+/// Una foto privada guardada en el bucket. Una por dueño y tipo (`ownerId` es el cliente o el pago). La llave no es una
+/// URL pública: se lee con una URL firmada que vence en minutos.
+model Attachment {
+  id        String         @id @db.Uuid
+  lenderId  String         @map("lender_id") @db.Uuid
+  kind      AttachmentKind
+  ownerId   String         @map("owner_id") @db.Uuid
+  key       String
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  lender Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, ownerId])
+  @@index([lenderId])
+  @@map("attachments")
+}

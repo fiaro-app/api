@@ -136,6 +136,21 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 | `POST /memberships/:id/reactivate` | `OWNER`, `LENDER` | Nunca sobre la propia. Un cobrador que vuelve ocupa un cupo del plan (`403 PLAN_LIMIT_REACHED`, D-116). |
 | `DELETE /memberships/:id` | `OWNER`, `LENDER` | Nunca sobre la propia ni sobre la del dueño. Solo sin historial (asignaciones, visitas o cuadres); con historial `409 COLLECTOR_HAS_HISTORY` (D-116). |
 
+## Fotos privadas — `/clients/:id/photo` y `/payments/:id/proof` (`ClientPhotoController`, `PaymentProofController`)
+
+`LenderScopeGuard` en toda la clase. Los archivos (PNG o JPEG de hasta 5 MB) van directo al bucket con una URL firmada; nunca son públicos y se ven con otra URL firmada que vence en 10 minutos (D-145).
+
+| Ruta | Rol | Notas |
+| --- | --- | --- |
+| `POST /clients/:id/photo/upload-url` | `OWNER`, `LENDER` | URL firmada de subida y la llave (`client-photos/<negocio>/<cliente>/<id>.<ext>`). |
+| `POST /clients/:id/photo` | `OWNER`, `LENDER` | Guarda la llave tras verificar que el archivo existe, es de ese cliente y es de verdad PNG o JPEG (si no, lo borra y `400 P920V`); reemplaza y borra la anterior. |
+| `GET /clients/:id/photo` | Cualquiera | `{ url, expiresAt }`, o `url: null`. Un cobrador solo si tiene o tuvo un préstamo de ese cliente (`RestrictCollectorTo('client')`). |
+| `DELETE /clients/:id/photo` | `OWNER`, `LENDER` | `204`; repetirlo no falla. |
+| `POST /payments/:id/proof/upload-url` | `OWNER`, `LENDER` o el cobrador del cobro | El comprobante (captura de Nequi o de la transferencia). Otro cobrador: `403 P921A`. |
+| `POST /payments/:id/proof` | igual | Igual que la foto del cliente. |
+| `GET /payments/:id/proof` | igual | `{ url, expiresAt }` o `url: null`. |
+| `DELETE /payments/:id/proof` | igual | `204`. |
+
 ## Clientes — `/clients` (`ClientController`)
 
 `LenderScopeGuard` en toda la clase.
