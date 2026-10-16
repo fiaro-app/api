@@ -338,6 +338,8 @@ Cada una se agrega junto con la pieza que la usa, validada en `src/config/env.ts
 | `SUBSCRIPTION_TRIAL_DAYS` | `30` | Días que dura la suscripción de prueba con la que nace cada negocio (D-115) |
 | `SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS` | `1` | Prestamistas que admite la prueba; solo se informa en `GET /subscription`, no se aplica todavía |
 | `SUBSCRIPTION_TRIAL_MAX_COLLECTORS` | `5` | Cobradores activos que admite la prueba; solo se informa, no se aplica todavía |
+| `WOMPI_PUBLIC_KEY`, `WOMPI_INTEGRITY_SECRET`, `WOMPI_EVENTS_SECRET`, `WOMPI_REDIRECT_URL` | _(vacío)_ | Cobro de la suscripción con Wompi (D-149): las cuatro juntas o ninguna. Sin ellas `POST /subscription/checkout` responde 503. Los dos secretos nunca salen del servidor |
+| `WOMPI_CHECKOUT_URL` | `https://checkout.wompi.co/p/` | Página de pago de Wompi (la misma en sandbox y producción; cambian las llaves) |
 | `MORA_ALERTS` | `true` salvo en `test` | Activa el aviso diario de mora a las 08:00 de Bogotá (D-96). En las pruebas no corre, para que ningún caso reciba avisos que no pidió |
 | `RESEND_FROM_EMAIL` | opcional; **obligatoria en producción** | Dirección remitente verificada en Resend (por ejemplo `Fiaro <no-reply@tu-dominio.com>`). Sin ella pasa lo mismo que sin `RESEND_API_KEY` |
 

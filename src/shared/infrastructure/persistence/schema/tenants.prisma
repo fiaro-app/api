@@ -8,6 +8,7 @@ model Tenant {
 
   lenders      Lender[]
   subscription Subscription?
+  payments     SubscriptionPayment[]
 
   @@map("tenants")
 }

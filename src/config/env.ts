@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BILLING_ENV_SHAPE, checkWompiKeys } from '@/config/billing-env.js';
 import {
   buildMoraAlertsConfig,
   buildNotificationRetentionConfig,
@@ -45,9 +46,7 @@ const EnvSchema = z
     RESEND_FROM_EMAIL: z.string().optional(),
     MAILPIT_URL: z.url().optional(),
     LEADS_NOTIFY_EMAIL: z.email().optional(),
-    SUBSCRIPTION_TRIAL_DAYS: integer(1, 3650).default(30),
-    SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: integer(1, 1000).default(1),
-    SUBSCRIPTION_TRIAL_MAX_COLLECTORS: integer(1, 100_000).default(5),
+    ...BILLING_ENV_SHAPE,
     MOBILE_MIN_SUPPORTED_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_DOWNLOAD_URL: z.url().optional(),
@@ -99,6 +98,7 @@ const EnvSchema = z
         'es obligatoria en producción: GET /mobile/version la usa para bloquear versiones viejas de la app',
     },
   )
+  .superRefine(checkWompiKeys)
   .refine((env) => env.NODE_ENV !== 'production' || env.MOBILE_LATEST_VERSION, {
     path: ['MOBILE_LATEST_VERSION'],
     message:

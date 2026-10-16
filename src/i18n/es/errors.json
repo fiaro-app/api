@@ -7,6 +7,7 @@
   "NOT_FOUND": "No encontramos lo que buscas.",
   "CONFLICT": "No se pudo completar porque los datos ya cambiaron o ya existen.",
   "SUBSCRIPTION_READ_ONLY": "La suscripción está en solo lectura: puedes consultar la información, pero no modificarla.",
+  "BILLING_UNAVAILABLE": "El pago de la suscripción no está disponible por ahora. Intenta de nuevo más tarde o escríbenos.",
   "MAINTENANCE": "Estamos en mantenimiento. Intenta de nuevo en unos minutos.",
   "INTERNAL_ERROR": "Algo salió mal de nuestro lado. Intenta de nuevo en unos minutos.",
   "TURNSTILE_FAILED": "No pudimos verificar que eres una persona. Intenta de nuevo.",

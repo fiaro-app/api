@@ -1,0 +1,19 @@
+$kind: http-request
+description: "El estado de la orden creada en la petición anterior: PENDING mientras Wompi no avisa, APPROVED cuando el pago ya se aplicó al plan. Es lo que consulta la página a la que Wompi devuelve a la dueña. Solo OWNER."
+url: "{{baseUrl}}/subscription/checkout/{{checkoutReference}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae el estado de la orden', () => {
+        pm.expect(['PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR']).to.include(body.status);
+        pm.expect(body.reference).to.eql(pm.collectionVariables.get('checkoutReference'));
+      });
+    language: text/javascript
+order: 4000

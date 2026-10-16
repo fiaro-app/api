@@ -64,3 +64,22 @@ export const PLAN_CATALOG: Readonly<Record<SubscriptionPlanCode, PlanLimits>> =
       maxActiveLoans: null,
     },
   };
+
+/** Los planes que se pueden comprar: todos menos la prueba. */
+export const PURCHASABLE_PLAN_CODES = ['INDIVIDUAL', 'PRO', 'TEAM'] as const;
+
+/** Código de un plan de {@link PURCHASABLE_PLAN_CODES}. */
+export type PurchasablePlanCode = (typeof PURCHASABLE_PLAN_CODES)[number];
+
+/**
+ * Precio de un mes de cada plan, en pesos colombianos (D-144, D-149). Es lo único que decide cuánto
+ * se cobra: el cliente solo dice qué plan quiere.
+ *
+ * shortcut: precios fijos en el código y solo mensual; cuando haya descuentos por 3, 6 o 12 meses
+ * o precios que cambien seguido, pasan a una tabla.
+ */
+export const PLAN_PRICE_COP: Readonly<Record<PurchasablePlanCode, number>> = {
+  INDIVIDUAL: 49_000,
+  PRO: 69_000,
+  TEAM: 149_000,
+};

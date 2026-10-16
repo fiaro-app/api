@@ -21,3 +21,38 @@ model Subscription {
 
   @@map("subscriptions")
 }
+
+/// PENDING: la orden se creó y Wompi aún no avisa. APPROVED: el pago se aplicó a la suscripción.
+/// DECLINED, VOIDED, ERROR: Wompi no lo aprobó o lo anuló.
+enum SubscriptionPaymentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  VOIDED
+  ERROR
+}
+
+/// Una orden de pago de la suscripción (D-149). El monto sale del precio del plan en el servidor,
+/// nunca del cliente. `reference` es la que Wompi devuelve en su aviso; `wompiTransactionId` es
+/// único para que un aviso repetido no se aplique dos veces.
+model SubscriptionPayment {
+  id                 String                    @id @db.Uuid
+  tenantId           String                    @map("tenant_id") @db.Uuid
+  planCode           String                    @map("plan_code")
+  months             Int
+  amountInCents      Int                       @map("amount_in_cents")
+  currency           String
+  reference          String                    @unique
+  status             SubscriptionPaymentStatus @default(PENDING)
+  wompiTransactionId String?                   @unique @map("wompi_transaction_id")
+  paymentMethodType  String?                   @map("payment_method_type")
+  /// Dónde terminó el período pagado cuando el pago se aprobó.
+  periodEndsAt       DateTime?                 @map("period_ends_at") @db.Timestamptz(3)
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt         DateTime?                 @map("resolved_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@map("subscription_payments")
+}

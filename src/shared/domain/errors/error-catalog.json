@@ -212,6 +212,14 @@
       "title": "El negocio no tiene suscripción.",
       "hint": "Datos inconsistentes: todo negocio nace con su prueba (D-115). Revisa cómo se creó."
     },
+    "U002A": {
+      "title": "El cobro de la suscripción no está disponible.",
+      "hint": "Faltan las llaves de Wompi (WOMPI_*) en el entorno: la API arranca igual, pero no se puede crear una orden de pago."
+    },
+    "U003A": {
+      "title": "La orden de pago no existe para este negocio.",
+      "hint": "Referencia vieja o de otro negocio."
+    },
     "W001H": {
       "title": "El sistema está en mantenimiento.",
       "hint": "MAINTENANCE_MODE=true: el balanceador debe sacar la instancia; apágalo al terminar."

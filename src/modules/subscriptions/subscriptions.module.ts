@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
+import { SubscriptionCheckoutController } from '@/modules/subscriptions/infrastructure/controllers/subscription-checkout.controller.js';
+import { WompiWebhookController } from '@/modules/subscriptions/infrastructure/controllers/wompi-webhook.controller.js';
 import { SubscriptionController } from '@/modules/subscriptions/infrastructure/controllers/subscription.controller.js';
 import {
   subscriptionsExports,
@@ -17,7 +19,11 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  */
 @Module({
   imports: [PersistenceModule, LendersModule, LoansModule, MembershipsModule],
-  controllers: [SubscriptionController],
+  controllers: [
+    SubscriptionController,
+    SubscriptionCheckoutController,
+    WompiWebhookController,
+  ],
   providers: subscriptionsProviders,
   exports: subscriptionsExports,
 })

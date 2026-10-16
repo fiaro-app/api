@@ -29,6 +29,14 @@ export const AUDIT_ACTIONS = [
   'auth.profile.updated',
   /** Se desactivó la cuenta de la persona. */
   'auth.account.deactivated',
+  /** Se creó una orden de pago de la suscripción (la dueña va a pagar en Wompi). */
+  'billing.checkout.created',
+  /** Wompi aprobó un pago y se aplicó a la suscripción. */
+  'billing.payment.approved',
+  /** Wompi cerró un pago sin aprobarlo (rechazado, anulado o con error). */
+  'billing.payment.not_approved',
+  /** Un aviso de Wompi no se aplicó: firma inválida, referencia desconocida o monto distinto. */
+  'billing.webhook.rejected',
 ] as const;
 
 /** Lo que pasó: uno de {@link AUDIT_ACTIONS}. */
