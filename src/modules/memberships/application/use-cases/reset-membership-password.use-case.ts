@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AdminResetPasswordUseCase } from '@/modules/auth/application/use-cases/admin-reset-password.use-case.js';
 import { GetUserByIdUseCase } from '@/modules/auth/application/use-cases/get-user-by-id.use-case.js';
+import { assertNotOwner } from '@/modules/memberships/application/services/assert-not-owner.js';
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { membershipPasswordResetEmail } from '@/modules/memberships/domain/notifications/membership-password-reset-email.js';
 import type { EmailSender } from '@/modules/notifications/application/ports/email-sender.port.js';
@@ -34,9 +35,11 @@ export class ResetMembershipPasswordUseCase {
    * @param lenderId - El prestamista dueño, tal como lo resolvió `LenderScopeGuard`.
    * @returns La contraseña temporal en claro, para pasarla por WhatsApp.
    * @throws {@link MembershipNotFoundError} Si no existe, o es de otro prestamista.
+   * @throws {@link InvalidMembershipDataError} Si es la membresía del dueño.
    */
   async execute(id: string, lenderId: string): Promise<string> {
     const membership = await this.getMembership.execute(id, lenderId);
+    assertNotOwner(membership.roles, 'restablecer la contraseña de');
     const user = await this.getUserById.execute(membership.userId);
     const tempPassword = await this.adminResetPassword.execute(
       membership.userId,

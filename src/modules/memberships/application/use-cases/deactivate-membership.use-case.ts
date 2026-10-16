@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { MembershipDetails } from '@/modules/memberships/application/dtos/membership-details.dto.js';
 import { toMembershipDetails } from '@/modules/memberships/application/dtos/membership-details.mapper.js';
 import { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
+import { assertNotOwner } from '@/modules/memberships/application/services/assert-not-owner.js';
 import { MembershipNotFoundError } from '@/modules/memberships/domain/errors/membership-not-found.error.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
@@ -35,12 +36,14 @@ export class DeactivateMembershipUseCase {
    * @param lenderId - El prestamista dueño, resuelto por `LenderScopeGuard`.
    * @returns La membresía, ya `INACTIVE`.
    * @throws {@link MembershipNotFoundError} Si no existe o es de otro prestamista.
+   * @throws {@link InvalidMembershipDataError} Si es la membresía del dueño.
    */
   async execute(id: string, lenderId: string): Promise<MembershipDetails> {
     const current = await this.memberships.findById(id, lenderId);
     if (current === null) {
       throw new MembershipNotFoundError(id);
     }
+    assertNotOwner(current.roles, 'desactivar');
     if (current.status === 'INACTIVE') {
       return toMembershipDetails(current);
     }

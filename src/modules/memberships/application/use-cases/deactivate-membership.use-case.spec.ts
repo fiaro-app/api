@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
 import { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
+import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
 import { MembershipNotFoundError } from '@/modules/memberships/domain/errors/membership-not-found.error.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
@@ -8,12 +9,15 @@ import type { Clock } from '@/shared/application/ports/clock.port.js';
 const CREATED_AT = new Date('2026-09-30T00:00:00Z');
 const NOW = new Date('2026-10-01T00:00:00Z');
 
-function membershipWith(status: 'ACTIVE' | 'INACTIVE'): Membership {
+function membershipWith(
+  status: 'ACTIVE' | 'INACTIVE',
+  roles: readonly ('OWNER' | 'LENDER' | 'COLLECTOR')[] = ['LENDER'],
+): Membership {
   return Membership.create({
     id: 'membership-1',
     userId: 'user-1',
     lenderId: 'lender-1',
-    roles: ['LENDER'],
+    roles,
     status,
     portfolioId: null,
     createdAt: CREATED_AT,
@@ -70,5 +74,16 @@ describe('DeactivateMembershipUseCase', () => {
     await expect(
       useCase.execute('membership-1', 'lender-1'),
     ).rejects.toBeInstanceOf(MembershipNotFoundError);
+  });
+
+  it('no deja desactivar al dueño del negocio', async () => {
+    const { useCase, update } = setup(
+      membershipWith('ACTIVE', ['OWNER', 'LENDER', 'COLLECTOR']),
+    );
+
+    await expect(
+      useCase.execute('membership-1', 'lender-1'),
+    ).rejects.toBeInstanceOf(InvalidMembershipDataError);
+    expect(update).not.toHaveBeenCalled();
   });
 });
