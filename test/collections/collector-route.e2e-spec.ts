@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import { toBusinessDate } from '@fiaro-app/contracts';
 import { v7 as uuidv7 } from 'uuid';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -38,6 +39,7 @@ async function seedBusiness(
     .post('/register')
     .set(HEADERS)
     .send({
+      ...LEGAL_ACCEPTANCE,
       phone,
       fullName: 'Gloria Ruta (dueña de prueba de rutas)',
       password: 'contraseña-de-prueba-1',

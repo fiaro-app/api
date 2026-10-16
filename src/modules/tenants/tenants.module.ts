@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '@/modules/auth/auth.module.js';
+import { LegalModule } from '@/modules/legal/legal.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
 import { SubscriptionsModule } from '@/modules/subscriptions/subscriptions.module.js';
@@ -25,6 +26,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
     MembershipsModule,
     AuthModule,
     SubscriptionsModule,
+    LegalModule,
   ],
   controllers: [RegistrationController],
   providers: tenantsProviders,

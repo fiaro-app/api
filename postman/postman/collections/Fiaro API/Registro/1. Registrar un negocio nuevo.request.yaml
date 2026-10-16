@@ -16,7 +16,12 @@ body:
       "fullName": "Beatriz Londoño (cuenta de prueba de registro)",
       "password": "{{registerPassword}}",
       "nationalId": "{{registerNationalId}}",
-      "businessName": "Créditos Beatriz (prueba de registro)"
+      "businessName": "Créditos Beatriz (prueba de registro)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-10-16"
     }
 scripts:
   - type: prerequest

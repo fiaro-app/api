@@ -21,7 +21,7 @@ import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 
 /**
  * Da de alta un préstamo para un cliente del prestamista de la sesión. Nace `ACTIVE`: cancelarlo
- * es un caso de uso aparte (no existe todavía). Respeta el tope de préstamos activos del plan (D-146). Quién puede llamarlo lo decide el controller
+ * es un caso de uso aparte (no existe todavía). Respeta el tope de préstamos activos del plan (D-147). Quién puede llamarlo lo decide el controller
  * (`hasAnyRole`, `OWNER`/`LENDER` — PRODUCT.md §5, "solo el Lender crea préstamos").
  */
 @Injectable()

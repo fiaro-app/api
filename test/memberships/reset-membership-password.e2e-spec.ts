@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cookieOf, signIn } from '@test/support/auth-flow.js';
 import { startTestApp, type TestApp } from '@test/support/test-app.js';
@@ -38,6 +39,7 @@ async function seedBusinessWithCollector(testApp: TestApp): Promise<{
     .post('/register')
     .set(HEADERS)
     .send({
+      ...LEGAL_ACCEPTANCE,
       phone: owner.phone,
       fullName: 'Marta Ríos (dueña de prueba de reset)',
       password: 'contraseña-de-prueba-1',

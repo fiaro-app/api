@@ -83,7 +83,7 @@ prestamista, actúan siempre sobre `user.id` de `@CurrentUser()`, nunca sobre un
 
 | Ruta | Rol | Notas |
 | --- | --- | --- |
-| `POST /register` | — | Crea `Tenant` + `Lender` + membresía `OWNER` con los tres roles en una transacción (D-78). No abre sesión después: registrarse e iniciar sesión son dos pasos separados. |
+| `POST /register` | — | Crea `Tenant` + `Lender` + membresía `OWNER` con los tres roles en una transacción (D-78). No abre sesión después: registrarse e iniciar sesión son dos pasos separados. Exige `acceptedTerms`, `acceptedPrivacy` y `acceptedDataResponsibility` en `true` y la `legalVersion` vigente (si no, `400` / `P930V`); guarda cada aceptación con versión, IP y dispositivo (D-146). |
 
 ## Contacto de ventas — `/leads` (`LeadController`)
 

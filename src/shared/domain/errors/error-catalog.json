@@ -142,7 +142,7 @@
     },
     "L004A": {
       "title": "El plan no admite más préstamos activos.",
-      "hint": "Límite del plan (D-146): espera a que se cierre alguno o sube de plan; cobrar los que ya hay no se bloquea."
+      "hint": "Límite del plan (D-147): espera a que se cierre alguno o sube de plan; cobrar los que ya hay no se bloquea."
     },
     "M001A": {
       "title": "Ya hay una persona con esa cédula en este negocio.",
@@ -170,7 +170,7 @@
     },
     "M007A": {
       "title": "El plan no admite más administradores.",
-      "hint": "Límite del plan (D-146): la dueña cuenta como una; desactiva a otro administrador o sube de plan."
+      "hint": "Límite del plan (D-147): la dueña cuenta como una; desactiva a otro administrador o sube de plan."
     },
     "N001A": {
       "title": "La notificación no existe para esta persona.",
@@ -327,6 +327,10 @@
     "P921A": {
       "title": "No tienes permiso sobre esta foto.",
       "hint": "Un cobrador solo toca los comprobantes de sus propios cobros; la foto de un cliente la cambia quien administra."
+    },
+    "P930V": {
+      "title": "Los documentos legales cambiaron.",
+      "hint": "La persona aceptó una versión que ya no es la vigente. Recarga los términos y la política de privacidad, muéstrale la versión nueva y envía de nuevo el registro con `legalVersion` actualizada."
     },
     "A101A": {
       "title": "Demasiados intentos fallidos con este celular. Intenta de nuevo más tarde.",
