@@ -1,5 +1,5 @@
 $kind: http-request
-description: "La suscripción del Tenant del prestamista con el que opera la sesión (D-115). Todo negocio nace con una prueba. Informa el estado, los topes del plan y cuánto se usa; los topes los aplican quienes crean (cobradores, administradores, carteras y préstamos activos: `PLAN_LIMIT_REACHED`), el solo lectura aún no."
+description: "La suscripción del Tenant del prestamista con el que opera la sesión (D-115). Todo negocio nace con una prueba. Informa el estado, los topes del plan y cuánto se usa; los topes los aplican quienes crean (cobradores, administradores, carteras y préstamos activos: `PLAN_LIMIT_REACHED`), pasada la gracia las escrituras responden 403 SUBSCRIPTION_READ_ONLY (D-148), salvo visitas, pagos y cuadres."
 url: "{{baseUrl}}/subscription"
 method: GET
 headers:

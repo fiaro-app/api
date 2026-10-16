@@ -6,7 +6,7 @@ import { CountAdminSeatsUseCase } from '@/modules/memberships/application/use-ca
 import { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 import { SubscriptionNotFoundError } from '@/modules/subscriptions/domain/errors/subscription-not-found.error.js';
-import { computeSubscriptionState } from '@/modules/subscriptions/domain/policies/subscription-status.js';
+import { computeSubscriptionState } from '@/shared/domain/subscriptions/subscription-status.js';
 import type { SubscriptionRepository } from '@/modules/subscriptions/domain/repositories/subscription.repository.js';
 import { SUBSCRIPTION_REPOSITORY } from '@/modules/subscriptions/domain/tokens/subscription-repository.token.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';

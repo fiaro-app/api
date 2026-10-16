@@ -1,5 +1,5 @@
 import type { SubscriptionPlanCode } from '@/modules/subscriptions/domain/entities/subscription.entity.js';
-import type { SubscriptionStatus } from '@/modules/subscriptions/domain/policies/subscription-status.js';
+import type { SubscriptionStatus } from '@/shared/domain/subscriptions/subscription-status.js';
 
 /** La suscripción de un negocio, con su estado y su uso, en el momento en que se consultó. */
 export interface SubscriptionDetails {

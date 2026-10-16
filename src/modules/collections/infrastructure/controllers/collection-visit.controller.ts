@@ -27,6 +27,7 @@ import {
 } from '@/modules/collections/infrastructure/controllers/schemas/collection-visit-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
+import { AllowWhenReadOnly } from '@/shared/infrastructure/http/allow-when-read-only.decorator.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
@@ -68,6 +69,7 @@ export class CollectionVisitController {
    * @param body - El resultado, la hora y, si aplica, el pago, ya validados.
    * @param scope - El Lender con el que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateCollectionVisit()

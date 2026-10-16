@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computeSubscriptionState,
   SUBSCRIPTION_GRACE_DAYS,
-} from '@/modules/subscriptions/domain/policies/subscription-status.js';
+} from '@/shared/domain/subscriptions/subscription-status.js';
 
 const ENDS_AT = new Date('2026-10-31T12:00:00Z');
 const DAY = 24 * 60 * 60 * 1000;

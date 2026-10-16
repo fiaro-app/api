@@ -43,6 +43,7 @@ import {
 } from '@/modules/loan-requests/infrastructure/controllers/schemas/loan-request-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
+import { AllowWhenReadOnly } from '@/shared/infrastructure/http/allow-when-read-only.decorator.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
@@ -80,6 +81,7 @@ export class LoanRequestController {
    * @param body - La cédula, ya normalizada.
    * @param scope - El Lender con el que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post('client-lookup')
   @HttpCode(HttpStatus.OK)
   @ApiLookupClient()

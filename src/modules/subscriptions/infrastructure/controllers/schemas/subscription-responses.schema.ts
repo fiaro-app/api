@@ -28,7 +28,7 @@ export const SubscriptionResponseSchema = z
     }),
     isReadOnly: z.boolean().meta({
       description:
-        'Si el negocio está en solo lectura. Hoy la API solo lo informa: no bloquea escrituras (D-115).',
+        'Si el negocio está en solo lectura: pasó la gracia. Las escrituras responden `403 SUBSCRIPTION_READ_ONLY`, salvo registrar visitas y pagos y los cuadres (D-148).',
     }),
     limits: z
       .object({

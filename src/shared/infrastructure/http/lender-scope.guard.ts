@@ -6,11 +6,23 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { LenderScopeResolver } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { LENDER_SCOPE_RESOLVER } from '@/shared/application/ports/lender-scope-resolver.token.js';
+import type { SubscriptionAccess } from '@/shared/application/ports/subscription-access.port.js';
+import { SUBSCRIPTION_ACCESS } from '@/shared/application/ports/subscription-access.token.js';
+import { ALLOW_WHEN_READ_ONLY } from '@/shared/infrastructure/http/allow-when-read-only.decorator.js';
 import { getAuthenticatedSession } from '@/shared/infrastructure/http/authenticated-request.js';
 import { setLenderScope } from '@/shared/infrastructure/http/lender-scope-request.js';
+
+/** Métodos que modifican datos; las lecturas (`GET`, `QUERY`) nunca se bloquean. */
+const WRITE_METHODS: ReadonlySet<string> = new Set([
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+]);
 
 /**
  * Guard de rutas que operan sobre un Lender: resuelve con cuál, a partir de las membresías
@@ -23,18 +35,26 @@ import { setLenderScope } from '@/shared/infrastructure/http/lender-scope-reques
  * tiene más de una (trabaja para varios prestamistas), por ahora usa la más antigua: el producto
  * todavía no define cómo elegir entre varias en una misma sesión (PRODUCT.md §10 solo describe el
  * selector Admin/Cobrador, que es de rol dentro de un mismo Lender, no de cuál Lender).
+ *
+ * También aplica el solo lectura (PRODUCT.md §7, D-148): con la suscripción vencida más allá de la
+ * gracia, las rutas de escritura responden 403 `SUBSCRIPTION_READ_ONLY`, salvo las marcadas con
+ * `@AllowWhenReadOnly()` (visitas, pagos y cuadres).
  */
 @Injectable()
 export class LenderScopeGuard implements CanActivate {
   constructor(
     @Inject(LENDER_SCOPE_RESOLVER)
     private readonly resolver: LenderScopeResolver,
+    @Inject(SUBSCRIPTION_ACCESS)
+    private readonly subscription: SubscriptionAccess,
+    private readonly reflector: Reflector,
   ) {}
 
   /**
    * @param context - Contexto de la petición que se evalúa.
    * @returns `true` si la sesión tiene una membresía activa con la que operar.
-   * @throws {@link ForbiddenException} Sin ninguna membresía activa (`FORBIDDEN`).
+   * @throws {@link ForbiddenException} Sin ninguna membresía activa (`FORBIDDEN`), o con la
+   * suscripción en solo lectura en una ruta de escritura (`SUBSCRIPTION_READ_ONLY`).
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -48,6 +68,19 @@ export class LenderScopeGuard implements CanActivate {
     const scope = await this.resolver.resolve(session.user.id);
     if (!scope) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+
+    if (
+      WRITE_METHODS.has(request.method) &&
+      !this.reflector.get<boolean | undefined>(
+        ALLOW_WHEN_READ_ONLY,
+        context.getHandler(),
+      ) &&
+      (await this.subscription.isReadOnly(scope.lenderId))
+    ) {
+      throw new ForbiddenException({
+        code: ErrorCodeSchema.enum.SUBSCRIPTION_READ_ONLY,
+      });
     }
 
     setLenderScope(request, scope);
