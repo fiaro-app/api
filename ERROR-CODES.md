@@ -21,6 +21,7 @@ Cada error de la API lleva `errorCode`, con formato `^[A-Z]\d{3}[A-Z]$`: **área
 | U | subscription | | U | desconocido |
 | W | system | | | |
 | P | plataforma | | | |
+| Q | loan-requests | | | |
 
 - **Siempre visible** (también en producción): `errorCode` y `requestId` en el cuerpo del error. Las apps deciden qué mostrar con `errorCode`; `code` (p. ej. `NOT_FOUND`) sigue existiendo.
 - **Nunca en producción**: `debug { title, hint, cause }` (qué significa, qué mirar, la causa truncada). Solo aparece en desarrollo/pruebas.
