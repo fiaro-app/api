@@ -40,6 +40,7 @@ import {
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { isCollectorOnly } from '@/shared/application/security/is-collector-only.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
+import { AllowWhenReadOnly } from '@/shared/infrastructure/http/allow-when-read-only.decorator.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
@@ -76,6 +77,7 @@ export class DailySettlementController {
    * @param body - Los montos declarados, ya validados.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiSubmitSettlement()
@@ -104,6 +106,7 @@ export class DailySettlementController {
    * @param id - El cuadre.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post(':id/cancel')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiCancelSettlement()
@@ -177,6 +180,7 @@ export class DailySettlementController {
    * @param body - El comentario opcional, ya validado.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
   @apiReviewSettlement('approve')
@@ -194,6 +198,7 @@ export class DailySettlementController {
    * @param body - El comentario opcional, ya validado.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post(':id/reject')
   @HttpCode(HttpStatus.OK)
   @apiReviewSettlement('reject')

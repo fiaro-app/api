@@ -21,6 +21,8 @@ import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membe
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
 import { PrismaPlanSeatLimits } from '@/modules/memberships/infrastructure/persistence/prisma-plan-seat-limits.js';
 import { PrismaMembershipRepository } from '@/modules/memberships/infrastructure/persistence/prisma-membership.repository.js';
+import { PrismaSubscriptionAccess } from '@/modules/memberships/infrastructure/http/prisma-subscription-access.js';
+import { SUBSCRIPTION_ACCESS } from '@/shared/application/ports/subscription-access.token.js';
 import { LENDER_SCOPE_RESOLVER } from '@/shared/application/ports/lender-scope-resolver.token.js';
 import { TEMP_PASSWORD_GENERATOR } from '@/shared/application/ports/temp-password-generator.token.js';
 import { RandomTempPasswordGenerator } from '@/shared/infrastructure/crypto/random-temp-password-generator.js';
@@ -32,6 +34,7 @@ export const membershipsProviders: Provider[] = [
     provide: LENDER_SCOPE_RESOLVER,
     useClass: MembershipLenderScopeResolver,
   },
+  { provide: SUBSCRIPTION_ACCESS, useClass: PrismaSubscriptionAccess },
   { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
   { provide: PLAN_SEAT_LIMITS, useClass: PrismaPlanSeatLimits },
   CollectorSeats,
@@ -79,4 +82,5 @@ export const membershipsExports = [
   CountAdminSeatsUseCase,
   GetMembershipEntryUseCase,
   LENDER_SCOPE_RESOLVER,
+  SUBSCRIPTION_ACCESS,
 ];
