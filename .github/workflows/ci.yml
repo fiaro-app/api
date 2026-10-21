@@ -51,6 +51,9 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: fiaro
           MONGO_INITDB_ROOT_PASSWORD: fiaro
+          # MongoDB 8.0 no arranca en runners con kernel Linux 6.19+ (SERVER-121912): tcmalloc y glibc
+          # se disputan el registro de rseq. Sin el de glibc, tcmalloc lo registra y arranca.
+          GLIBC_TUNABLES: glibc.pthread.rseq=0
         ports:
           - 27017:27017
         options: >-
