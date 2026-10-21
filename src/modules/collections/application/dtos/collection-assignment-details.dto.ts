@@ -29,4 +29,9 @@ export interface CreateCollectionAssignmentInput {
    * a `effectiveFrom`: reemplazo de un solo día, no toca la permanente.
    */
   readonly effectiveTo?: string | null;
+  /**
+   * `false` no le avisa al cobrador (D-87). Lo usa la importación (D-152), que asigna muchos préstamos de
+   * una vez y no debe mandar un aviso por cada uno. Ausente: avisa.
+   */
+  readonly notify?: boolean;
 }

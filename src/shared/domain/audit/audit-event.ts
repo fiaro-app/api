@@ -35,6 +35,8 @@ export const AUDIT_ACTIONS = [
   'billing.payment.approved',
   /** Wompi cerró un pago sin aprobarlo (rechazado, anulado o con error). */
   'billing.payment.not_approved',
+  /** Se importaron clientes y préstamos desde una hoja de cálculo (D-152). */
+  'imports.batch.completed',
   /** Un aviso de Wompi no se aplicó: firma inválida, referencia desconocida o monto distinto. */
   'billing.webhook.rejected',
 ] as const;
