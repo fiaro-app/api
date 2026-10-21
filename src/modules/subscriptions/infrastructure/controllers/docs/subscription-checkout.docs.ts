@@ -11,6 +11,7 @@ import {
 import {
   CheckoutResponseSchema,
   CheckoutStatusResponseSchema,
+  PaymentHistoryResponseSchema,
 } from '@/modules/subscriptions/infrastructure/controllers/schemas/subscription-checkout.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
 
@@ -76,6 +77,33 @@ export const ApiGetCheckoutStatus = () =>
       status: 404,
       description: 'La orden no existe, o es de otro negocio (`NOT_FOUND`).',
       standardSchema: PaymentNotFoundSchema,
+    }),
+  );
+
+/** Documenta `GET /subscription/payments`. */
+export const ApiListPayments = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Historial de pagos del plan',
+      description:
+        'Las órdenes de pago del negocio (aprobadas, rechazadas y pendientes), de la más reciente a la más vieja, hasta 50. Solo `OWNER`. Es una lectura: sigue disponible con la suscripción en solo lectura.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({
+      status: 200,
+      description: 'El historial.',
+      standardSchema: PaymentHistoryResponseSchema,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'No hay sesión vigente (`UNAUTHENTICATED`).',
+      standardSchema: SubscriptionUnauthenticatedSchema,
+    }),
+    ApiResponse({
+      status: 403,
+      description:
+        'Sin ninguna membresía activa, o sin rol `OWNER` (`FORBIDDEN`).',
+      standardSchema: CheckoutForbiddenSchema,
     }),
   );
 

@@ -17,10 +17,15 @@ import { PUSH_TOKEN_REPOSITORY } from '@/modules/notifications/domain/tokens/pus
 /**
  * El correo es para lo necesario: lo crítico (`ALERT`) siempre, y lo que merece atención
  * (`WARNING`) solo si no hay un celular al que mandárselo. Lo demás llega únicamente como push y
- * en el feed de la app.
+ * en el feed de la app. La excepción es el comprobante de un pago de la suscripción (`SUCCESS` sobre
+ * una `SUBSCRIPTION`, D-150): es la prueba de que se pagó y siempre va por correo.
  */
 function needsEmail(notification: Notification, hasDevices: boolean): boolean {
-  if (notification.severity === 'ALERT') {
+  if (
+    notification.severity === 'ALERT' ||
+    (notification.severity === 'SUCCESS' &&
+      notification.relatedEntityType === 'SUBSCRIPTION')
+  ) {
     return true;
   }
   return notification.severity === 'WARNING' && !hasDevices;

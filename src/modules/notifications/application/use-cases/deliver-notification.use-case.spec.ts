@@ -50,6 +50,19 @@ const WARNING = Notification.create({
   createdAt: new Date('2026-10-06T00:00:00Z'),
 });
 
+const PAYMENT_RECEIPT = Notification.create({
+  id: 'notification-4',
+  recipientUserId: 'user-1',
+  lenderId: 'lender-1',
+  severity: 'SUCCESS',
+  title: 'Pago recibido',
+  body: 'Recibimos tu pago.',
+  relatedEntityType: 'SUBSCRIPTION',
+  relatedEntityId: 'payment-1',
+  readAt: null,
+  createdAt: new Date('2026-10-06T00:00:00Z'),
+});
+
 const DEVICE = PushToken.create({
   id: 'push-1',
   token: 'ExponentPushToken[dispositivo-1]',
@@ -110,6 +123,18 @@ describe('DeliverNotificationUseCase', () => {
     await useCase.execute(NOTIFICATION);
 
     expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendPush).toHaveBeenCalledTimes(1);
+  });
+
+  it('el comprobante de un pago de la suscripción siempre sale por correo, aunque haya celular', async () => {
+    const { useCase, sendEmail, sendPush } = setup({
+      recipient: { verifiedEmail: 'marta@example.com' },
+      tokens: [DEVICE],
+    });
+
+    await useCase.execute(PAYMENT_RECEIPT);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendPush).toHaveBeenCalledTimes(1);
   });
 

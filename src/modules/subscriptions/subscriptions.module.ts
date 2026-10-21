@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
+import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
+import { SubscriptionPaymentsController } from '@/modules/subscriptions/infrastructure/controllers/subscription-payments.controller.js';
 import { SubscriptionCheckoutController } from '@/modules/subscriptions/infrastructure/controllers/subscription-checkout.controller.js';
 import { WompiWebhookController } from '@/modules/subscriptions/infrastructure/controllers/wompi-webhook.controller.js';
 import { SubscriptionController } from '@/modules/subscriptions/infrastructure/controllers/subscription.controller.js';
@@ -18,10 +20,17 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
  * porque `LenderScopeGuard` necesita el puerto de membresías.
  */
 @Module({
-  imports: [PersistenceModule, LendersModule, LoansModule, MembershipsModule],
+  imports: [
+    PersistenceModule,
+    LendersModule,
+    LoansModule,
+    MembershipsModule,
+    NotificationsModule,
+  ],
   controllers: [
     SubscriptionController,
     SubscriptionCheckoutController,
+    SubscriptionPaymentsController,
     WompiWebhookController,
   ],
   providers: subscriptionsProviders,

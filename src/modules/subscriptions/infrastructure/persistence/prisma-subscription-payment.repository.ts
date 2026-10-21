@@ -39,6 +39,22 @@ export class PrismaSubscriptionPaymentRepository implements SubscriptionPaymentR
   }
 
   /**
+   * @param tenantId - El negocio.
+   * @param limit - Cuántas como máximo.
+   */
+  async listByTenant(
+    tenantId: string,
+    limit: number,
+  ): Promise<readonly SubscriptionPayment[]> {
+    const rows = await this.prisma.subscriptionPayment.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return rows.map(toSubscriptionPayment);
+  }
+
+  /**
    * La orden pasa a `APPROVED` solo si seguía `PENDING` (así un aviso repetido no suma otro mes) y,
    * en la misma transacción, la suscripción toma el plan comprado y el período se extiende. La
    * fila de la suscripción se bloquea mientras se lee y se escribe: dos pagos del mismo negocio

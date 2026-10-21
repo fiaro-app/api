@@ -1,5 +1,9 @@
 import type { Provider } from '@nestjs/common';
 import { TRIAL_SUBSCRIPTION_SETTINGS } from '@/modules/subscriptions/application/ports/trial-subscription-settings.token.js';
+import { TENANT_OWNERS } from '@/modules/subscriptions/application/ports/tenant-owners.token.js';
+import { ListRenewalTargetsUseCase } from '@/modules/subscriptions/application/use-cases/list-renewal-targets.use-case.js';
+import { ListSubscriptionPaymentsUseCase } from '@/modules/subscriptions/application/use-cases/list-subscription-payments.use-case.js';
+import { PrismaTenantOwners } from '@/modules/subscriptions/infrastructure/persistence/prisma-tenant-owners.js';
 import { PAYMENT_GATEWAY } from '@/modules/subscriptions/application/ports/payment-gateway.token.js';
 import { CreateCheckoutUseCase } from '@/modules/subscriptions/application/use-cases/create-checkout.use-case.js';
 import { GetCheckoutStatusUseCase } from '@/modules/subscriptions/application/use-cases/get-checkout-status.use-case.js';
@@ -25,12 +29,18 @@ export const subscriptionsProviders: Provider[] = [
     useClass: PrismaSubscriptionPaymentRepository,
   },
   { provide: PAYMENT_GATEWAY, useClass: WompiPaymentGateway },
+  { provide: TENANT_OWNERS, useClass: PrismaTenantOwners },
   StartTrialSubscriptionUseCase,
   GetSubscriptionUseCase,
   CreateCheckoutUseCase,
   GetCheckoutStatusUseCase,
   ProcessPaymentEventUseCase,
+  ListSubscriptionPaymentsUseCase,
+  ListRenewalTargetsUseCase,
 ];
 
-/** Lo que el módulo ofrece a los demás: el alta de la prueba, que usa `tenants`. */
-export const subscriptionsExports = [StartTrialSubscriptionUseCase];
+/** Lo que el módulo ofrece a los demás: el alta de la prueba (`tenants`) y los negocios a punto de vencer (`alerts`, D-150). */
+export const subscriptionsExports = [
+  StartTrialSubscriptionUseCase,
+  ListRenewalTargetsUseCase,
+];

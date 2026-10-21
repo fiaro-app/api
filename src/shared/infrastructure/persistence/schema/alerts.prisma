@@ -10,3 +10,15 @@ model MoraAlertRun {
 
   @@map("mora_alert_runs")
 }
+
+/// Un día de negocio en que se mandaron los recordatorios de vencimiento del plan (D-150). Igual que
+/// `MoraAlertRun`: la fecha es la clave, así que hay un solo envío por día aunque haya varias instancias
+/// o el proceso se reinicie. `finishedAt` nulo quiere decir que el envío se interrumpió y ese día no se reintenta.
+model SubscriptionReminderRun {
+  businessDate  DateTime  @id @map("business_date") @db.Date
+  claimedAt     DateTime  @default(now()) @map("claimed_at") @db.Timestamptz(3)
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz(3)
+  remindersSent Int?      @map("reminders_sent")
+
+  @@map("subscription_reminder_runs")
+}

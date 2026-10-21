@@ -87,7 +87,7 @@ Pantalla «Plan y pagos»: plan actual y vencimiento, selector de plan y meses c
 
 1. **api:** tabla, `POST /subscription/checkout`, webhook, aplicar el pago, auditoría, Postman, D-149. (Sandbox de Wompi.)
 2. **contracts:** esquemas de orden e historial → versión menor.
-3. **api:** historial, correo de confirmación y recordatorios.
+3. **api (hecho, D-150):** historial, comprobante por correo y recordatorios.
 4. **web:** «Plan y pagos» y la página de retorno.
 5. **mobile:** botón «Renovar en la web».
 6. **v2 (después):** cobro automático con fuente de pago para tarjeta y Nequi.

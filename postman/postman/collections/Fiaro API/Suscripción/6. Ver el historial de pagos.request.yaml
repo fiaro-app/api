@@ -1,0 +1,19 @@
+$kind: http-request
+description: "Las órdenes de pago del negocio (aprobadas, rechazadas y pendientes), de la más reciente a la más vieja, hasta 50 (D-150). Solo OWNER. Después de las peticiones 3 y 5 aparece la orden aprobada."
+url: "{{baseUrl}}/subscription/payments"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la lista de órdenes', () => {
+        pm.expect(body.items).to.be.an('array');
+        body.items.forEach((item) => pm.expect(['PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR']).to.include(item.status));
+      });
+    language: text/javascript
+order: 6000
