@@ -15,6 +15,7 @@ describe('StartTrialSubscriptionUseCase', () => {
         return Promise.resolve();
       }),
       findByTenant: vi.fn(),
+      listEndingBetween: vi.fn(),
     };
     const settings: TrialSubscriptionSettings = {
       trialDays: () => 30,

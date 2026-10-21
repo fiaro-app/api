@@ -86,3 +86,33 @@ export function toCheckoutStatusResponse(
     periodEndsAt: props.periodEndsAt?.toISOString() ?? null,
   };
 }
+
+/** Respuesta de `GET /subscription/payments`: el historial de órdenes, de la más reciente a la más vieja. */
+export const PaymentHistoryResponseSchema = z
+  .object({
+    items: z.array(
+      CheckoutStatusResponseSchema.extend({
+        months: z
+          .int()
+          .meta({ description: 'Meses que compró la orden (hoy siempre 1).' }),
+        paymentMethodType: z.string().nullable().meta({
+          description:
+            'Medio con el que pagó según Wompi (`PSE`, `CARD`, `NEQUI`…); `null` mientras está pendiente.',
+        }),
+      }),
+    ),
+  })
+  .meta({ id: 'PaymentHistoryResponse' });
+
+/** @param payments - Las órdenes, de la más reciente a la más vieja. */
+export function toPaymentHistoryResponse(
+  payments: readonly SubscriptionPayment[],
+): z.output<typeof PaymentHistoryResponseSchema> {
+  return {
+    items: payments.map((payment) => ({
+      ...toCheckoutStatusResponse(payment),
+      months: payment.props.months,
+      paymentMethodType: payment.props.paymentMethodType,
+    })),
+  };
+}

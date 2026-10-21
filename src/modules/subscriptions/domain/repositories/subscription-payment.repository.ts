@@ -32,6 +32,17 @@ export interface SubscriptionPaymentRepository {
   findByReference(reference: string): Promise<SubscriptionPayment | null>;
 
   /**
+   * Las órdenes de un negocio, de la más reciente a la más vieja.
+   *
+   * @param tenantId - El negocio.
+   * @param limit - Cuántas como máximo.
+   */
+  listByTenant(
+    tenantId: string,
+    limit: number,
+  ): Promise<readonly SubscriptionPayment[]>;
+
+  /**
    * Marca la orden como aprobada y aplica el pago a la suscripción del negocio (plan nuevo y
    * período extendido) en una sola transacción. Solo lo hace una vez: si ya estaba resuelta, no
    * toca nada.

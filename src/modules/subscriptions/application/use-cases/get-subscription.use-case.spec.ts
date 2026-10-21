@@ -30,7 +30,7 @@ function setup(found: Subscription | null) {
   const findByTenant = vi.fn(() => Promise.resolve(found));
   const listExecute = vi.fn(() => Promise.resolve(3));
   const useCase = new GetSubscriptionUseCase(
-    { create: vi.fn(), findByTenant },
+    { create: vi.fn(), findByTenant, listEndingBetween: vi.fn() },
     {
       execute: vi.fn(() => Promise.resolve({ tenantId: 'tenant-1' })),
     } as unknown as GetLenderUseCase,

@@ -1,9 +1,16 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type {
   PaymentEvent,
   PaymentGateway,
 } from '@/modules/subscriptions/application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY } from '@/modules/subscriptions/application/ports/payment-gateway.token.js';
+import { CreateNotificationUseCase } from '@/modules/notifications/application/use-cases/create-notification.use-case.js';
+import type { TenantOwners } from '@/modules/subscriptions/application/ports/tenant-owners.port.js';
+import { TENANT_OWNERS } from '@/modules/subscriptions/application/ports/tenant-owners.token.js';
+import {
+  PAYMENT_RECEIVED_TITLE,
+  paymentReceivedBody,
+} from '@/modules/subscriptions/domain/notifications/payment-received.js';
 import type { SubscriptionPayment } from '@/modules/subscriptions/domain/entities/subscription-payment.entity.js';
 import type { SubscriptionPaymentRepository } from '@/modules/subscriptions/domain/repositories/subscription-payment.repository.js';
 import { SUBSCRIPTION_PAYMENT_REPOSITORY } from '@/modules/subscriptions/domain/tokens/subscription-payment-repository.token.js';
@@ -44,12 +51,16 @@ function isNotApproved(status: string): status is NotApprovedStatus {
  */
 @Injectable()
 export class ProcessPaymentEventUseCase {
+  private readonly logger = new Logger(ProcessPaymentEventUseCase.name);
+
   constructor(
     @Inject(SUBSCRIPTION_PAYMENT_REPOSITORY)
     private readonly payments: SubscriptionPaymentRepository,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(AUDIT_LOG) private readonly audit: AuditLog,
+    @Inject(TENANT_OWNERS) private readonly tenantOwners: TenantOwners,
+    private readonly createNotification: CreateNotificationUseCase,
   ) {}
 
   /**
@@ -110,6 +121,7 @@ export class ProcessPaymentEventUseCase {
         occurredAt: resolution.resolvedAt,
         details: { ...details, planCode: payment.props.planCode },
       });
+      await this.confirmToOwners(payment);
       return 'APPROVED';
     }
     if (isNotApproved(event.status)) {
@@ -129,6 +141,48 @@ export class ProcessPaymentEventUseCase {
       return 'NOT_APPROVED';
     }
     return 'IGNORED';
+  }
+
+  /**
+   * Le confirma el pago a la dueña (en la app, por correo y por push, según sus canales). El pago ya
+   * quedó aplicado: si el aviso falla se escribe en el log y no se propaga, porque un error aquí haría
+   * que Wompi reintente y el aviso nunca saldría (el reintento ya vería la orden resuelta).
+   *
+   * @param payment - La orden recién aprobada.
+   */
+  private async confirmToOwners(payment: SubscriptionPayment): Promise<void> {
+    try {
+      const [owners, saved] = await Promise.all([
+        this.tenantOwners.ownersOf(payment.tenantId),
+        this.payments.findByReference(payment.reference),
+      ]);
+      const periodEndsAt = saved?.props.periodEndsAt;
+      if (!periodEndsAt) {
+        return;
+      }
+      const body = paymentReceivedBody(
+        payment.props.planCode,
+        payment.props.amountInCents,
+        periodEndsAt,
+      );
+      await Promise.all(
+        owners.map((owner) =>
+          this.createNotification.execute({
+            recipientUserId: owner.userId,
+            lenderId: owner.lenderId,
+            severity: 'SUCCESS',
+            title: PAYMENT_RECEIVED_TITLE,
+            body,
+            relatedEntityType: 'SUBSCRIPTION',
+            relatedEntityId: payment.props.id,
+          }),
+        ),
+      );
+    } catch (error) {
+      this.logger.error(
+        `No se pudo confirmar el pago ${payment.reference} a la dueña: ${String(error)}.`,
+      );
+    }
   }
 
   private rejected(
