@@ -1,3 +1,4 @@
+import type { PlanFeature } from '@/shared/domain/subscriptions/plan-features.js';
 import type { SubscriptionPlanCode } from '@/modules/subscriptions/domain/entities/subscription.entity.js';
 import type { SubscriptionStatus } from '@/shared/domain/subscriptions/subscription-status.js';
 
@@ -15,6 +16,8 @@ export interface SubscriptionDetails {
   readonly graceDaysRemaining: number;
   /** Si el negocio está en solo lectura: pasó la gracia. */
   readonly isReadOnly: boolean;
+  /** Funciones propias del plan (D-151). */
+  readonly features: readonly PlanFeature[];
   readonly limits: {
     readonly maxActiveLenders: number;
     readonly maxCollectors: number;

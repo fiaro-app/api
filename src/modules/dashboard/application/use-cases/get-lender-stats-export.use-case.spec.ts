@@ -10,14 +10,21 @@ const STATS = {
 } as unknown as LenderPeriodStats;
 
 describe('GetLenderStatsExportUseCase', () => {
-  it('compone las estadísticas y el nombre del prestamista', async () => {
+  it('compone las estadísticas, el nombre y la marca del prestamista', async () => {
     const getLenderStatsExecute = vi.fn(() => Promise.resolve(STATS));
     const getLenderExecute = vi.fn(() =>
-      Promise.resolve({ name: 'Créditos Ana' } as never),
+      Promise.resolve({
+        name: 'Créditos Ana',
+        brandColor: '#3B3382',
+        logoUrl: 'https://cdn.fiaro.test/logos/ana.png',
+      } as never),
     );
+    const logo = Buffer.from('png');
+    const read = vi.fn(() => Promise.resolve(logo));
     const useCase = new GetLenderStatsExportUseCase(
       { execute: getLenderStatsExecute } as unknown as GetLenderStatsUseCase,
       { execute: getLenderExecute } as unknown as GetLenderUseCase,
+      { read },
     );
 
     const result = await useCase.execute({
@@ -25,7 +32,14 @@ describe('GetLenderStatsExportUseCase', () => {
       collectorMembershipId: 'm1',
     });
 
-    expect(result).toEqual({ stats: STATS, lenderName: 'Créditos Ana' });
+    expect(result).toEqual({
+      stats: STATS,
+      lenderName: 'Créditos Ana',
+      brand: { color: '#3B3382', logo },
+    });
+    expect(read).toHaveBeenCalledExactlyOnceWith(
+      'https://cdn.fiaro.test/logos/ana.png',
+    );
     expect(getLenderStatsExecute).toHaveBeenCalledExactlyOnceWith(
       {
         lenderId: 'lender-1',

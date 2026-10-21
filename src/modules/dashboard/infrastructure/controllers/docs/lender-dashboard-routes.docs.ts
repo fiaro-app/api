@@ -59,7 +59,7 @@ export const ApiGetLenderStats = () =>
     ApiOperation({
       summary: 'Ver las estadísticas del negocio',
       description:
-        'Salud de cartera y mora del prestamista con el que opera la sesión en un período (el mes actual, si no llega uno): cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), el ranking de clientes con mayor mora y el desempeño de cada cobrador (D-100). Filtrable por cobrador y por cartera, combinables entre sí. Exige rol OWNER o LENDER.',
+        'Salud de cartera y mora del prestamista con el que opera la sesión en un período (el mes actual, si no llega uno): cartera en riesgo, % en mora, mora por antigüedad (4 buckets fijos), el ranking de clientes con mayor mora y el desempeño de cada cobrador (D-100). Filtrable por cobrador y por cartera, combinables entre sí. Exige rol OWNER o LENDER. El comparativo con el período anterior (`includePrevious`) solo se calcula en planes con estadísticas avanzadas (D-151); en Individual la respuesta llega sin él, sin error.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
@@ -84,7 +84,7 @@ export const ApiGetLenderStatsExport = () =>
     ApiOperation({
       summary: 'Exportar las estadísticas del negocio en PDF',
       description:
-        'El mismo reporte de `QUERY /lenders/me/stats`, en un PDF de una página (D-101). Mismos filtros, más `format: "pdf"`. Exige rol OWNER o LENDER.',
+        'El mismo reporte de `QUERY /lenders/me/stats`, en un PDF de una página (D-101). Mismos filtros, más `format: "pdf"`. Exige rol OWNER o LENDER. Solo en planes con estadísticas avanzadas (Pro, Team y la prueba): en Individual responde `403 PLAN_FEATURE_UNAVAILABLE` (D-151).',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({

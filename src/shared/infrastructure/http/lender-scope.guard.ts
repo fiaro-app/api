@@ -12,6 +12,8 @@ import type { LenderScopeResolver } from '@/shared/application/ports/lender-scop
 import { LENDER_SCOPE_RESOLVER } from '@/shared/application/ports/lender-scope-resolver.token.js';
 import type { SubscriptionAccess } from '@/shared/application/ports/subscription-access.port.js';
 import { SUBSCRIPTION_ACCESS } from '@/shared/application/ports/subscription-access.token.js';
+import type { PlanFeature } from '@/shared/domain/subscriptions/plan-features.js';
+import { REQUIRED_PLAN_FEATURE } from '@/shared/infrastructure/http/requires-plan-feature.decorator.js';
 import { ALLOW_WHEN_READ_ONLY } from '@/shared/infrastructure/http/allow-when-read-only.decorator.js';
 import { getAuthenticatedSession } from '@/shared/infrastructure/http/authenticated-request.js';
 import { setLenderScope } from '@/shared/infrastructure/http/lender-scope-request.js';
@@ -38,7 +40,8 @@ const WRITE_METHODS: ReadonlySet<string> = new Set([
  *
  * También aplica el solo lectura (PRODUCT.md §7, D-148): con la suscripción vencida más allá de la
  * gracia, las rutas de escritura responden 403 `SUBSCRIPTION_READ_ONLY`, salvo las marcadas con
- * `@AllowWhenReadOnly()` (visitas, pagos y cuadres).
+ * `@AllowWhenReadOnly()` (visitas, pagos y cuadres). Y las funciones propias de un plan (D-151): una
+ * ruta marcada con `@RequiresPlanFeature()` responde 403 `PLAN_FEATURE_UNAVAILABLE` a quien no la trae.
  */
 @Injectable()
 export class LenderScopeGuard implements CanActivate {
@@ -70,20 +73,39 @@ export class LenderScopeGuard implements CanActivate {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
 
-    if (
+    await this.assertPlanAllows(request, context, scope.lenderId);
+
+    setLenderScope(request, scope);
+    return true;
+  }
+
+  /**
+   * Lo que el plan del negocio permite en esta ruta: la función que exige (`@RequiresPlanFeature`) y,
+   * si escribe, que no esté en solo lectura (a menos que sea `@AllowWhenReadOnly()`). Solo consulta el
+   * plan cuando la ruta lo necesita.
+   *
+   * @throws {@link ForbiddenException} `PLAN_FEATURE_UNAVAILABLE` o `SUBSCRIPTION_READ_ONLY`.
+   */
+  private async assertPlanAllows(
+    request: Request,
+    context: ExecutionContext,
+    lenderId: string,
+  ): Promise<void> {
+    const handler = context.getHandler();
+    const feature = this.reflector.get<PlanFeature | undefined>(
+      REQUIRED_PLAN_FEATURE,
+      handler,
+    );
+    if (feature && !(await this.subscription.hasFeature(lenderId, feature))) {
+      throw new ForbiddenException({ code: 'PLAN_FEATURE_UNAVAILABLE' });
+    }
+    const writes =
       WRITE_METHODS.has(request.method) &&
-      !this.reflector.get<boolean | undefined>(
-        ALLOW_WHEN_READ_ONLY,
-        context.getHandler(),
-      ) &&
-      (await this.subscription.isReadOnly(scope.lenderId))
-    ) {
+      !this.reflector.get<boolean | undefined>(ALLOW_WHEN_READ_ONLY, handler);
+    if (writes && (await this.subscription.isReadOnly(lenderId))) {
       throw new ForbiddenException({
         code: ErrorCodeSchema.enum.SUBSCRIPTION_READ_ONLY,
       });
     }
-
-    setLenderScope(request, scope);
-    return true;
   }
 }

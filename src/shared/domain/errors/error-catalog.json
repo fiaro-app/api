@@ -288,6 +288,10 @@
       "title": "La suscripción está en solo lectura.",
       "hint": "Plan vencido (GRACE_PERIOD→READ_ONLY): solo consulta hasta renovar."
     },
+    "P116A": {
+      "title": "Esa función no viene en el plan del negocio.",
+      "hint": "Estadísticas avanzadas o importar desde Excel con un plan Individual (D-151): la app debe ofrecer subir de plan en lugar de mostrar un error."
+    },
     "P114H": {
       "title": "Sistema en mantenimiento.",
       "hint": "Ver W001H."
@@ -603,6 +607,7 @@
     "RATE_LIMITED": "P111H",
     "PASSWORD_CHANGE_REQUIRED": "P112A",
     "SUBSCRIPTION_READ_ONLY": "P113A",
+    "PLAN_FEATURE_UNAVAILABLE": "P116A",
     "MAINTENANCE": "P114H",
     "UNKNOWN": "P115U",
     "INTERNAL_ERROR": "P900U",

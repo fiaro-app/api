@@ -16,10 +16,11 @@ function accessFor(found: unknown) {
   };
 }
 
-function endedDaysAgo(days: number) {
+function endedDaysAgo(days: number, planCode = 'PRO') {
   return {
     tenant: {
       subscription: {
+        planCode,
         currentPeriodEndsAt: new Date(NOW.getTime() - days * DAY_MS),
       },
     },
@@ -53,5 +54,35 @@ describe('PrismaSubscriptionAccess', () => {
         'l',
       ),
     ).toBe(false);
+  });
+
+  it('las funciones salen del plan: Individual no trae ninguna; Pro, Team y la prueba sí', async () => {
+    for (const [plan, expected] of [
+      ['INDIVIDUAL', false],
+      ['PRO', true],
+      ['TEAM', true],
+      ['TRIAL', true],
+    ] as const) {
+      const { access } = accessFor(endedDaysAgo(-5, plan));
+
+      expect(await access.hasFeature('lender-1', 'ADVANCED_STATS')).toBe(
+        expected,
+      );
+      expect(await access.hasFeature('lender-1', 'EXCEL_IMPORT')).toBe(
+        expected,
+      );
+    }
+  });
+
+  it('sin prestamista o sin suscripción no se le quita ninguna función', async () => {
+    expect(await accessFor(null).access.hasFeature('l', 'ADVANCED_STATS')).toBe(
+      true,
+    );
+    expect(
+      await accessFor({ tenant: { subscription: null } }).access.hasFeature(
+        'l',
+        'EXCEL_IMPORT',
+      ),
+    ).toBe(true);
   });
 });
