@@ -60,24 +60,7 @@ export class CreateCollectionAssignmentUseCase {
     );
 
     const effectiveTo = input.effectiveTo ?? null;
-    const issues: DomainIssue[] = [];
-    if (!collector.roles.includes('COLLECTOR')) {
-      issues.push({
-        path: ['collectorMembershipId'],
-        message: 'La membresía no tiene el rol COLLECTOR.',
-        params: {},
-      });
-    }
-    if (effectiveTo !== null && effectiveTo < input.effectiveFrom) {
-      issues.push({
-        path: ['effectiveTo'],
-        message: 'No puede ser anterior a effectiveFrom.',
-        params: {},
-      });
-    }
-    if (issues.length > 0) {
-      throw new InvalidCollectionAssignmentDataError(issues);
-    }
+    assertValid(collector.roles, input.effectiveFrom, effectiveTo);
 
     if (effectiveTo === null) {
       await this.closeOpenAssignment(input.loanId, input.effectiveFrom);
@@ -92,15 +75,17 @@ export class CreateCollectionAssignmentUseCase {
       createdAt: this.clock.now(),
     });
     await this.assignments.create(assignment);
-    await this.createNotification.execute({
-      recipientUserId: collector.userId,
-      lenderId: input.lenderId,
-      severity: 'INFO',
-      title: 'Préstamo asignado',
-      body: 'Te asignaron un préstamo para cobrar.',
-      relatedEntityType: 'LOAN',
-      relatedEntityId: input.loanId,
-    });
+    if (input.notify !== false) {
+      await this.createNotification.execute({
+        recipientUserId: collector.userId,
+        lenderId: input.lenderId,
+        severity: 'INFO',
+        title: 'Préstamo asignado',
+        body: 'Te asignaron un préstamo para cobrar.',
+        relatedEntityType: 'LOAN',
+        relatedEntityId: input.loanId,
+      });
+    }
     return toCollectionAssignmentDetails(assignment);
   }
 
@@ -125,5 +110,36 @@ export class CreateCollectionAssignmentUseCase {
       createdAt: open.createdAt,
     });
     await this.assignments.update(closed);
+  }
+}
+
+/**
+ * @param roles - Roles de la membresía elegida.
+ * @param effectiveFrom - Inicio de la vigencia.
+ * @param effectiveTo - Fin de la vigencia, o `null` si es permanente.
+ * @throws {@link InvalidCollectionAssignmentDataError} Si no es cobrador o el rango es inválido.
+ */
+function assertValid(
+  roles: readonly string[],
+  effectiveFrom: string,
+  effectiveTo: string | null,
+): void {
+  const issues: DomainIssue[] = [];
+  if (!roles.includes('COLLECTOR')) {
+    issues.push({
+      path: ['collectorMembershipId'],
+      message: 'La membresía no tiene el rol COLLECTOR.',
+      params: {},
+    });
+  }
+  if (effectiveTo !== null && effectiveTo < effectiveFrom) {
+    issues.push({
+      path: ['effectiveTo'],
+      message: 'No puede ser anterior a effectiveFrom.',
+      params: {},
+    });
+  }
+  if (issues.length > 0) {
+    throw new InvalidCollectionAssignmentDataError(issues);
   }
 }

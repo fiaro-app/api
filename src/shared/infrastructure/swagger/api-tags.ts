@@ -48,6 +48,11 @@ export const API_TAGS = {
     description:
       'Acuerdos de pago de un cliente del prestamista con el que opera la sesión (`LenderScopeGuard`). Verlos no pide un rol específico; darlos de alta exige `OWNER` o `LENDER`. Se pueden cancelar, pero no editar.',
   },
+  import: {
+    name: 'Importación',
+    description:
+      'Carga clientes y préstamos en curso desde una hoja (Excel o CSV) que la web lee y manda en tandas de hasta 200 filas: primero se revisa (`dryRun`) y luego se confirma. Exige `OWNER` o `LENDER` y un plan con importación (Pro o Team).',
+  },
   loanRequest: {
     name: 'Solicitudes de préstamo',
     description:

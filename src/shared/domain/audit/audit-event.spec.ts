@@ -30,6 +30,7 @@ describe('AUDIT_ACTIONS', () => {
       'billing.checkout.created',
       'billing.payment.approved',
       'billing.payment.not_approved',
+      'imports.batch.completed',
       'billing.webhook.rejected',
     ]);
   });
