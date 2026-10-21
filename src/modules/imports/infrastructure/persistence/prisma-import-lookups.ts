@@ -17,9 +17,6 @@ export class PrismaImportLookups implements ImportLookups {
     lenderId: string,
     nationalIds: readonly string[],
   ): Promise<ReadonlyMap<string, string>> {
-    if (nationalIds.length === 0) {
-      return new Map();
-    }
     const rows = await this.prisma.client.findMany({
       where: { lenderId, nationalId: { in: [...nationalIds] } },
       select: { id: true, nationalId: true },

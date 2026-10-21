@@ -108,9 +108,9 @@ export class ImportRowsUseCase {
       this.lookups.activeCollectors(input.lenderId),
     ]);
     const seen = new Set<string>();
-    return input.rows.map((row, index) => {
+    return input.rows.map((row) => {
       const checked = validateImportRow(row, collectors);
-      const nationalId = nationalIds[index] ?? '';
+      const nationalId = normalizeNationalId(row.nationalId);
       const repeated = seen.has(nationalId);
       if (checked.valid !== null) {
         seen.add(nationalId);
