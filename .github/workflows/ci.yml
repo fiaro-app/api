@@ -14,7 +14,9 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # MongoDB 8.0 se niega a arrancar en kernels Linux 6.19+ (SERVER-121912) y `ubuntu-latest` ya cae en uno:
+    # se fija 22.04 hasta que MongoDB o el runner lo resuelvan.
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       packages: read
