@@ -22,9 +22,9 @@ export interface ImportLoanInput {
   /** Fecha `AAAA-MM-DD` de la próxima cuota. */
   readonly nextInstallmentDate: string;
   /** Capital que falta, si se sabe; sin él se toma lo que falta por pagar (sin interés). */
-  readonly pendingCapital?: number | null | undefined;
+  readonly pendingCapital?: number | null;
   /** Celular del cobrador al que se le asigna; sin él el préstamo queda sin asignar. */
-  readonly collectorPhone?: string | null | undefined;
+  readonly collectorPhone?: string | null;
 }
 
 /** Una fila de la hoja: un cliente y, si lo tiene, su préstamo en curso. */
@@ -34,14 +34,14 @@ export interface ImportRowInput {
   readonly occupation: string;
   readonly phone: string;
   readonly address: string;
-  readonly loan?: ImportLoanInput | null | undefined;
+  readonly loan?: ImportLoanInput | null;
 }
 
 /** Un problema de una fila: en qué campo y qué pasa. `message` es una clave del catálogo o ya un texto. */
 export interface ImportIssue {
   readonly field: string;
   readonly message: string;
-  readonly params?: Readonly<Record<string, string | number>> | undefined;
+  readonly params?: Readonly<Record<string, string | number>>;
 }
 
 /**

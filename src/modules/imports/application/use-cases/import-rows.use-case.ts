@@ -147,16 +147,19 @@ export class ImportRowsUseCase {
     reviewed: readonly Reviewed[],
   ): Promise<ImportRowResult[]> {
     const clientIds = new Map<string, string>();
-    const results: ImportRowResult[] = [];
-    for (const [index, entry] of reviewed.entries()) {
-      const row = index + 1;
-      if (entry.valid === null) {
-        results.push(this.preview(entry, row));
-        continue;
-      }
-      results.push(await this.create(input, entry.valid, row, clientIds));
-    }
-    return results;
+    return reviewed.reduce<Promise<ImportRowResult[]>>(
+      (previous, entry, index) =>
+        previous.then(async (results) => {
+          const row = index + 1;
+          results.push(
+            entry.valid === null
+              ? this.preview(entry, row)
+              : await this.create(input, entry.valid, row, clientIds),
+          );
+          return results;
+        }),
+      Promise.resolve([]),
+    );
   }
 
   private async create(
