@@ -40,7 +40,7 @@ export const ApiListTopArrears = () =>
     ApiOperation({
       summary: 'Ver el ranking completo de mayor mora',
       description:
-        'Los clientes con mora de hoy, de más días de atraso a menos y luego de más monto a menos, paginados (10 por defecto, máximo 50). `QUERY /lenders/me/stats` trae solo los 5 primeros. Mismos filtros de cobrador y cartera. Exige rol OWNER o LENDER.',
+        'Los clientes con mora de hoy, de más días de atraso a menos y luego de más monto a menos, paginados (10 por defecto, máximo 50). `QUERY /lenders/me/stats` trae solo los 5 primeros. Mismos filtros de cobrador y cartera. Exige rol OWNER o LENDER. Solo en planes con estadísticas avanzadas (Pro, Team y la prueba): en Individual responde `403 PLAN_FEATURE_UNAVAILABLE` (D-151).',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
@@ -57,7 +57,7 @@ export const ApiListCollectorPerformance = () =>
     ApiOperation({
       summary: 'Ver el desempeño de todos los cobradores',
       description:
-        'Efectividad del período y mora de hoy de cada cobrador activo, del más antiguo al más nuevo, paginados (10 por defecto, máximo 50). Las métricas se calculan solo para los cobradores de la página. `QUERY /lenders/me/stats` trae solo los 5 primeros. Exige rol OWNER o LENDER.',
+        'Efectividad del período y mora de hoy de cada cobrador activo, del más antiguo al más nuevo, paginados (10 por defecto, máximo 50). Las métricas se calculan solo para los cobradores de la página. `QUERY /lenders/me/stats` trae solo los 5 primeros. Exige rol OWNER o LENDER. Solo en planes con estadísticas avanzadas (Pro, Team y la prueba): en Individual responde `403 PLAN_FEATURE_UNAVAILABLE` (D-151).',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({

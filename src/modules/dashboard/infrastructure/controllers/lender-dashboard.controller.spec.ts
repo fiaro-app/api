@@ -50,6 +50,7 @@ const STATS: LenderPeriodStats = {
 const STATS_EXPORT: LenderStatsExport = {
   stats: STATS,
   lenderName: 'Créditos Ana',
+  brand: { color: null, logo: null },
 };
 
 function fakeResponse() {
@@ -62,7 +63,7 @@ function fakeResponse() {
   return { res: res as unknown as Response, headers, endCalls: res.end };
 }
 
-function setup() {
+function setup(options: { advanced?: boolean } = {}) {
   const getLenderDashboardUseCase = {
     execute: vi.fn(() => Promise.resolve(DASHBOARD)),
   };
@@ -72,17 +73,20 @@ function setup() {
   const getLenderStatsExportUseCase = {
     execute: vi.fn(() => Promise.resolve(STATS_EXPORT)),
   };
+  const hasFeature = vi.fn(() => Promise.resolve(options.advanced ?? true));
   const controller = new LenderDashboardController(
     getLenderDashboardUseCase as unknown as GetLenderDashboardUseCase,
     getLenderStatsUseCase as unknown as GetLenderStatsUseCase,
     getLenderStatsExportUseCase as unknown as GetLenderStatsExportUseCase,
     new PassthroughReadCache(),
+    { isReadOnly: () => Promise.resolve(false), hasFeature: hasFeature },
   );
   return {
     controller,
     getLenderDashboardUseCase,
     getLenderStatsUseCase,
     getLenderStatsExportUseCase,
+    hasFeature,
   };
 }
 
@@ -191,6 +195,22 @@ describe('LenderDashboardController', () => {
         portfolioId: 'portfolio-1',
       });
       expect(response).toEqual(STATS);
+    });
+
+    it('sin estadísticas avanzadas en el plan, el comparativo se quita en lugar de dar error', async () => {
+      const { controller, getLenderStatsUseCase, hasFeature } = setup({
+        advanced: false,
+      });
+
+      await controller.getLenderStats(
+        { includePrevious: true },
+        scopeWith(['OWNER']),
+      );
+
+      expect(hasFeature).toHaveBeenCalledWith('lender-1', 'ADVANCED_STATS');
+      expect(getLenderStatsUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ includePrevious: false }),
+      );
     });
 
     it('pasa includePrevious al caso de uso', async () => {

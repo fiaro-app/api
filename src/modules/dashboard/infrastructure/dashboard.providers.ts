@@ -6,6 +6,8 @@ import { GetClientsRiskUseCase } from '@/modules/dashboard/application/use-cases
 import { GetLenderInsightsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-insights.use-case.js';
 import { INSIGHTS_READ_REPOSITORY } from '@/modules/dashboard/domain/repositories/insights-read.token.js';
 import { PrismaInsightsReadRepository } from '@/modules/dashboard/infrastructure/persistence/prisma-insights-read.repository.js';
+import { LENDER_LOGO_READER } from '@/modules/dashboard/application/ports/lender-logo-reader.token.js';
+import { StorageLenderLogoReader } from '@/modules/dashboard/infrastructure/storage/storage-lender-logo-reader.js';
 import { GetLenderDashboardUseCase } from '@/modules/dashboard/application/use-cases/get-lender-dashboard.use-case.js';
 import { GetLenderStatsExportUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats-export.use-case.js';
 import { GetLenderStatsUseCase } from '@/modules/dashboard/application/use-cases/get-lender-stats.use-case.js';
@@ -22,6 +24,7 @@ export const dashboardProviders: Provider[] = [
   GetClientsRiskUseCase,
   { provide: INSIGHTS_READ_REPOSITORY, useClass: PrismaInsightsReadRepository },
   GetLenderStatsUseCase,
+  { provide: LENDER_LOGO_READER, useClass: StorageLenderLogoReader },
   GetLenderStatsExportUseCase,
   ListTopArrearsUseCase,
   ListCollectorPerformanceUseCase,

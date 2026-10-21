@@ -25,6 +25,7 @@ import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
 import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
+import { RequiresPlanFeature } from '@/shared/infrastructure/http/requires-plan-feature.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 
@@ -49,6 +50,7 @@ export class LenderInsightsController {
    * @param query - El período, ya validado.
    * @param scope - El Lender con el que opera la sesión.
    */
+  @RequiresPlanFeature('ADVANCED_STATS')
   @QueryMethod('stats/insights')
   @HttpCode(HttpStatus.OK)
   @ApiGetLenderInsights()

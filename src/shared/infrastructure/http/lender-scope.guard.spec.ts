@@ -9,6 +9,7 @@ import type {
 } from '@/shared/application/ports/lender-scope-resolver.port.js';
 import { setAuthenticatedSession } from '@/shared/infrastructure/http/authenticated-request.js';
 import { getLenderScope } from '@/shared/infrastructure/http/lender-scope-request.js';
+import { REQUIRED_PLAN_FEATURE } from '@/shared/infrastructure/http/requires-plan-feature.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 
 const SCOPE: LenderScope = {
@@ -19,23 +20,36 @@ const SCOPE: LenderScope = {
 
 function setup(
   resolved: LenderScope | null,
-  options: { readOnly?: boolean; allowed?: boolean; method?: string } = {},
+  options: {
+    readOnly?: boolean;
+    allowed?: boolean;
+    method?: string;
+    feature?: string;
+    hasFeature?: boolean;
+  } = {},
 ) {
   const resolve = vi.fn<LenderScopeResolver['resolve']>(() =>
     Promise.resolve(resolved),
   );
   const isReadOnly = vi.fn(() => Promise.resolve(options.readOnly ?? false));
+  const hasFeature = vi.fn(() => Promise.resolve(options.hasFeature ?? true));
   const reflector = {
-    get: vi.fn(() => options.allowed),
+    get: vi.fn((key: string) =>
+      key === REQUIRED_PLAN_FEATURE ? options.feature : options.allowed,
+    ),
   } as unknown as Reflector;
-  const guard = new LenderScopeGuard({ resolve }, { isReadOnly }, reflector);
+  const guard = new LenderScopeGuard(
+    { resolve },
+    { isReadOnly, hasFeature },
+    reflector,
+  );
   const request = { method: options.method ?? 'GET' } as Request;
   const contextFor = () =>
     ({
       switchToHttp: () => ({ getRequest: () => request }),
       getHandler: () => () => undefined,
     }) as unknown as ExecutionContext;
-  return { guard, resolve, request, contextFor, isReadOnly };
+  return { guard, resolve, request, contextFor, isReadOnly, hasFeature };
 }
 
 describe('LenderScopeGuard', () => {
@@ -157,6 +171,60 @@ describe('LenderScopeGuard', () => {
       await expect(guard.canActivate(contextFor())).resolves.toBe(true);
 
       expect(isReadOnly).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('funciones por plan', () => {
+    const SESSION = {
+      id: 'session-1',
+      user: {
+        id: 'user-1',
+        phone: '+573001234567',
+        fullName: 'Ana Pérez',
+        mustChangePassword: false,
+      },
+    };
+
+    it('una ruta con función exigida responde 403 PLAN_FEATURE_UNAVAILABLE si el plan no la trae', async () => {
+      const { guard, request, contextFor, hasFeature } = setup(SCOPE, {
+        feature: 'ADVANCED_STATS',
+        hasFeature: false,
+      });
+      setAuthenticatedSession(request, SESSION);
+
+      const error: unknown = await guard
+        .canActivate(contextFor())
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect((error as ForbiddenException).getResponse()).toEqual({
+        code: 'PLAN_FEATURE_UNAVAILABLE',
+      });
+      expect(hasFeature).toHaveBeenCalledExactlyOnceWith(
+        'lender-1',
+        'ADVANCED_STATS',
+      );
+    });
+
+    it('deja pasar si el plan la trae, aunque sea una lectura', async () => {
+      const { guard, request, contextFor } = setup(SCOPE, {
+        feature: 'ADVANCED_STATS',
+        hasFeature: true,
+        method: 'QUERY',
+      });
+      setAuthenticatedSession(request, SESSION);
+
+      await expect(guard.canActivate(contextFor())).resolves.toBe(true);
+    });
+
+    it('una ruta sin función exigida no consulta el plan', async () => {
+      const { guard, request, contextFor, hasFeature } = setup(SCOPE, {
+        hasFeature: false,
+      });
+      setAuthenticatedSession(request, SESSION);
+
+      await expect(guard.canActivate(contextFor())).resolves.toBe(true);
+      expect(hasFeature).not.toHaveBeenCalled();
     });
   });
 });

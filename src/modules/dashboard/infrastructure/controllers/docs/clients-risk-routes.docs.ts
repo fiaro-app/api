@@ -10,7 +10,7 @@ export const ApiGetClientsRisk = () =>
     ApiOperation({
       summary: 'Ver el riesgo de varios clientes del negocio',
       description:
-        'Un puntaje de 0 a 100, su nivel (bajo, medio, alto, muy alto) y los factores que lo explican, calculados solo con el historial del cliente en este negocio: su mora de hoy, si tiene varios préstamos en mora y los que ya pagó (D-137). Hasta 50 clientes por consulta. Exige rol OWNER o LENDER.',
+        'Un puntaje de 0 a 100, su nivel (bajo, medio, alto, muy alto) y los factores que lo explican, calculados solo con el historial del cliente en este negocio: su mora de hoy, si tiene varios préstamos en mora y los que ya pagó (D-137). Hasta 50 clientes por consulta. Exige rol OWNER o LENDER. Solo en planes con estadísticas avanzadas (Pro, Team y la prueba): en Individual responde `403 PLAN_FEATURE_UNAVAILABLE` (D-151).',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({

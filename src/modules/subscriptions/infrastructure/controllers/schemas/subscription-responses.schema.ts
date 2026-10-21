@@ -1,5 +1,6 @@
 import { SubscriptionStatusSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
+import { PLAN_FEATURES } from '@/shared/domain/subscriptions/plan-features.js';
 import { SUBSCRIPTION_PLAN_CODES } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 
@@ -29,6 +30,10 @@ export const SubscriptionResponseSchema = z
     isReadOnly: z.boolean().meta({
       description:
         'Si el negocio está en solo lectura: pasó la gracia. Las escrituras responden `403 SUBSCRIPTION_READ_ONLY`, salvo registrar visitas y pagos y los cuadres (D-148).',
+    }),
+    features: z.array(z.enum(PLAN_FEATURES)).meta({
+      description:
+        'Funciones propias del plan: `ADVANCED_STATS` (PDF, comparativo y reportes de riesgo) y `EXCEL_IMPORT` (importar desde una hoja de cálculo). Individual no trae ninguna (D-151).',
     }),
     limits: z
       .object({
@@ -87,6 +92,7 @@ export function toSubscriptionResponse(
     daysRemaining: details.daysRemaining,
     graceDaysRemaining: details.graceDaysRemaining,
     isReadOnly: details.isReadOnly,
+    features: [...details.features],
     limits: { ...details.limits },
     usage: { ...details.usage },
     createdAt: details.createdAt.toISOString(),

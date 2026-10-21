@@ -6,6 +6,7 @@ import { CountAdminSeatsUseCase } from '@/modules/memberships/application/use-ca
 import { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 import { SubscriptionNotFoundError } from '@/modules/subscriptions/domain/errors/subscription-not-found.error.js';
+import { featuresOf } from '@/shared/domain/subscriptions/plan-features.js';
 import { computeSubscriptionState } from '@/shared/domain/subscriptions/subscription-status.js';
 import type { SubscriptionRepository } from '@/modules/subscriptions/domain/repositories/subscription.repository.js';
 import { SUBSCRIPTION_REPOSITORY } from '@/modules/subscriptions/domain/tokens/subscription-repository.token.js';
@@ -64,6 +65,7 @@ export class GetSubscriptionUseCase {
       daysRemaining: state.daysRemaining,
       graceDaysRemaining: state.graceDaysRemaining,
       isReadOnly: state.status === 'READ_ONLY',
+      features: featuresOf(subscription.planCode),
       limits: {
         maxActiveLenders: subscription.maxActiveLenders,
         maxCollectors: subscription.maxCollectors,

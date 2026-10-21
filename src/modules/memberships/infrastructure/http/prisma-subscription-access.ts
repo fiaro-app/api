@@ -1,4 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  planHasFeature,
+  type PlanFeature,
+} from '@/shared/domain/subscriptions/plan-features.js';
 import { computeSubscriptionState } from '@/shared/domain/subscriptions/subscription-status.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
@@ -21,23 +25,38 @@ export class PrismaSubscriptionAccess implements SubscriptionAccess {
   ) {}
 
   async isReadOnly(lenderId: string): Promise<boolean> {
-    const lender = await this.prisma.lender.findUnique({
-      where: { id: lenderId },
-      select: {
-        tenant: {
-          select: { subscription: { select: { currentPeriodEndsAt: true } } },
-        },
-      },
-    });
-    const subscription = lender?.tenant.subscription;
-    if (!subscription) {
-      return false;
-    }
+    const subscription = await this.subscriptionOf(lenderId);
     return (
+      subscription !== null &&
       computeSubscriptionState(
         subscription.currentPeriodEndsAt,
         this.clock.now(),
       ).status === 'READ_ONLY'
     );
+  }
+
+  async hasFeature(lenderId: string, feature: PlanFeature): Promise<boolean> {
+    const subscription = await this.subscriptionOf(lenderId);
+    return (
+      subscription === null || planHasFeature(subscription.planCode, feature)
+    );
+  }
+
+  private async subscriptionOf(
+    lenderId: string,
+  ): Promise<{ planCode: string; currentPeriodEndsAt: Date } | null> {
+    const lender = await this.prisma.lender.findUnique({
+      where: { id: lenderId },
+      select: {
+        tenant: {
+          select: {
+            subscription: {
+              select: { planCode: true, currentPeriodEndsAt: true },
+            },
+          },
+        },
+      },
+    });
+    return lender?.tenant.subscription ?? null;
   }
 }

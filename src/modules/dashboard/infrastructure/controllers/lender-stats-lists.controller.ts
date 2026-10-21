@@ -31,6 +31,7 @@ import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
 import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
+import { RequiresPlanFeature } from '@/shared/infrastructure/http/requires-plan-feature.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 
@@ -55,6 +56,7 @@ export class LenderStatsListsController {
    * @param query - Los filtros y la página, ya validados.
    * @param scope - El Lender con el que opera la sesión.
    */
+  @RequiresPlanFeature('ADVANCED_STATS')
   @QueryMethod('top-arrears')
   @HttpCode(HttpStatus.OK)
   @ApiListTopArrears()
@@ -83,6 +85,7 @@ export class LenderStatsListsController {
    * @param query - El período, la cartera y la página, ya validados.
    * @param scope - El Lender con el que opera la sesión.
    */
+  @RequiresPlanFeature('ADVANCED_STATS')
   @QueryMethod('collector-performance')
   @HttpCode(HttpStatus.OK)
   @ApiListCollectorPerformance()

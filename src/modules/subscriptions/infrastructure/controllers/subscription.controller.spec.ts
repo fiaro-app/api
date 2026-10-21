@@ -15,6 +15,7 @@ const DETAILS: SubscriptionDetails = {
   daysRemaining: 0,
   graceDaysRemaining: 6,
   isReadOnly: false,
+  features: ['ADVANCED_STATS', 'EXCEL_IMPORT'],
   limits: {
     maxActiveLenders: 1,
     maxCollectors: 5,
