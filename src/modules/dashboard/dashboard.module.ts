@@ -6,6 +6,7 @@ import { LenderClientsRiskController } from '@/modules/dashboard/infrastructure/
 import { LenderInsightsController } from '@/modules/dashboard/infrastructure/controllers/lender-insights.controller.js';
 import { LenderStatsListsController } from '@/modules/dashboard/infrastructure/controllers/lender-stats-lists.controller.js';
 import { LenderCollectorsTodayController } from '@/modules/dashboard/infrastructure/controllers/lender-collectors-today.controller.js';
+import { LenderConsolidatedStatsController } from '@/modules/dashboard/infrastructure/controllers/lender-consolidated-stats.controller.js';
 import { LenderDashboardController } from '@/modules/dashboard/infrastructure/controllers/lender-dashboard.controller.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
@@ -43,6 +44,7 @@ import { SettlementsModule } from '@/modules/settlements/settlements.module.js';
     LenderCollectorsTodayController,
     LenderInsightsController,
     LenderClientsRiskController,
+    LenderConsolidatedStatsController,
   ],
   providers: dashboardProviders,
 })

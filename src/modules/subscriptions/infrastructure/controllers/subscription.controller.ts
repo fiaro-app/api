@@ -3,10 +3,13 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { z } from 'zod';
+import type { Env } from '@/config/env.js';
+import { ENV } from '@/config/env.token.js';
 import { GetSubscriptionUseCase } from '@/modules/subscriptions/application/use-cases/get-subscription.use-case.js';
 import { ApiGetSubscription } from '@/modules/subscriptions/infrastructure/controllers/docs/subscription-routes.docs.js';
 import {
@@ -26,7 +29,10 @@ import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 @Controller('subscription')
 @UseGuards(LenderScopeGuard)
 export class SubscriptionController {
-  constructor(private readonly getSubscription: GetSubscriptionUseCase) {}
+  constructor(
+    private readonly getSubscription: GetSubscriptionUseCase,
+    @Inject(ENV) private readonly env: Env,
+  ) {}
 
   /** @param scope - El Lender con el que opera la sesión. */
   @Get()
@@ -35,8 +41,12 @@ export class SubscriptionController {
   async get(
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof SubscriptionResponseSchema>> {
+    const details = await this.getSubscription.execute(scope.lenderId);
     return toSubscriptionResponse(
-      await this.getSubscription.execute(scope.lenderId),
+      details,
+      details.features.includes('PRIORITY_SUPPORT')
+        ? (this.env.subscription.prioritySupportUrl ?? null)
+        : null,
     );
   }
 }

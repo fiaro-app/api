@@ -15,6 +15,9 @@ scripts:
         pm.expect(['TRIAL', 'INDIVIDUAL', 'PRO', 'TEAM']).to.include(body.planCode);
         pm.expect(['ACTIVE', 'GRACE_PERIOD', 'READ_ONLY']).to.include(body.status);
       });
+      pm.test('trae el enlace del soporte prioritario (null si el plan no lo trae)', () => {
+        pm.expect(body).to.have.property('prioritySupportUrl');
+      });
       pm.test('trae los límites y el uso', () => {
         pm.expect(body.limits.maxCollectors).to.be.a('number');
         pm.expect(body.limits.maxAdmins).to.be.a('number');

@@ -15,6 +15,7 @@ import { GetMembershipEntryUseCase } from '@/modules/memberships/application/use
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { ListActiveMembershipsByRolesUseCase } from '@/modules/memberships/application/use-cases/list-active-memberships-by-roles.use-case.js';
+import { ListUserActiveMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-user-active-memberships.use-case.js';
 import { ListMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-memberships.use-case.js';
 import { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
@@ -49,6 +50,7 @@ export const membershipsProviders: Provider[] = [
   DeleteMembershipUseCase,
   ChangeMembershipRolesUseCase,
   ListActiveMembershipsByRolesUseCase,
+  ListUserActiveMembershipsUseCase,
   ListMembershipsUseCase,
   ResetMembershipPasswordUseCase,
   CountActiveMembershipsByPortfolioUseCase,
@@ -76,6 +78,7 @@ export const membershipsExports = [
   GetMembershipUseCase,
   DeactivateMembershipUseCase,
   ListActiveMembershipsByRolesUseCase,
+  ListUserActiveMembershipsUseCase,
   ListMembershipsUseCase,
   CountActiveMembershipsByPortfolioUseCase,
   CountCollectorSeatsUseCase,

@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Cartera, cartera en riesgo, mora, lo esperado y lo cobrado del período, por cada negocio que la persona administra dentro del mismo Tenant, y el total (D-155). Solo en Team y la prueba: Individual y Pro responden 403 PLAN_FEATURE_UNAVAILABLE. Exige OWNER o LENDER. Método QUERY."
+url: "{{baseUrl}}/lenders/me/consolidated-stats"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200 (la cuenta nueva está en la prueba, que trae todo)', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae el negocio de la carpeta y un total que coincide con él', () => {
+        pm.expect(body.lenders).to.have.lengthOf(1);
+        pm.expect(body.totals.totalPortfolio).to.eql(body.lenders[0].totalPortfolio);
+        pm.expect(body.totals.collectedAmount).to.eql(body.lenders[0].collectedAmount);
+      });
+    language: text/javascript
+order: 24000

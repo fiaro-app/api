@@ -74,8 +74,10 @@ export function buildSubscriptionConfig(env: {
   readonly WOMPI_EVENTS_SECRET?: string | undefined;
   readonly WOMPI_CHECKOUT_URL: string;
   readonly WOMPI_REDIRECT_URL?: string | undefined;
+  readonly PRIORITY_SUPPORT_URL?: string | undefined;
 }) {
   return {
+    prioritySupportUrl: env.PRIORITY_SUPPORT_URL,
     trialDays: env.SUBSCRIPTION_TRIAL_DAYS,
     trialMaxActiveLenders: env.SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS,
     trialMaxCollectors: env.SUBSCRIPTION_TRIAL_MAX_COLLECTORS,
