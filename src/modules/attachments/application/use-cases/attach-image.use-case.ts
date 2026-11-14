@@ -30,7 +30,7 @@ export class AttachImageUseCase {
    * @throws {@link InvalidAttachmentError} Si la llave no es de este dueño o el archivo no es una foto válida.
    */
   async execute(input: AttachImageInput): Promise<void> {
-    await this.owners.assertAccess(input, true);
+    await this.owners.assertAccess(input);
     await verifyAttachment(
       this.storage,
       attachmentPrefix(input.kind, input.actor.lenderId, input.ownerId),

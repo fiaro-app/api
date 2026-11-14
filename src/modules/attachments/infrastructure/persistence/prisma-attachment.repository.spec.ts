@@ -23,7 +23,7 @@ function setup(existing: { key: string } | null = null) {
 const INPUT = {
   id: 'a1',
   lenderId: 'l1',
-  kind: 'CLIENT_PHOTO' as const,
+  kind: 'PAYMENT_PROOF' as const,
   ownerId: 'c1',
   key: 'nueva.jpg',
 };
@@ -31,9 +31,9 @@ const INPUT = {
 describe('PrismaAttachmentRepository', () => {
   it('findKey devuelve la llave o null', async () => {
     expect(
-      await setup({ key: 'k.jpg' }).repository.findKey('CLIENT_PHOTO', 'c1'),
+      await setup({ key: 'k.jpg' }).repository.findKey('PAYMENT_PROOF', 'c1'),
     ).toBe('k.jpg');
-    expect(await setup().repository.findKey('CLIENT_PHOTO', 'c1')).toBeNull();
+    expect(await setup().repository.findKey('PAYMENT_PROOF', 'c1')).toBeNull();
   });
 
   it('replace guarda la nueva y devuelve la anterior', async () => {
@@ -43,7 +43,7 @@ describe('PrismaAttachmentRepository', () => {
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: { key: 'nueva.jpg' },
-        where: { kind_ownerId: { kind: 'CLIENT_PHOTO', ownerId: 'c1' } },
+        where: { kind_ownerId: { kind: 'PAYMENT_PROOF', ownerId: 'c1' } },
       }),
     );
   });

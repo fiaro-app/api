@@ -338,7 +338,7 @@
     },
     "P921A": {
       "title": "No tienes permiso sobre esta foto.",
-      "hint": "Un cobrador solo toca los comprobantes de sus propios cobros; la foto de un cliente la cambia quien administra."
+      "hint": "Un cobrador solo toca los comprobantes de sus propios cobros; quien administra puede tocar todos."
     },
     "P930V": {
       "title": "Los documentos legales cambiaron.",

@@ -14,31 +14,9 @@ import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-co
 type Operation = 'upload-url' | 'attach' | 'view' | 'remove';
 
 const COPY: Record<
-  'photo' | 'proof',
+  'proof',
   Record<Operation, { summary: string; description: string }>
 > = {
-  photo: {
-    'upload-url': {
-      summary: 'Pedir la URL firmada para subir la foto de un cliente',
-      description:
-        'El archivo (PNG o JPEG de hasta 5 MB) va directo del dispositivo al bucket con un PUT; la URL firma el tipo y el peso. Después se guarda con `POST /clients/:id/photo`. Solo `OWNER` o `LENDER`.',
-    },
-    attach: {
-      summary: 'Guardar la foto de un cliente ya subida',
-      description:
-        'Verifica que el archivo exista, sea de este cliente y sea de verdad un PNG o JPEG; reemplaza la anterior. Solo `OWNER` o `LENDER`.',
-    },
-    view: {
-      summary: 'Ver la foto de un cliente',
-      description:
-        'Devuelve una URL firmada que vence en minutos (la foto nunca es pública), o `url: null` si no tiene. Quien administra, o el cobrador que tiene o tuvo a ese cliente asignado.',
-    },
-    remove: {
-      summary: 'Quitar la foto de un cliente',
-      description:
-        'La borra del bucket. Repetirlo no falla. Solo `OWNER` o `LENDER`.',
-    },
-  },
   proof: {
     'upload-url': {
       summary: 'Pedir la URL firmada para subir el comprobante de un pago',
@@ -64,15 +42,12 @@ const COPY: Record<
 };
 
 /**
- * Documenta una ruta de fotos privadas.
+ * Documenta una ruta de imágenes privadas.
  *
- * @param subject - `photo` (cliente) o `proof` (pago).
+ * @param subject - `proof` (comprobante de un pago).
  * @param operation - Qué hace la ruta.
  */
-export const ApiAttachmentRoute = (
-  subject: 'photo' | 'proof',
-  operation: Operation,
-) => {
+export const ApiAttachmentRoute = (subject: 'proof', operation: Operation) => {
   const ok =
     operation === 'upload-url'
       ? {
@@ -104,8 +79,7 @@ export const ApiAttachmentRoute = (
     }),
     ApiResponse({
       status: 404,
-      description:
-        'El cliente o el pago no existe para este prestamista (`NOT_FOUND`).',
+      description: 'El pago no existe para este prestamista (`NOT_FOUND`).',
       standardSchema: AttachmentNotFoundSchema,
     }),
   );

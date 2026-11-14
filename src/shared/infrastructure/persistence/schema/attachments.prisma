@@ -1,6 +1,5 @@
-/// A qué pertenece una foto privada: la foto de un cliente o el comprobante de un pago (D-145).
+/// A qué pertenece una imagen privada: hoy solo el comprobante de un pago (D-145). La foto de un cliente se quitó (D-153).
 enum AttachmentKind {
-  CLIENT_PHOTO
   PAYMENT_PROOF
 }
 

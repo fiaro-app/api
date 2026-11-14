@@ -28,7 +28,7 @@ export class GetAttachmentUrlUseCase {
    * @throws {@link AttachmentForbiddenError} Si no tiene permiso sobre ese dueño.
    */
   async execute(target: AttachmentTarget): Promise<AttachmentView | null> {
-    await this.owners.assertAccess(target, false);
+    await this.owners.assertAccess(target);
     const key = await this.attachments.findKey(target.kind, target.ownerId);
     if (key === null) {
       return null;
