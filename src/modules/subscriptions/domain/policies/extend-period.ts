@@ -6,7 +6,7 @@
  * @param months - Meses a sumar.
  */
 export function addMonths(from: Date, months: number): Date {
-  const result = new Date(from.getTime());
+  const result = new Date(from);
   const day = result.getUTCDate();
   result.setUTCDate(1);
   result.setUTCMonth(result.getUTCMonth() + months);
@@ -41,7 +41,6 @@ export function extendPeriod(
   now: Date,
   months: number,
 ): Date {
-  const base =
-    currentPeriodEndsAt.getTime() > now.getTime() ? currentPeriodEndsAt : now;
+  const base = currentPeriodEndsAt > now ? currentPeriodEndsAt : now;
   return addMonths(base, months);
 }

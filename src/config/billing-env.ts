@@ -28,10 +28,10 @@ export const BILLING_ENV_SHAPE = {
  */
 export function checkWompiKeys(
   env: {
-    readonly WOMPI_PUBLIC_KEY?: string | undefined;
-    readonly WOMPI_INTEGRITY_SECRET?: string | undefined;
-    readonly WOMPI_EVENTS_SECRET?: string | undefined;
-    readonly WOMPI_REDIRECT_URL?: string | undefined;
+    readonly WOMPI_PUBLIC_KEY?: string;
+    readonly WOMPI_INTEGRITY_SECRET?: string;
+    readonly WOMPI_EVENTS_SECRET?: string;
+    readonly WOMPI_REDIRECT_URL?: string;
   },
   ctx: z.RefinementCtx,
 ): void {
