@@ -12,8 +12,14 @@ import { ListUserActiveMembershipsUseCase } from '@/modules/memberships/applicat
 /** Roles con los que se ve el resumen de un negocio (como `LenderDashboardController`). */
 const VIEWER_ROLES: readonly string[] = ['OWNER', 'LENDER'];
 
-const ratio = (part: number, whole: number): number | null =>
-  whole === 0 ? null : part / whole;
+/**
+ * @param part - La parte.
+ * @param whole - El total; con cero no hay proporción.
+ * @returns `part / whole`, o `null` si `whole` es cero.
+ */
+function ratio(part: number, whole: number): number | null {
+  return whole === 0 ? null : part / whole;
+}
 
 /**
  * Las cifras de cartera y cobro de todos los negocios que la persona administra dentro del mismo
