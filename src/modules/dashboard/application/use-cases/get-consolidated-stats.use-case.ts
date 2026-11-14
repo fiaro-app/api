@@ -46,31 +46,33 @@ export class GetConsolidatedStatsUseCase {
         this.lenders.execute(membership.lenderId),
       ),
     );
-    const sameTenant = candidates.filter(
-      (lender) => lender.tenantId === current.tenantId,
+    const others = candidates.filter(
+      (lender) =>
+        lender.id !== current.id && lender.tenantId === current.tenantId,
     );
-    const results = await Promise.all(
-      sameTenant.map(async (lender) => ({
-        lender,
-        stats: await this.stats.execute({
+    const statsOf = (lender: { readonly id: string }) =>
+      this.stats.execute({
+        lenderId: lender.id,
+        from: input.from,
+        to: input.to,
+      });
+    const [currentStats, otherRows] = await Promise.all([
+      statsOf(current),
+      Promise.all(
+        others.map(async (lender) => ({
           lenderId: lender.id,
-          from: input.from,
-          to: input.to,
-        }),
-      })),
-    );
-    const rows: ConsolidatedLender[] = results.map(({ lender, stats }) => ({
-      lenderId: lender.id,
-      name: lender.name,
-      ...figures(stats),
-    }));
-    const period = results[0]?.stats ?? {
-      from: input.from ?? '',
-      to: input.to ?? '',
-    };
+          name: lender.name,
+          ...figures(await statsOf(lender)),
+        })),
+      ),
+    ]);
+    const rows: ConsolidatedLender[] = [
+      { lenderId: current.id, name: current.name, ...figures(currentStats) },
+      ...otherRows,
+    ];
     return {
-      from: period.from,
-      to: period.to,
+      from: currentStats.from,
+      to: currentStats.to,
       lenders: rows,
       totals: sum(rows),
     };
