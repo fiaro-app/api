@@ -3,7 +3,6 @@ import type { AttachImageUseCase } from '@/modules/attachments/application/use-c
 import type { GetAttachmentUrlUseCase } from '@/modules/attachments/application/use-cases/get-attachment-url.use-case.js';
 import type { RemoveAttachmentUseCase } from '@/modules/attachments/application/use-cases/remove-attachment.use-case.js';
 import type { RequestAttachmentUploadUseCase } from '@/modules/attachments/application/use-cases/request-attachment-upload.use-case.js';
-import { ClientPhotoController } from '@/modules/attachments/infrastructure/controllers/client-photo.controller.js';
 import { PaymentProofController } from '@/modules/attachments/infrastructure/controllers/payment-proof.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -37,7 +36,6 @@ function setup(viewResult: { url: string; expiresAt: Date } | null) {
 }
 
 describe.each([
-  ['ClientPhotoController', ClientPhotoController, 'CLIENT_PHOTO'],
   ['PaymentProofController', PaymentProofController, 'PAYMENT_PROOF'],
 ] as const)('%s', (_name, Controller, kind) => {
   it('pide la URL firmada de subida del dueño y devuelve la fecha en ISO', async () => {

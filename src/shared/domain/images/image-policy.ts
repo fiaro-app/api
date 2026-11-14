@@ -38,7 +38,7 @@ export function detectImageType(head: Uint8Array): ImageContentType | null {
 
 /**
  * @param key - La llave de un objeto en el bucket.
- * @param prefix - La carpeta y los ids que la llave debe llevar antes del nombre (`client-photos/<lender>/<client>`).
+ * @param prefix - La carpeta y los ids que la llave debe llevar antes del nombre (`payment-proofs/<lender>/<payment>`).
  * @returns El tipo que dice la llave si es de la forma `<prefix>/<uuid>.<png|jpg>`, o `null` si no (otra carpeta, otro
  * dueño, un nombre que nadie le dio o `..` para salirse).
  */

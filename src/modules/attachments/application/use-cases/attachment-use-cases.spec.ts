@@ -10,11 +10,11 @@ import type { ObjectStoragePort } from '@/shared/application/ports/object-storag
 
 const ID = '019dc2d6-0000-7000-8000-000000000001';
 const TARGET = {
-  kind: 'CLIENT_PHOTO' as const,
-  ownerId: 'client-1',
+  kind: 'PAYMENT_PROOF' as const,
+  ownerId: 'payment-1',
   actor: { lenderId: 'lender-1', membershipId: 'm-1', roles: ['LENDER'] },
 };
-const KEY = `client-photos/lender-1/client-1/${ID}.jpg`;
+const KEY = `payment-proofs/lender-1/payment-1/${ID}.jpg`;
 
 function setup(options: { allowed?: boolean; previous?: string | null } = {}) {
   const assertAccess = vi.fn(() =>
@@ -91,7 +91,7 @@ describe('RequestAttachmentUploadUseCase', () => {
 describe('AttachImageUseCase', () => {
   it('guarda la foto y borra la anterior del bucket', async () => {
     const { owners, attachments, storage, repo, bucket } = setup({
-      previous: 'client-photos/lender-1/client-1/vieja.jpg',
+      previous: 'payment-proofs/lender-1/payment-1/vieja.jpg',
     });
     const useCase = new AttachImageUseCase(owners, attachments, storage, {
       next: () => 'attachment-1',
@@ -102,12 +102,12 @@ describe('AttachImageUseCase', () => {
     expect(repo.replace).toHaveBeenCalledWith({
       id: 'attachment-1',
       lenderId: 'lender-1',
-      kind: 'CLIENT_PHOTO',
-      ownerId: 'client-1',
+      kind: 'PAYMENT_PROOF',
+      ownerId: 'payment-1',
       key: KEY,
     });
     expect(bucket.deleteObject).toHaveBeenCalledWith(
-      'client-photos/lender-1/client-1/vieja.jpg',
+      'payment-proofs/lender-1/payment-1/vieja.jpg',
     );
   });
 
@@ -137,7 +137,7 @@ describe('AttachImageUseCase', () => {
     await expect(
       useCase.execute({
         ...TARGET,
-        key: `client-photos/lender-1/otro/${ID}.jpg`,
+        key: `payment-proofs/lender-1/otro/${ID}.jpg`,
       }),
     ).rejects.toThrow();
     expect(repo.replace).not.toHaveBeenCalled();

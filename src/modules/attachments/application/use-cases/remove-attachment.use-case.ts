@@ -21,7 +21,7 @@ export class RemoveAttachmentUseCase {
    * @throws {@link AttachmentForbiddenError} Si no tiene permiso sobre ese dueño.
    */
   async execute(target: AttachmentTarget): Promise<void> {
-    await this.owners.assertAccess(target, true);
+    await this.owners.assertAccess(target);
     const key = await this.attachments.remove(target.kind, target.ownerId);
     if (key !== null) {
       await this.storage.deleteObject(key);
