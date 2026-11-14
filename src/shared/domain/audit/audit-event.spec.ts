@@ -29,6 +29,7 @@ describe('AUDIT_ACTIONS', () => {
       'auth.account.deactivated',
       'billing.checkout.created',
       'billing.payment.approved',
+      'billing.payment.refunded',
       'billing.payment.not_approved',
       'imports.batch.completed',
       'billing.webhook.rejected',

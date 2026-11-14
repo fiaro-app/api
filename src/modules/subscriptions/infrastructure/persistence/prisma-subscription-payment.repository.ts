@@ -1,12 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import type { SubscriptionPayment } from '@/modules/subscriptions/domain/entities/subscription-payment.entity.js';
-import { extendPeriod } from '@/modules/subscriptions/domain/policies/extend-period.js';
+import type {
+  SubscriptionPayment,
+  SubscriptionPaymentStatus,
+} from '@/modules/subscriptions/domain/entities/subscription-payment.entity.js';
+import {
+  extendPeriod,
+  retractPeriod,
+} from '@/modules/subscriptions/domain/policies/extend-period.js';
 import {
   PLAN_CATALOG,
   type PurchasablePlanCode,
 } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
 import type {
+  PaymentRefundInput,
   PaymentResolution,
+  PaymentWithTenant,
   ResolveOutcome,
   SubscriptionPaymentRepository,
 } from '@/modules/subscriptions/domain/repositories/subscription-payment.repository.js';
@@ -123,5 +131,67 @@ export class PrismaSubscriptionPaymentRepository implements SubscriptionPaymentR
       },
     });
     return resolved.count === 0 ? 'ALREADY_RESOLVED' : 'APPLIED';
+  }
+
+  /**
+   * El pago pasa a `REFUNDED` solo si seguía `APPROVED` y, en la misma transacción, la suscripción
+   * pierde los meses que ese pago había sumado (la fila se bloquea igual que al aprobar).
+   *
+   * @param input - Quién, cuándo, cómo y por qué.
+   */
+  async refund(input: PaymentRefundInput): Promise<ResolveOutcome> {
+    return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.subscriptionPayment.updateMany({
+        where: { reference: input.reference, status: 'APPROVED' },
+        data: {
+          status: 'REFUNDED',
+          refundedAt: input.refundedAt,
+          refundedByUserId: input.refundedByUserId,
+          refundMode: input.mode,
+          refundReference: input.refundReference,
+          refundReason: input.reason,
+        },
+      });
+      if (updated.count === 0) {
+        return 'ALREADY_RESOLVED';
+      }
+      const payment = await tx.subscriptionPayment.findUniqueOrThrow({
+        where: { reference: input.reference },
+      });
+      await tx.$queryRaw`SELECT 1 FROM subscriptions WHERE tenant_id = ${payment.tenantId}::uuid FOR UPDATE`;
+      const subscription = await tx.subscription.findUniqueOrThrow({
+        where: { tenantId: payment.tenantId },
+      });
+      await tx.subscription.update({
+        where: { tenantId: payment.tenantId },
+        data: {
+          currentPeriodEndsAt: retractPeriod(
+            subscription.currentPeriodEndsAt,
+            payment.months,
+          ),
+        },
+      });
+      return 'APPLIED';
+    });
+  }
+
+  /**
+   * @param limit - Cuántos como máximo.
+   * @param status - Solo los que están en este estado; ausente para todos.
+   */
+  async listAll(
+    limit: number,
+    status?: SubscriptionPaymentStatus,
+  ): Promise<readonly PaymentWithTenant[]> {
+    const rows = await this.prisma.subscriptionPayment.findMany({
+      where: status === undefined ? {} : { status },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { tenant: { select: { name: true } } },
+    });
+    return rows.map((row) => ({
+      payment: toSubscriptionPayment(row),
+      tenantName: row.tenant.name,
+    }));
   }
 }

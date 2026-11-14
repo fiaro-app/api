@@ -70,6 +70,14 @@ const splitList = (value: string): string[] =>
 export const commaSeparated = (item: z.ZodType<string, string>) =>
   z.string().prefault('').transform(splitList).pipe(z.array(item));
 
+/** Celular en formato E.164 (`+573001234567`). */
+export const PhoneSchema = z
+  .string()
+  .regex(
+    /^\+[1-9]\d{7,14}$/,
+    'debe ser un celular en formato E.164, por ejemplo +573001234567',
+  );
+
 /** URL de conexión a PostgreSQL (`postgresql://` o `postgres://`). */
 export const DatabaseUrlSchema = z.url({
   protocol: /^postgres(?:ql)?$/,

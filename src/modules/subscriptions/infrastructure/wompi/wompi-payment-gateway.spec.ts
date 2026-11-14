@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '@/config/env.js';
 import { WompiPaymentGateway } from '@/modules/subscriptions/infrastructure/wompi/wompi-payment-gateway.js';
 
@@ -215,5 +215,54 @@ describe('WompiPaymentGateway.parseEvent', () => {
     expect(gatewayWith().parseEvent(body, undefined)).toEqual({
       kind: 'invalid',
     });
+  });
+});
+
+describe('anular una transacción (D-156)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const withKey = () =>
+    gatewayWith({
+      privateKey: 'prv_test_key',
+      apiUrl: 'https://sandbox.wompi.co/v1',
+    });
+
+  it('solo puede anular si hay llave privada', () => {
+    expect(withKey().canVoid()).toBe(true);
+    expect(gatewayWith().canVoid()).toBe(false);
+  });
+
+  it('pide la anulación a Wompi con la llave privada y acepta una respuesta 2xx', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response('{}', { status: 201 })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await withKey().voidTransaction('tx/1')).toBe('ACCEPTED');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://sandbox.wompi.co/v1/transactions/tx%2F1/void',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer prv_test_key' },
+      }),
+    );
+  });
+
+  it('rechaza si Wompi contesta con error, si no contesta o si no hay llave', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('{}', { status: 422 }))),
+    );
+    expect(await withKey().voidTransaction('tx-1')).toBe('REJECTED');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('timeout'))),
+    );
+    expect(await withKey().voidTransaction('tx-1')).toBe('REJECTED');
+
+    expect(await gatewayWith().voidTransaction('tx-1')).toBe('REJECTED');
   });
 });

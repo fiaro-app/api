@@ -27,6 +27,7 @@ describe('loadEnv', () => {
         fromAddress: undefined,
       },
       leads: { notifyEmail: undefined },
+      platformAdminPhones: [],
       subscription: {
         trialDays: 30,
         trialMaxActiveLenders: 1,
@@ -38,6 +39,8 @@ describe('loadEnv', () => {
           eventsSecret: undefined,
           checkoutUrl: 'https://checkout.wompi.co/p/',
           redirectUrl: undefined,
+          privateKey: undefined,
+          apiUrl: 'https://production.wompi.co/v1',
         },
       },
       maintenanceMode: false,
@@ -119,8 +122,11 @@ describe('loadEnv', () => {
           eventsSecret: undefined,
           checkoutUrl: 'https://checkout.wompi.co/p/',
           redirectUrl: undefined,
+          privateKey: undefined,
+          apiUrl: 'https://production.wompi.co/v1',
         },
       },
+      platformAdminPhones: [],
       maintenanceMode: true,
       mobile: {
         minimumSupportedVersion: PRODUCTION_ENV.MOBILE_MIN_SUPPORTED_VERSION,
@@ -212,6 +218,17 @@ describe('loadEnv', () => {
       WOMPI_EVENTS_SECRET: 'test_events_abc',
       WOMPI_REDIRECT_URL: 'https://app.fiaro.co/plan',
     };
+
+    it('los celulares de quien opera la plataforma salen de PLATFORM_ADMIN_PHONES, sin repetidos ni espacios', () => {
+      expect(
+        load({
+          PLATFORM_ADMIN_PHONES: '+573001112233, +573001112233,+573009998877',
+        }).platformAdminPhones,
+      ).toEqual(['+573001112233', '+573009998877']);
+      expect(() => load({ PLATFORM_ADMIN_PHONES: '3001112233' })).toThrow(
+        /E\.164/,
+      );
+    });
 
     it('queda apagado sin llaves', () => {
       expect(load().subscription.wompi.enabled).toBe(false);

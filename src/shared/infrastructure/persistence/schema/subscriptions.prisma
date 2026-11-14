@@ -23,13 +23,14 @@ model Subscription {
 }
 
 /// PENDING: la orden se creó y Wompi aún no avisa. APPROVED: el pago se aplicó a la suscripción.
-/// DECLINED, VOIDED, ERROR: Wompi no lo aprobó o lo anuló.
+/// DECLINED, VOIDED, ERROR: Wompi no lo aprobó o lo anuló. REFUNDED: estaba aprobado y se devolvió (D-156).
 enum SubscriptionPaymentStatus {
   PENDING
   APPROVED
   DECLINED
   VOIDED
   ERROR
+  REFUNDED
 }
 
 /// Una orden de pago de la suscripción (D-149). El monto sale del precio del plan en el servidor,
@@ -50,6 +51,12 @@ model SubscriptionPayment {
   periodEndsAt       DateTime?                 @map("period_ends_at") @db.Timestamptz(3)
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
   resolvedAt         DateTime?                 @map("resolved_at") @db.Timestamptz(3)
+  /// Reembolso (D-156): cuándo, quién lo registró, cómo (`WOMPI_VOID` o `MANUAL`), la referencia de Wompi o del banco y el motivo.
+  refundedAt         DateTime?                 @map("refunded_at") @db.Timestamptz(3)
+  refundedByUserId   String?                   @map("refunded_by_user_id") @db.Uuid
+  refundMode         String?                   @map("refund_mode")
+  refundReference    String?                   @map("refund_reference")
+  refundReason       String?                   @map("refund_reason")
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 

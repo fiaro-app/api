@@ -13,7 +13,7 @@ scripts:
       const body = pm.response.json();
       pm.test('trae la lista de órdenes', () => {
         pm.expect(body.items).to.be.an('array');
-        body.items.forEach((item) => pm.expect(['PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR']).to.include(item.status));
+        body.items.forEach((item) => pm.expect(['PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR', 'REFUNDED']).to.include(item.status));
       });
     language: text/javascript
 order: 6000

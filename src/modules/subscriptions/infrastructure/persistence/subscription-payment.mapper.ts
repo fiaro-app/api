@@ -1,4 +1,7 @@
-import { SubscriptionPayment } from '@/modules/subscriptions/domain/entities/subscription-payment.entity.js';
+import {
+  SubscriptionPayment,
+  type RefundMode,
+} from '@/modules/subscriptions/domain/entities/subscription-payment.entity.js';
 import type { PurchasablePlanCode } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
 import type { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
 import type { SubscriptionPaymentModel } from '@/shared/infrastructure/persistence/generated/models.js';
@@ -7,7 +10,17 @@ import type { SubscriptionPaymentModel } from '@/shared/infrastructure/persisten
 export function toSubscriptionPaymentCreateInput(
   payment: SubscriptionPayment,
 ): Prisma.SubscriptionPaymentUncheckedCreateInput {
-  return { ...payment.props };
+  const { refund, ...props } = payment.props;
+  return {
+    ...props,
+    ...(refund && {
+      refundedAt: refund.refundedAt,
+      refundedByUserId: refund.refundedByUserId,
+      refundMode: refund.mode,
+      refundReference: refund.reference,
+      refundReason: refund.reason,
+    }),
+  };
 }
 
 /** @param row - Fila de `subscription_payments`. */
@@ -29,5 +42,18 @@ export function toSubscriptionPayment(
     periodEndsAt: row.periodEndsAt,
     createdAt: row.createdAt,
     resolvedAt: row.resolvedAt,
+    refund:
+      row.refundedAt &&
+      row.refundedByUserId &&
+      row.refundMode &&
+      row.refundReason
+        ? {
+            refundedAt: row.refundedAt,
+            refundedByUserId: row.refundedByUserId,
+            mode: row.refundMode as RefundMode,
+            reference: row.refundReference,
+            reason: row.refundReason,
+          }
+        : null,
   });
 }

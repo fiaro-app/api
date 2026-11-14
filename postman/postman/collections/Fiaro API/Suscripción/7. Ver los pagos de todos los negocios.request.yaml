@@ -1,0 +1,17 @@
+$kind: http-request
+description: "Los últimos 50 pagos del plan de todos los negocios, con el nombre del negocio (D-156). Solo quien opera la plataforma: su celular debe estar en PLATFORM_ADMIN_PHONES del servidor. La cuenta de esta carpeta es una dueña cualquiera, así que responde 403; para ver la lista, inicia sesión con una cuenta de PLATFORM_ADMIN_PHONES. Filtro opcional: ?status=APPROVED."
+url: "{{baseUrl}}/admin/subscription-payments"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('una dueña cualquiera no es quien opera la plataforma: 403 FORBIDDEN', () => {
+        pm.response.to.have.status(403);
+        pm.expect(pm.response.json().code).to.eql('FORBIDDEN');
+      });
+    language: text/javascript
+order: 7000

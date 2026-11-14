@@ -35,3 +35,23 @@ export const PaymentNotFoundSchema = ApiErrorSchema.extend({
 export const WebhookUnauthenticatedSchema = ApiErrorSchema.extend({
   code: z.literal('UNAUTHENTICATED'),
 }).meta({ id: 'WompiWebhookUnauthenticated' });
+
+/** `403 FORBIDDEN`: la persona no opera la plataforma (`PLATFORM_ADMIN_PHONES`). */
+export const PlatformAdminForbiddenSchema = ApiErrorSchema.extend({
+  code: z.literal('FORBIDDEN'),
+}).meta({ id: 'PlatformAdminForbidden' });
+
+/** `422 PAYMENT_NOT_REFUNDABLE`: el pago no está aprobado o ya se devolvió. */
+export const PaymentNotRefundableSchema = ApiErrorSchema.extend({
+  code: z.literal('PAYMENT_NOT_REFUNDABLE'),
+}).meta({ id: 'PaymentNotRefundable' });
+
+/** `422 REFUND_METHOD_UNSUPPORTED`: no se puede anular ese pago en Wompi. */
+export const RefundMethodUnsupportedSchema = ApiErrorSchema.extend({
+  code: z.literal('REFUND_METHOD_UNSUPPORTED'),
+}).meta({ id: 'RefundMethodUnsupported' });
+
+/** `503 REFUND_GATEWAY_FAILED`: Wompi no aceptó la anulación. */
+export const RefundGatewayFailedSchema = ApiErrorSchema.extend({
+  code: z.literal('REFUND_GATEWAY_FAILED'),
+}).meta({ id: 'RefundGatewayFailed' });
