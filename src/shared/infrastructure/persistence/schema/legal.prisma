@@ -3,6 +3,7 @@ enum LegalDocument {
   TERMS
   PRIVACY
   DATA_RESPONSIBILITY
+  COOKIES
   MARKETING
 }
 

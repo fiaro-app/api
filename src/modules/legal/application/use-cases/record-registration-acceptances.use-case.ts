@@ -21,8 +21,8 @@ export interface RegistrationAcceptancesInput {
 }
 
 /**
- * Guarda la prueba de lo que la persona aceptó al registrarse: términos, política de privacidad y el compromiso de quien administra
- * los datos de sus clientes, más la autorización de novedades si la dio. Los tres primeros son obligatorios: el esquema de la
+ * Guarda la prueba de lo que la persona aceptó al registrarse: términos, política de privacidad, la política de cookies y el compromiso de quien administra
+ * los datos de sus clientes, más la autorización de novedades si la dio. Los cuatro primeros son obligatorios: el esquema de la
  * petición ya exige que vengan en `true`.
  */
 @Injectable()
@@ -52,6 +52,7 @@ export class RecordRegistrationAcceptancesUseCase {
       'TERMS',
       'PRIVACY',
       'DATA_RESPONSIBILITY',
+      'COOKIES',
       ...(input.marketing ? (['MARKETING'] as const) : []),
     ];
     await this.acceptances.recordMany(
