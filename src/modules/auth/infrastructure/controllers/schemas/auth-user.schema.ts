@@ -20,11 +20,12 @@ export const AuthUserSchema = z
       description: 'Siempre `false`: el celular no se verifica por código.',
     }),
     contactEmail: z.email().nullable().meta({
-      description: 'Correo real de la persona; es opcional (D-07).',
+      description:
+        'Correo real de la persona. Quien registra un negocio lo da siempre; las cuentas anteriores pueden no tenerlo.',
     }),
     contactEmailVerified: z.boolean().meta({
       description:
-        'Si `contactEmail` se verificó con el código que se le mandó.',
+        'Si `contactEmail` se verificó con el código que se le mandó. Solo un correo verificado sirve para iniciar sesión; la app pide agregar y verificar el correo a la dueña que tenga `false`.',
     }),
     nationalId: NationalIdSchema.nullable().meta({
       description:

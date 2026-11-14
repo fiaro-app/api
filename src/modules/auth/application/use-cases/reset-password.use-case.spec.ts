@@ -53,6 +53,7 @@ function setup(
   const updatePassword = vi.fn(() => Promise.resolve());
   const users: UserRepository = {
     create: vi.fn(),
+    findByVerifiedContactEmail: vi.fn(),
     findByPhone: vi.fn(() => Promise.resolve(found)),
     findById: vi.fn(() => Promise.resolve(found)),
     updatePassword,

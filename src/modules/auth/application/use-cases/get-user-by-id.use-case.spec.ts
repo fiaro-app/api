@@ -10,6 +10,7 @@ function setup(found: User | null) {
   const findById = vi.fn(() => Promise.resolve(found));
   const users: UserRepository = {
     create: vi.fn(),
+    findByVerifiedContactEmail: vi.fn(),
     findByPhone: vi.fn(),
     findById,
     updatePassword: vi.fn(),

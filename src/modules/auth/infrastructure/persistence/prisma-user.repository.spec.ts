@@ -3,6 +3,7 @@ import { MobilePhone } from '@/shared/domain/value-objects/mobile-phone.value-ob
 import { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
 import type { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import { User } from '@/modules/auth/domain/entities/user.entity.js';
+import { ContactEmailAlreadyRegisteredError } from '@/modules/auth/domain/errors/contact-email-already-registered.error.js';
 import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
 import { PrismaUserRepository } from '@/modules/auth/infrastructure/persistence/prisma-user.repository.js';
 
@@ -20,12 +21,13 @@ const user = User.create({
 function setup(behavior: () => Promise<unknown>) {
   const create = vi.fn<(args: unknown) => Promise<unknown>>(() => behavior());
   const findUnique = vi.fn<(args: unknown) => Promise<unknown>>();
+  const findFirst = vi.fn<(args: unknown) => Promise<unknown>>();
   const update = vi.fn<(args: unknown) => Promise<unknown>>();
   const userUpdate = vi.fn<(args: unknown) => Promise<unknown>>();
   const accountFindUnique = vi.fn<(args: unknown) => Promise<unknown>>();
   const repository = new PrismaUserRepository(
     {
-      user: { create, findUnique, update: userUpdate },
+      user: { create, findUnique, findFirst, update: userUpdate },
       account: { update, findUnique: accountFindUnique },
     } as unknown as PrismaService,
     { next: () => 'account-1' },
@@ -34,17 +36,33 @@ function setup(behavior: () => Promise<unknown>) {
     repository,
     create,
     findUnique,
+    findFirst,
     update,
     userUpdate,
     accountFindUnique,
   };
 }
 
-const prismaError = (code: string) =>
+const prismaError = (code: string, meta?: Record<string, unknown>) =>
   new Prisma.PrismaClientKnownRequestError('error de prueba', {
     code,
     clientVersion: 'test',
+    meta,
   });
+
+const emailViolation = () =>
+  prismaError('P2002', { target: 'users_contact_email_lower_key' });
+
+const ROW = {
+  id: 'user-1',
+  fullName: 'Ana Pérez',
+  phone: '+573001234567',
+  contactEmail: 'ana@example.com',
+  contactEmailVerified: true,
+  nationalId: null,
+  mustChangePassword: false,
+  createdAt: new Date('2026-09-23T17:00:00Z'),
+};
 
 describe('PrismaUserRepository.create', () => {
   it('guarda al usuario y su credencial en una sola operación', async () => {
@@ -69,6 +87,14 @@ describe('PrismaUserRepository.create', () => {
 
     await expect(repository.create(user, 'hash')).rejects.toBeInstanceOf(
       PhoneAlreadyRegisteredError,
+    );
+  });
+
+  it('traduce la violación del índice del correo de contacto a ContactEmailAlreadyRegisteredError', async () => {
+    const { repository } = setup(() => Promise.reject(emailViolation()));
+
+    await expect(repository.create(user, 'hash')).rejects.toBeInstanceOf(
+      ContactEmailAlreadyRegisteredError,
     );
   });
 
@@ -115,6 +141,33 @@ describe('PrismaUserRepository.findByPhone', () => {
     findUnique.mockResolvedValueOnce(null);
 
     await expect(repository.findByPhone('+573001234567')).resolves.toBeNull();
+  });
+});
+
+describe('PrismaUserRepository.findByVerifiedContactEmail', () => {
+  it('busca sin distinguir mayúsculas y solo entre correos verificados', async () => {
+    const { repository, findFirst } = setup(() => Promise.resolve({}));
+    findFirst.mockResolvedValueOnce(ROW);
+
+    const found =
+      await repository.findByVerifiedContactEmail('ana@example.com');
+
+    expect(findFirst).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        contactEmail: { equals: 'ana@example.com', mode: 'insensitive' },
+        contactEmailVerified: true,
+      },
+    });
+    expect(found?.id).toBe('user-1');
+  });
+
+  it('sin una fila verificada con ese correo, devuelve null', async () => {
+    const { repository, findFirst } = setup(() => Promise.resolve({}));
+    findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      repository.findByVerifiedContactEmail('nadie@example.com'),
+    ).resolves.toBeNull();
   });
 });
 
@@ -197,6 +250,33 @@ describe('PrismaUserRepository.updateProfile', () => {
         contactEmailVerified: false,
       },
     });
+  });
+});
+
+describe('PrismaUserRepository.updateProfile — correo repetido', () => {
+  const update = {
+    fullName: 'Ana',
+    contactEmail: 'ana@example.com',
+    contactEmailVerified: false,
+  };
+
+  it('traduce la violación de unicidad a ContactEmailAlreadyRegisteredError', async () => {
+    const { repository, userUpdate } = setup(() => Promise.resolve({}));
+    userUpdate.mockRejectedValueOnce(emailViolation());
+
+    await expect(
+      repository.updateProfile('user-1', update),
+    ).rejects.toBeInstanceOf(ContactEmailAlreadyRegisteredError);
+  });
+
+  it('deja pasar cualquier otro error', async () => {
+    const failure = new Error('se cayó la red');
+    const { repository, userUpdate } = setup(() => Promise.resolve({}));
+    userUpdate.mockRejectedValueOnce(failure);
+
+    await expect(repository.updateProfile('user-1', update)).rejects.toBe(
+      failure,
+    );
   });
 });
 

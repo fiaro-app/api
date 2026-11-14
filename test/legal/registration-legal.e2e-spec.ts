@@ -15,6 +15,7 @@ const BODY = {
   fullName: 'Dueña Legal',
   password: 'contraseña-de-prueba-1',
   nationalId: '70907771',
+  contactEmail: 'duena.legal@example.com',
   businessName: 'Negocio legal',
 };
 

@@ -7,6 +7,7 @@ import {
 } from '@/modules/auth/infrastructure/auth.providers.js';
 import { AccountController } from '@/modules/auth/infrastructure/controllers/account.controller.js';
 import { AuthController } from '@/modules/auth/infrastructure/controllers/auth.controller.js';
+import { SignInController } from '@/modules/auth/infrastructure/controllers/sign-in.controller.js';
 import { MailModule } from '@/modules/notifications/mail.module.js';
 
 /**
@@ -21,7 +22,7 @@ import { MailModule } from '@/modules/notifications/mail.module.js';
  */
 @Module({
   imports: [PersistenceModule, ApiErrorsModule, MailModule],
-  controllers: [AuthController, AccountController],
+  controllers: [AuthController, SignInController, AccountController],
   providers: authProviders,
   exports: authExports,
 })

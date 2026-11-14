@@ -26,6 +26,7 @@ async function registerOwner(testApp: TestApp): Promise<string> {
     .send({
       ...LEGAL_ACCEPTANCE,
       phone,
+      contactEmail: `${phone.slice(1)}@example.com`,
       fullName: 'Dueña Suscrita',
       password: PASSWORD,
       nationalId: '70900001',

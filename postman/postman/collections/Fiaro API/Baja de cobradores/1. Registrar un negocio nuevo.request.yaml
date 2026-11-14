@@ -16,6 +16,7 @@ body:
       "fullName": "Diana Paredes (dueña de prueba de baja de cobradores)",
       "password": "{{deactivateCollectorOwnerPassword}}",
       "nationalId": "{{deactivateCollectorOwnerNationalId}}",
+      "contactEmail": "{{deactivateCollectorOwnerPhone}}@example.com",
       "businessName": "Créditos Diana (prueba de baja de cobradores)",
       "acceptedTerms": true,
       "acceptedPrivacy": true,

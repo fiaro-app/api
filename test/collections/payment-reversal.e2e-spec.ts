@@ -39,6 +39,7 @@ async function seedLoan(
     .send({
       ...LEGAL_ACCEPTANCE,
       phone,
+      contactEmail: `${phone.slice(1)}@example.com`,
       fullName: 'Ana Prueba',
       password: 'contraseña-de-prueba-1',
       nationalId,

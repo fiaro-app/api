@@ -52,6 +52,10 @@
       "title": "La contraseña actual no es correcta.",
       "hint": "Confirmación de contraseña fallida (cambiar contraseña o desactivar cuenta). Varios seguidos: posible uso indebido de una sesión abierta."
     },
+    "A014A": {
+      "title": "Ya existe una cuenta con ese correo.",
+      "hint": "El correo de contacto es único (sin distinguir mayúsculas) porque también inicia sesión: la persona debe usar otro o entrar con el que ya tiene."
+    },
     "C001A": {
       "title": "Ya hay un cliente con esa cédula en este negocio.",
       "hint": "Cliente duplicado: busca primero por cédula antes de crear otro."

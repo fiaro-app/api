@@ -28,6 +28,22 @@ export const SignInRequestSchema = z.strictObject({
   }),
 });
 
+/**
+ * Cuerpo de `POST /auth/sign-in`.
+ *
+ * @remarks
+ * `identifier` es un celular E.164 o un correo: lo que trae `@` se trata como correo.
+ */
+export const SignInWithIdentifierRequestSchema = z.strictObject({
+  identifier: z.union([MobilePhoneSchema, z.email()]).meta({
+    description:
+      'Celular colombiano en formato E.164 o correo de contacto verificado.',
+    example: '+573001234567',
+  }),
+  password: SignInRequestSchema.shape.password,
+  rememberMe: SignInRequestSchema.shape.rememberMe,
+});
+
 /** Cuerpo de `POST /auth/change-password`. */
 export const ChangePasswordRequestSchema = z.strictObject({
   currentPassword: z.string().min(1).max(PASSWORD_MAX_LENGTH).meta({

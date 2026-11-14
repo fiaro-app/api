@@ -16,6 +16,7 @@ body:
       "fullName": "Rosa Delgado (dueña de prueba de estadísticas)",
       "password": "{{statsOwnerPassword}}",
       "nationalId": "{{statsOwnerNationalId}}",
+      "contactEmail": "{{statsOwnerPhone}}@example.com",
       "businessName": "Créditos Rosa (prueba de estadísticas)",
       "acceptedTerms": true,
       "acceptedPrivacy": true,

@@ -32,6 +32,7 @@ function setup(options: { repositoryError?: Error } = {}) {
   );
   const users: UserRepository = {
     create,
+    findByVerifiedContactEmail: vi.fn(),
     findByPhone: vi.fn(() => Promise.resolve(null)),
     findById: vi.fn(() => Promise.resolve(null)),
     updatePassword: vi.fn(() => Promise.resolve()),

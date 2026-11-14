@@ -29,6 +29,7 @@ function setup(user: User | null) {
   const updateProfile = vi.fn(() => Promise.resolve());
   const users: UserRepository = {
     create: vi.fn(),
+    findByVerifiedContactEmail: vi.fn(),
     findByPhone: vi.fn(),
     findById: vi.fn(() => Promise.resolve(user)),
     updatePassword: vi.fn(),
