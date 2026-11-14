@@ -3,7 +3,8 @@ import { integer } from '@/config/env-fields.js';
 
 /**
  * Variables de entorno de la suscripción: la prueba (D-115) y el cobro con Wompi (D-149). Las de
- * Wompi son opcionales: sin ellas el cobro queda apagado.
+ * Wompi son opcionales: sin ellas el cobro queda apagado. `PRIORITY_SUPPORT_URL` es el enlace (WhatsApp, correo)
+ * del soporte prioritario de Team (D-155): sin él los planes que lo traen ven la insignia pero no el enlace.
  */
 export const BILLING_ENV_SHAPE = {
   SUBSCRIPTION_TRIAL_DAYS: integer(1, 3650).default(30),
@@ -14,6 +15,7 @@ export const BILLING_ENV_SHAPE = {
   WOMPI_EVENTS_SECRET: z.string().min(1).optional(),
   WOMPI_CHECKOUT_URL: z.url().default('https://checkout.wompi.co/p/'),
   WOMPI_REDIRECT_URL: z.url().optional(),
+  PRIORITY_SUPPORT_URL: z.url().optional(),
 };
 
 /**
@@ -25,10 +27,10 @@ export const BILLING_ENV_SHAPE = {
  */
 export function checkWompiKeys(
   env: {
-    readonly WOMPI_PUBLIC_KEY?: string | undefined;
-    readonly WOMPI_INTEGRITY_SECRET?: string | undefined;
-    readonly WOMPI_EVENTS_SECRET?: string | undefined;
-    readonly WOMPI_REDIRECT_URL?: string | undefined;
+    readonly WOMPI_PUBLIC_KEY?: string;
+    readonly WOMPI_INTEGRITY_SECRET?: string;
+    readonly WOMPI_EVENTS_SECRET?: string;
+    readonly WOMPI_REDIRECT_URL?: string;
   },
   ctx: z.RefinementCtx,
 ): void {

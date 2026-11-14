@@ -33,7 +33,7 @@ export const SubscriptionResponseSchema = z
     }),
     features: z.array(z.enum(PLAN_FEATURES)).meta({
       description:
-        'Funciones propias del plan: `ADVANCED_STATS` (PDF, comparativo y reportes de riesgo) y `EXCEL_IMPORT` (importar desde una hoja de cálculo). Individual no trae ninguna (D-151).',
+        'Funciones propias del plan: `ADVANCED_STATS` (PDF, comparativo y reportes de riesgo) `EXCEL_IMPORT` (importar desde una hoja de cálculo), `CONSOLIDATED_STATS` (cifras de todos los negocios juntas) y `PRIORITY_SUPPORT` (soporte prioritario; las dos últimas, solo Team y la prueba). Individual no trae ninguna (D-151, D-155).',
     }),
     limits: z
       .object({
@@ -74,15 +74,23 @@ export const SubscriptionResponseSchema = z
         }),
       })
       .meta({ description: 'Cuánto del plan usa el negocio hoy.' }),
+    prioritySupportUrl: z.url().nullable().meta({
+      description:
+        'El enlace del soporte prioritario (WhatsApp o correo) si el plan lo trae y está configurado (`PRIORITY_SUPPORT_URL`); `null` en cualquier otro caso (D-155).',
+    }),
     createdAt: z.iso.datetime({ offset: true }).meta({
       description: 'Cuándo empezó la suscripción.',
     }),
   })
   .meta({ id: 'SubscriptionResponse' });
 
-/** @param details - La suscripción, tal como la devuelve el caso de uso. */
+/**
+ * @param details - La suscripción, tal como la devuelve el caso de uso.
+ * @param prioritySupportUrl - El enlace del soporte prioritario, o `null` si el plan no lo trae.
+ */
 export function toSubscriptionResponse(
   details: SubscriptionDetails,
+  prioritySupportUrl: string | null,
 ): z.output<typeof SubscriptionResponseSchema> {
   return {
     planCode: details.planCode,
@@ -95,6 +103,7 @@ export function toSubscriptionResponse(
     features: [...details.features],
     limits: { ...details.limits },
     usage: { ...details.usage },
+    prioritySupportUrl,
     createdAt: details.createdAt.toISOString(),
   };
 }

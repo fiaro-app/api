@@ -3,15 +3,25 @@
  * - `ADVANCED_STATS`: el PDF de estadísticas, el comparativo con el período anterior y los reportes de
  *   riesgo de clientes, mora y desempeño por cobrador.
  * - `EXCEL_IMPORT`: importar clientes y préstamos desde una hoja de cálculo.
+ * - `CONSOLIDATED_STATS`: las cifras de todos los negocios de la dueña juntas (D-155).
+ * - `PRIORITY_SUPPORT`: el canal de soporte prioritario (D-155); el API solo lo declara, la app muestra el contacto.
  */
-export const PLAN_FEATURES = ['ADVANCED_STATS', 'EXCEL_IMPORT'] as const;
+export const PLAN_FEATURES = [
+  'ADVANCED_STATS',
+  'EXCEL_IMPORT',
+  'CONSOLIDATED_STATS',
+  'PRIORITY_SUPPORT',
+] as const;
 
 /** Una función de {@link PLAN_FEATURES}. */
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
+/** Lo que trae Pro: todo lo de un solo negocio; lo de varios negocios es de Team (D-155). */
+const PRO_FEATURES: readonly PlanFeature[] = ['ADVANCED_STATS', 'EXCEL_IMPORT'];
+
 /**
- * Qué funciones trae cada plan. La prueba (`TRIAL`) las trae todas: es para probar el producto
- * completo antes de elegir. Individual no trae ninguna. Es código y no una columna de la suscripción
+ * Qué funciones trae cada plan. La prueba (`TRIAL`) y Team las traen todas: la prueba es para probar el
+ * producto completo antes de elegir. Individual no trae ninguna. Es código y no una columna de la suscripción
  * a propósito: una función nueva le llega al plan sin migrar a nadie.
  */
 export const FEATURES_BY_PLAN: Readonly<
@@ -19,7 +29,7 @@ export const FEATURES_BY_PLAN: Readonly<
 > = {
   TRIAL: PLAN_FEATURES,
   INDIVIDUAL: [],
-  PRO: PLAN_FEATURES,
+  PRO: PRO_FEATURES,
   TEAM: PLAN_FEATURES,
 };
 

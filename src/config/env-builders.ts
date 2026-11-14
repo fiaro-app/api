@@ -69,13 +69,15 @@ export function buildSubscriptionConfig(env: {
   readonly SUBSCRIPTION_TRIAL_DAYS: number;
   readonly SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: number;
   readonly SUBSCRIPTION_TRIAL_MAX_COLLECTORS: number;
-  readonly WOMPI_PUBLIC_KEY?: string | undefined;
-  readonly WOMPI_INTEGRITY_SECRET?: string | undefined;
-  readonly WOMPI_EVENTS_SECRET?: string | undefined;
+  readonly WOMPI_PUBLIC_KEY?: string;
+  readonly WOMPI_INTEGRITY_SECRET?: string;
+  readonly WOMPI_EVENTS_SECRET?: string;
   readonly WOMPI_CHECKOUT_URL: string;
-  readonly WOMPI_REDIRECT_URL?: string | undefined;
+  readonly WOMPI_REDIRECT_URL?: string;
+  readonly PRIORITY_SUPPORT_URL?: string;
 }) {
   return {
+    prioritySupportUrl: env.PRIORITY_SUPPORT_URL,
     trialDays: env.SUBSCRIPTION_TRIAL_DAYS,
     trialMaxActiveLenders: env.SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS,
     trialMaxCollectors: env.SUBSCRIPTION_TRIAL_MAX_COLLECTORS,
