@@ -31,6 +31,13 @@ const payment = (refund = true) =>
   });
 const USER = { id: 'admin-1' } as AuthenticatedUser;
 
+const resolved = (refund: boolean) =>
+  SubscriptionPayment.create({
+    ...payment(refund).props,
+    periodEndsAt: null,
+    resolvedAt: new Date('2026-11-13T00:01:00Z'),
+  });
+
 describe('AdminSubscriptionPaymentsController', () => {
   it('lista los pagos con el negocio, pasando el filtro de estado', async () => {
     const execute = vi.fn(() =>
@@ -77,5 +84,29 @@ describe('AdminSubscriptionPaymentsController', () => {
       refundedAt: REFUNDED_AT.toISOString(),
       refundMode: 'MANUAL',
     });
+  });
+
+  it('muestra las fechas que el pago tiene y deja en null las que no', async () => {
+    const controller = new AdminSubscriptionPaymentsController(
+      {
+        execute: () =>
+          Promise.resolve([{ payment: resolved(false), tenantName: 'X' }]),
+      } as never,
+      { execute: () => Promise.resolve(resolved(false)) } as never,
+    );
+
+    const { items } = await controller.list({});
+    const refunded = await controller.refund(
+      'fiaro-1',
+      { mode: 'MANUAL', reason: 'x' },
+      USER,
+    );
+
+    expect(items[0]).toMatchObject({
+      resolvedAt: '2026-11-13T00:01:00.000Z',
+      periodEndsAt: null,
+    });
+    expect(refunded.periodEndsAt).toBeNull();
+    expect(refunded.refundedAt).toBeNull();
   });
 });

@@ -122,6 +122,11 @@ describe('reembolsos de los pagos del plan (D-156)', () => {
       reason: 'otra vez',
     });
 
+    const everything = await started()
+      .http.get('/admin/subscription-payments')
+      .set(HEADERS)
+      .set('Cookie', admin);
+    expect(everything.body.items).toHaveLength(1);
     expect(list.status).toBe(200);
     expect(list.body.items[0]).toMatchObject({
       reference,

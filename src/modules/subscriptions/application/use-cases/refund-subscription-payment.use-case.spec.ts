@@ -131,4 +131,15 @@ describe('RefundSubscriptionPaymentUseCase', () => {
     );
     expect(audit.record).not.toHaveBeenCalled();
   });
+
+  it('si no puede releer el pago devuelve el que ya tenía', async () => {
+    const { useCase, repository } = setup(payment());
+    repository.findByReference
+      .mockResolvedValueOnce(payment())
+      .mockResolvedValueOnce(null);
+
+    const result = await useCase.execute(MANUAL);
+
+    expect(result.reference).toBe('fiaro-1');
+  });
 });
