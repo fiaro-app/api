@@ -10,15 +10,18 @@ describe('membershipInviteEmail', () => {
     );
 
     expect(email.html).toContain(
-      'Hola &lt;img src=x onerror=alert(1)&gt; Carlos.',
+      'Hola &lt;img src=x onerror=alert(1)&gt; Carlos, ya tienes',
     );
-    expect(email.text).toContain('Hola <img src=x onerror=alert(1)> Carlos.');
+    expect(email.html).not.toContain('<img');
+    expect(email.text).toContain(
+      'Hola <img src=x onerror=alert(1)> Carlos, ya tienes',
+    );
   });
 
   it('lleva el celular y la contraseña temporal en ambos cuerpos', () => {
     const email = membershipInviteEmail('Carlos', '+573001234567', 'Temp-123');
 
-    expect(email.subject).toBe('Te invitaron a Fiaro');
+    expect(email.subject).toBe('Fiaro: Te invitaron a Fiaro');
     expect(email.html).toContain('+573001234567');
     expect(email.html).toContain('Temp-123');
     expect(email.text).toContain('Contraseña temporal: Temp-123');

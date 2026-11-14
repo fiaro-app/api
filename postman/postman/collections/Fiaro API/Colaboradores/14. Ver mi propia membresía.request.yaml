@@ -1,0 +1,15 @@
+$kind: http-request
+description: La membresía de quien llama, con sus roles y su cartera (D-124). La puede pedir cualquier rol, también un cobrador; las apps la usan para decidir si abren el panel del administrador o la ruta del cobrador.
+url: "{{baseUrl}}/memberships/me"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la dueña tiene el rol OWNER', () => pm.expect(pm.response.json().roles).to.include('OWNER'));
+    language: text/javascript
+order: 14000

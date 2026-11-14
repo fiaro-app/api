@@ -37,6 +37,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const res = http.getResponse<Response>();
     const details = describeException(exception);
 
+    this.errors.annotate(res, details);
     if (details.statusCode >= 500) {
       this.logger.error(
         exception instanceof Error ? exception : inspect(exception),

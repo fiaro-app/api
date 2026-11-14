@@ -34,7 +34,10 @@ const PAGE: CollectionVisitReportPage = {
 
 function setup() {
   const search = vi.fn(() => Promise.resolve(PAGE));
-  const report: CollectionVisitReportRepository = { search };
+  const report: CollectionVisitReportRepository = {
+    search,
+    summarizeRoutes: vi.fn(),
+  };
   const clock: Clock = { now: () => NOW };
   return { useCase: new SearchCollectionVisitsUseCase(report, clock), search };
 }

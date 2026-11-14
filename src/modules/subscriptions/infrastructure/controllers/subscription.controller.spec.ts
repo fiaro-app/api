@@ -15,8 +15,20 @@ const DETAILS: SubscriptionDetails = {
   daysRemaining: 0,
   graceDaysRemaining: 6,
   isReadOnly: false,
-  limits: { maxActiveLenders: 1, maxCollectors: 5 },
-  usage: { activeLenders: 1, activeCollectors: 2 },
+  features: ['ADVANCED_STATS', 'EXCEL_IMPORT'],
+  limits: {
+    maxActiveLenders: 1,
+    maxCollectors: 5,
+    maxAdmins: 3,
+    maxPortfolios: 4,
+    maxActiveLoans: null,
+  },
+  usage: {
+    activeLenders: 1,
+    activeCollectors: 2,
+    activeAdmins: 1,
+    activeLoans: 4,
+  },
   createdAt: new Date('2026-09-08T12:00:00Z'),
 };
 

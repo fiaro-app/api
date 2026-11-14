@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { Env } from '@/config/env.js';
 import { EnvModule } from '@/config/env.module.js';
+import { CollectorAccessModule } from '@/shared/infrastructure/access/collector-access.module.js';
+import { CacheModule } from '@/shared/infrastructure/cache/cache.module.js';
 import { ENV } from '@/config/env.token.js';
 import { AlertsModule } from '@/modules/alerts/alerts.module.js';
 import { AuthModule } from '@/modules/auth/auth.module.js';
@@ -10,6 +12,9 @@ import { ClientsModule } from '@/modules/clients/clients.module.js';
 import { CollectionsModule } from '@/modules/collections/collections.module.js';
 import { DashboardModule } from '@/modules/dashboard/dashboard.module.js';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
+import { AttachmentsModule } from '@/modules/attachments/attachments.module.js';
+import { LoanRequestsModule } from '@/modules/loan-requests/loan-requests.module.js';
+import { ImportsModule } from '@/modules/imports/imports.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { SettlementsModule } from '@/modules/settlements/settlements.module.js';
@@ -45,6 +50,8 @@ import { TurnstileModule } from '@/shared/infrastructure/turnstile/turnstile.mod
     AuditModule,
     ApiErrorsModule,
     RuntimeModule,
+    CacheModule,
+    CollectorAccessModule,
     StorageModule,
     TurnstileModule,
     AuthModule,
@@ -53,6 +60,9 @@ import { TurnstileModule } from '@/shared/infrastructure/turnstile/turnstile.mod
     LendersModule,
     ClientsModule,
     LoansModule,
+    ImportsModule,
+    LoanRequestsModule,
+    AttachmentsModule,
     CollectionsModule,
     SettlementsModule,
     DashboardModule,

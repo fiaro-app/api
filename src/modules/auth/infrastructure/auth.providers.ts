@@ -24,6 +24,7 @@ import { RevokeAccountSessionUseCase } from '@/modules/auth/application/use-case
 import { DeactivateAccountUseCase } from '@/modules/auth/application/use-cases/deactivate-account.use-case.js';
 import { RequestContactEmailVerificationUseCase } from '@/modules/auth/application/use-cases/request-contact-email-verification.use-case.js';
 import { RequestPasswordResetUseCase } from '@/modules/auth/application/use-cases/request-password-reset.use-case.js';
+import { ResolveSignInPhoneUseCase } from '@/modules/auth/application/use-cases/resolve-sign-in-phone.use-case.js';
 import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case.js';
 import { UpdateProfileUseCase } from '@/modules/auth/application/use-cases/update-profile.use-case.js';
 import { VerifyContactEmailUseCase } from '@/modules/auth/application/use-cases/verify-contact-email.use-case.js';
@@ -183,6 +184,7 @@ export const authProviders: Provider[] = [
   AdminResetPasswordUseCase,
   RequestPasswordResetUseCase,
   ResetPasswordUseCase,
+  ResolveSignInPhoneUseCase,
   RequestContactEmailVerificationUseCase,
   VerifyContactEmailUseCase,
   UpdateProfileUseCase,

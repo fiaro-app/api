@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '@/config/env.js';
 import type { RunMoraAlertsUseCase } from '@/modules/alerts/application/use-cases/run-mora-alerts.use-case.js';
+import type { RunSubscriptionRemindersUseCase } from '@/modules/alerts/application/use-cases/run-subscription-reminders.use-case.js';
 import { MoraAlertScheduler } from '@/modules/alerts/infrastructure/scheduling/mora-alert.scheduler.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
@@ -20,18 +21,30 @@ function setup(options: {
   readonly now: string;
   readonly enabled?: boolean;
   readonly execute?: (businessDate: string) => Promise<boolean>;
+  readonly executeReminders?: (businessDate: string) => Promise<boolean>;
 }) {
   vi.setSystemTime(new Date(options.now));
   const execute = vi.fn<(businessDate: string) => Promise<boolean>>(
     options.execute ?? (() => Promise.resolve(true)),
   );
   const runMoraAlerts = { execute } as unknown as RunMoraAlertsUseCase;
+  const executeReminders = vi.fn<(businessDate: string) => Promise<boolean>>(
+    options.executeReminders ?? (() => Promise.resolve(true)),
+  );
+  const runReminders = {
+    execute: executeReminders,
+  } as unknown as RunSubscriptionRemindersUseCase;
   const clock: Clock = { now: () => new Date() };
   const env = {
     moraAlerts: { enabled: options.enabled ?? true },
   } as unknown as Env;
-  const scheduler = new MoraAlertScheduler(env, runMoraAlerts, clock);
-  return { scheduler, execute };
+  const scheduler = new MoraAlertScheduler(
+    env,
+    runMoraAlerts,
+    runReminders,
+    clock,
+  );
+  return { scheduler, execute, executeReminders };
 }
 
 describe('MoraAlertScheduler', () => {
@@ -112,6 +125,7 @@ describe('MoraAlertScheduler', () => {
     const { scheduler } = setup({
       now: '2026-10-06T15:00:00.000Z',
       execute: () => Promise.resolve(false),
+      executeReminders: () => Promise.resolve(false),
     });
 
     scheduler.onApplicationBootstrap();
@@ -131,6 +145,53 @@ describe('MoraAlertScheduler', () => {
 
     expect(logLog).toHaveBeenCalledWith(
       'Aviso de mora del 2026-10-06 enviado.',
+    );
+  });
+
+  it('el mismo día también manda los recordatorios de vencimiento del plan', async () => {
+    const logLog = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    const { scheduler, executeReminders } = setup({
+      now: '2026-10-06T15:00:00.000Z',
+    });
+
+    scheduler.onApplicationBootstrap();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(executeReminders).toHaveBeenCalledExactlyOnceWith('2026-10-06');
+    expect(logLog).toHaveBeenCalledWith(
+      'Recordatorios de vencimiento del plan del 2026-10-06 enviados.',
+    );
+  });
+
+  it('si falla el aviso de mora, los recordatorios salen igual', async () => {
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const { scheduler, executeReminders } = setup({
+      now: '2026-10-06T15:00:00.000Z',
+      execute: () => Promise.reject(new Error('mora caída')),
+    });
+
+    scheduler.onApplicationBootstrap();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(executeReminders).toHaveBeenCalledWith('2026-10-06');
+  });
+
+  it('si fallan los recordatorios, lo registra y no lanza', async () => {
+    const logError = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const { scheduler } = setup({
+      now: '2026-10-06T15:00:00.000Z',
+      executeReminders: () => Promise.reject(new Error('correo caído')),
+    });
+
+    scheduler.onApplicationBootstrap();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(logError).toHaveBeenCalledWith(
+      'Los recordatorios de vencimiento del plan del 2026-10-06 fallaron: Error: correo caído.',
     );
   });
 });

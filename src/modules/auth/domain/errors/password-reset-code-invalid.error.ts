@@ -9,6 +9,7 @@ import {
  */
 export class PasswordResetCodeInvalidError extends DomainError {
   readonly code = 'PASSWORD_RESET_CODE_INVALID';
+  readonly errorCode = 'A009A';
   readonly kind: DomainErrorKind = 'INVALID';
 
   constructor() {

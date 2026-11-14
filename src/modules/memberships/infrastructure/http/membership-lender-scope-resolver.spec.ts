@@ -26,6 +26,11 @@ function setup(active: readonly Membership[]) {
     findActiveByUserId,
     findActiveByLenderAndRoles: vi.fn(),
     countActiveByPortfolio: vi.fn(),
+    findByLenderAndNationalId: vi.fn(),
+    countCollectorSeats: vi.fn(),
+    countAdminSeats: vi.fn(),
+    hasHistory: vi.fn(),
+    delete: vi.fn(),
     list: vi.fn(),
     update: vi.fn(),
   };

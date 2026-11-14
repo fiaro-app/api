@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RecordRegistrationAcceptancesUseCase } from '@/modules/legal/application/use-cases/record-registration-acceptances.use-case.js';
 import { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
 import type {
   RegisterOwnerInput,
@@ -24,11 +25,13 @@ export class RegisterOwnerUseCase {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly createTenantUseCase: CreateTenantUseCase,
+    private readonly acceptances: RecordRegistrationAcceptancesUseCase,
   ) {}
 
   /**
    * @param input - Los datos de la persona y el nombre del negocio.
    * @returns La persona y el negocio recién creados.
+   * @throws {@link OutdatedLegalVersionError} Si los documentos legales que vio ya no son los vigentes (antes de crear nada).
    * @throws {@link InvalidMobilePhoneError} Si el celular no está en formato E.164.
    * @throws {@link InvalidUserDataError} Si el nombre, la cédula o el email no cumplen el contrato.
    * @throws {@link InvalidPasswordError} Si la contraseña no tiene la longitud permitida.
@@ -38,6 +41,7 @@ export class RegisterOwnerUseCase {
    * @throws {@link InvalidLenderDataError} Si el nombre del negocio no cumple el contrato del prestamista.
    */
   async execute(input: RegisterOwnerInput): Promise<RegisteredOwner> {
+    this.acceptances.assertCurrent(input.legal.version);
     const user = await this.createUserUseCase.execute({
       phone: input.phone,
       fullName: input.fullName,
@@ -48,6 +52,13 @@ export class RegisterOwnerUseCase {
     const tenant = await this.createTenantUseCase.execute({
       businessName: input.businessName,
       ownerUserId: user.id,
+    });
+    await this.acceptances.execute({
+      userId: user.id,
+      version: input.legal.version,
+      marketing: input.legal.marketing,
+      ipAddress: input.legal.ipAddress,
+      userAgent: input.legal.userAgent,
     });
     return { user, tenant };
   }

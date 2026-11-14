@@ -7,7 +7,7 @@ describe('SearchCollectionVisitsRequestSchema', () => {
   it('aplica la paginación por defecto y no exige ningún filtro', () => {
     expect(SearchCollectionVisitsRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
   });
 

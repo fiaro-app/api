@@ -47,6 +47,7 @@ async function inviteCollector(
       phone: `+5730070${suffix}`,
       fullName: 'Cobrador de Zona',
       nationalId: `7${suffix}`,
+      contactEmail: `cobrador-7${suffix}@example.com`,
       roles: ['COLLECTOR'],
       portfolioId,
     });

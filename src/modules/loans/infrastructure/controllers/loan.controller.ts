@@ -30,6 +30,7 @@ import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { RestrictCollectorTo } from '@/shared/infrastructure/http/restrict-collector.decorator.js';
 
 /** Roles que pueden dar de alta un préstamo (PRODUCT.md §5: "solo el Lender crea préstamos"). */
 const CREATOR_ROLES = ['OWNER', 'LENDER'];
@@ -86,6 +87,7 @@ export class LoanController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get(':id')
+  @RestrictCollectorTo('loan')
   @HttpCode(HttpStatus.OK)
   @ApiGetLoan()
   async getLoan(

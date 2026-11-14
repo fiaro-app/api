@@ -29,11 +29,12 @@ describe('GetLenderLogoUploadUrlUseCase', () => {
     const result = await useCase.execute({
       lenderId: 'lender-1',
       contentType: 'image/png',
+      sizeBytes: 48_000,
     });
 
     expect(getPresignedUploadUrl).toHaveBeenCalledExactlyOnceWith(
       'logos/lender-1/id-1.png',
-      'image/png',
+      { contentType: 'image/png', sizeBytes: 48_000 },
     );
     expect(result).toEqual(UPLOAD);
   });
@@ -41,11 +42,15 @@ describe('GetLenderLogoUploadUrlUseCase', () => {
   it('con JPEG, usa la extensión .jpg', async () => {
     const { useCase, getPresignedUploadUrl } = setup();
 
-    await useCase.execute({ lenderId: 'lender-1', contentType: 'image/jpeg' });
+    await useCase.execute({
+      lenderId: 'lender-1',
+      contentType: 'image/jpeg',
+      sizeBytes: 1_000,
+    });
 
     expect(getPresignedUploadUrl).toHaveBeenCalledExactlyOnceWith(
       'logos/lender-1/id-1.jpg',
-      'image/jpeg',
+      { contentType: 'image/jpeg', sizeBytes: 1_000 },
     );
   });
 });

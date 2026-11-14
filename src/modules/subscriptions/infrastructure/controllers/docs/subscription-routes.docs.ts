@@ -14,7 +14,7 @@ export const ApiGetSubscription = () =>
     ApiOperation({
       summary: 'Ver el plan del negocio',
       description:
-        'La suscripción del Tenant del prestamista con el que opera la sesión: plan, estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`), fechas, límites y uso. Cualquier rol puede verla. Solo informa: no bloquea ninguna operación.',
+        'La suscripción del Tenant del prestamista con el que opera la sesión: plan, estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`), fechas, límites y uso. Cualquier rol puede verla. Con `READ_ONLY` (pasada la gracia) las escrituras responden `403 SUBSCRIPTION_READ_ONLY`, salvo registrar visitas y pagos y los cuadres (D-148); la lectura nunca se bloquea.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({

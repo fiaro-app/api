@@ -10,6 +10,7 @@ import {
  */
 export class MembershipNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'M006A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   constructor(id: string) {

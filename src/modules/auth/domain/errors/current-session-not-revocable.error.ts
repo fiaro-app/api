@@ -10,6 +10,7 @@ import {
  */
 export class CurrentSessionNotRevocableError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'A005A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

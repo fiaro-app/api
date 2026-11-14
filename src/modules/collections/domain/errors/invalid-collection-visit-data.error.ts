@@ -11,6 +11,7 @@ import {
  */
 export class InvalidCollectionVisitDataError extends DomainError {
   readonly code = 'VALIDATION_FAILED';
+  readonly errorCode = 'V006V';
   readonly kind: DomainErrorKind = 'INVALID';
   declare readonly issues: readonly DomainIssue[];
 

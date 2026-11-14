@@ -8,7 +8,7 @@ describe('ListLoansWithBalanceRequestSchema', () => {
   it('aplica los valores por defecto de paginación', () => {
     expect(ListLoansWithBalanceRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
   });
 
@@ -36,8 +36,19 @@ describe('ListClientsWithBalanceRequestSchema', () => {
   it('aplica los valores por defecto de paginación', () => {
     expect(ListClientsWithBalanceRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
+  });
+
+  it('rechaza una búsqueda de más de 80 caracteres', () => {
+    expect(
+      ListClientsWithBalanceRequestSchema.safeParse({ search: 'a'.repeat(81) })
+        .success,
+    ).toBe(false);
+    expect(
+      ListClientsWithBalanceRequestSchema.safeParse({ search: 'a'.repeat(80) })
+        .success,
+    ).toBe(true);
   });
 
   it('acepta una búsqueda opcional y la recorta', () => {

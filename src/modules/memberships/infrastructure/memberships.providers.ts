@@ -1,8 +1,15 @@
 import type { Provider } from '@nestjs/common';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { CountActiveMembershipsByPortfolioUseCase } from '@/modules/memberships/application/use-cases/count-active-memberships-by-portfolio.use-case.js';
+import { CountCollectorSeatsUseCase } from '@/modules/memberships/application/use-cases/count-collector-seats.use-case.js';
 import { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
+import { DeleteMembershipUseCase } from '@/modules/memberships/application/use-cases/delete-membership.use-case.js';
+import { ReactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/reactivate-membership.use-case.js';
 import { DeactivateMembershipUseCase } from '@/modules/memberships/application/use-cases/deactivate-membership.use-case.js';
+import { PLAN_SEAT_LIMITS } from '@/modules/memberships/application/ports/plan-seat-limits.token.js';
+import { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
+import { CountAdminSeatsUseCase } from '@/modules/memberships/application/use-cases/count-admin-seats.use-case.js';
+import { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import { MembershipEntryAssembler } from '@/modules/memberships/application/services/membership-entry.assembler.js';
 import { GetMembershipEntryUseCase } from '@/modules/memberships/application/use-cases/get-membership-entry.use-case.js';
 import { GetMembershipUseCase } from '@/modules/memberships/application/use-cases/get-membership.use-case.js';
@@ -12,7 +19,10 @@ import { ListMembershipsUseCase } from '@/modules/memberships/application/use-ca
 import { ResetMembershipPasswordUseCase } from '@/modules/memberships/application/use-cases/reset-membership-password.use-case.js';
 import { MEMBERSHIP_REPOSITORY } from '@/modules/memberships/domain/tokens/membership-repository.token.js';
 import { MembershipLenderScopeResolver } from '@/modules/memberships/infrastructure/http/membership-lender-scope-resolver.js';
+import { PrismaPlanSeatLimits } from '@/modules/memberships/infrastructure/persistence/prisma-plan-seat-limits.js';
 import { PrismaMembershipRepository } from '@/modules/memberships/infrastructure/persistence/prisma-membership.repository.js';
+import { PrismaSubscriptionAccess } from '@/modules/memberships/infrastructure/http/prisma-subscription-access.js';
+import { SUBSCRIPTION_ACCESS } from '@/shared/application/ports/subscription-access.token.js';
 import { LENDER_SCOPE_RESOLVER } from '@/shared/application/ports/lender-scope-resolver.token.js';
 import { TEMP_PASSWORD_GENERATOR } from '@/shared/application/ports/temp-password-generator.token.js';
 import { RandomTempPasswordGenerator } from '@/shared/infrastructure/crypto/random-temp-password-generator.js';
@@ -24,18 +34,26 @@ export const membershipsProviders: Provider[] = [
     provide: LENDER_SCOPE_RESOLVER,
     useClass: MembershipLenderScopeResolver,
   },
+  { provide: SUBSCRIPTION_ACCESS, useClass: PrismaSubscriptionAccess },
   { provide: TEMP_PASSWORD_GENERATOR, useClass: RandomTempPasswordGenerator },
+  { provide: PLAN_SEAT_LIMITS, useClass: PrismaPlanSeatLimits },
+  CollectorSeats,
+  AdminSeats,
   CreateMembershipUseCase,
   GetMembershipUseCase,
   MembershipEntryAssembler,
   GetMembershipEntryUseCase,
   InviteMembershipUseCase,
   DeactivateMembershipUseCase,
+  ReactivateMembershipUseCase,
+  DeleteMembershipUseCase,
   ChangeMembershipRolesUseCase,
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
   ResetMembershipPasswordUseCase,
   CountActiveMembershipsByPortfolioUseCase,
+  CountCollectorSeatsUseCase,
+  CountAdminSeatsUseCase,
 ];
 
 /**
@@ -51,6 +69,7 @@ export const membershipsProviders: Provider[] = [
  * del resumen del Lender (D-99). `CountActiveMembershipsByPortfolioUseCase` lo usa `lenders`
  * para no dejar borrar una cartera con cobradores activos (D-109). `GetMembershipEntryUseCase` lo
  * usa `collections` para el nombre del cobrador de cada préstamo de la lista (D-113).
+ * `CountCollectorSeatsUseCase` y `CountAdminSeatsUseCase` los usa `subscriptions` para el uso de cupos.
  */
 export const membershipsExports = [
   CreateMembershipUseCase,
@@ -59,6 +78,9 @@ export const membershipsExports = [
   ListActiveMembershipsByRolesUseCase,
   ListMembershipsUseCase,
   CountActiveMembershipsByPortfolioUseCase,
+  CountCollectorSeatsUseCase,
+  CountAdminSeatsUseCase,
   GetMembershipEntryUseCase,
   LENDER_SCOPE_RESOLVER,
+  SUBSCRIPTION_ACCESS,
 ];

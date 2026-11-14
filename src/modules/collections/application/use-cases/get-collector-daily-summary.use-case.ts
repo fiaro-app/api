@@ -4,16 +4,20 @@ import type {
   CollectorDailySummary,
   GetCollectorDailySummaryInput,
 } from '@/modules/collections/application/dtos/collector-daily-summary.dto.js';
+import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import { toCollectionVisitDetails } from '@/modules/collections/application/dtos/collection-visit-details.mapper.js';
 import { sumNetPaymentsByMethod } from '@/modules/collections/application/services/sum-net-payments-by-method.js';
-import { toLoanScheduleInput } from '@/modules/collections/application/services/to-loan-schedule-input.js';
+import { computeExpectedForDay } from '@/modules/collections/application/services/compute-expected-for-day.js';
+import { groupRecordsByLoan } from '@/modules/collections/application/services/group-records-by-loan.js';
+import type { LoanPortfolioReadRepository } from '@/modules/collections/domain/repositories/loan-portfolio-read.repository.js';
+import { LOAN_PORTFOLIO_READ_REPOSITORY } from '@/modules/collections/domain/tokens/loan-portfolio-read-repository.token.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import { COLLECTION_ASSIGNMENT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-assignment-repository.token.js';
 import { COLLECTION_VISIT_REPOSITORY } from '@/modules/collections/domain/tokens/collection-visit-repository.token.js';
 import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
-import { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
-import { computeExpectedAmountInRange } from '@/shared/domain/calendar/period-expected.js';
+import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
+import { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
 
@@ -37,8 +41,10 @@ export class GetCollectorDailySummaryUseCase {
     private readonly assignments: CollectionAssignmentRepository,
     @Inject(COLLECTION_VISIT_REPOSITORY)
     private readonly visits: CollectionVisitRepository,
-    private readonly getLoan: GetLoanUseCase,
+    private readonly listLoans: ListLoansUseCase,
     private readonly getLender: GetLenderUseCase,
+    @Inject(LOAN_PORTFOLIO_READ_REPOSITORY)
+    private readonly portfolio: LoanPortfolioReadRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -60,28 +66,32 @@ export class GetCollectorDailySummaryUseCase {
       this.getLender.execute(input.lenderId),
     ]);
 
-    const loans = await Promise.all(
-      assigned.map((assignment) =>
-        this.getLoan.execute(assignment.loanId, input.lenderId),
-      ),
+    const loans = await this.activeLoans(
+      assigned.map((assignment) => assignment.loanId),
+      input.lenderId,
+      date,
     );
-    const expectedAmount = loans
-      .filter((loan) => loan.status === 'ACTIVE')
-      .reduce(
-        (sum, loan) =>
-          sum +
-          computeExpectedAmountInRange(
-            toLoanScheduleInput(loan, lender),
-            date,
-            date,
-          ),
-        0,
-      );
+    const recordsByLoan = groupRecordsByLoan(
+      await this.portfolio.listVisitRecordsByLoans(loans.map((l) => l.id)),
+    );
+    const expectedAmount = loans.reduce(
+      (sum, loan) =>
+        sum +
+        computeExpectedForDay(
+          loan,
+          lender,
+          recordsByLoan.get(loan.id) ?? [],
+          date,
+        ),
+      0,
+    );
 
     const collectedByMethod = sumNetPaymentsByMethod(records);
     return {
       date,
       expectedAmount,
+      routeLoans: loans.length,
+      visitedLoans: countVisited(loans, records),
       collectedAmount:
         collectedByMethod.CASH +
         collectedByMethod.NEQUI +
@@ -90,4 +100,46 @@ export class GetCollectorDailySummaryUseCase {
       visits: records.map(toCollectionVisitDetails),
     };
   }
+
+  /**
+   * Los préstamos activos entre los asignados, en una sola consulta.
+   *
+   * @param loanIds - Los préstamos asignados ese día.
+   * @param lenderId - El prestamista dueño.
+   */
+  private async activeLoans(
+    loanIds: readonly string[],
+    lenderId: string,
+    date: string,
+  ): Promise<readonly LoanDetails[]> {
+    if (loanIds.length === 0) {
+      return [];
+    }
+    const page = await this.listLoans.execute({
+      lenderId,
+      ids: loanIds,
+      page: 1,
+      pageSize: loanIds.length,
+    });
+    return page.items.filter(
+      (loan) =>
+        loan.status === 'ACTIVE' ||
+        (loan.status === 'PAID_OFF' &&
+          loan.closedAt !== null &&
+          toBusinessDate(loan.closedAt) >= date),
+    );
+  }
+}
+
+/**
+ * @param loans - Los préstamos en la ruta de hoy.
+ * @param records - Las visitas de hoy.
+ * @returns Cuántos de esos préstamos tuvieron al menos una visita.
+ */
+function countVisited(
+  loans: readonly LoanDetails[],
+  records: readonly CollectionVisitRecord[],
+): number {
+  const visited = new Set(records.map((record) => record.visit.loanId));
+  return loans.filter((loan) => visited.has(loan.id)).length;
 }

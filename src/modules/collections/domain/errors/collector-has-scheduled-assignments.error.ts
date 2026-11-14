@@ -10,6 +10,7 @@ import {
  */
 export class CollectorHasScheduledAssignmentsError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'V001A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

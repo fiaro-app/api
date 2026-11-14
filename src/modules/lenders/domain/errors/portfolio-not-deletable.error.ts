@@ -12,6 +12,7 @@ import {
  */
 export class PortfolioNotDeletableError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'B005A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   /** @param reason - Por qué no se puede borrar, para el log. */

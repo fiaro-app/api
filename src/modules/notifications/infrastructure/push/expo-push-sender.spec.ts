@@ -14,6 +14,9 @@ function message(index: number): PushMessage {
       relatedEntityType: 'LOAN',
       relatedEntityId: 'loan-1',
     },
+    priority: 'default',
+    ttl: 43_200,
+    channelId: 'default',
   };
 }
 
@@ -110,6 +113,9 @@ describe('ExpoPushSender', () => {
           relatedEntityId: 'loan-1',
         },
         sound: 'default',
+        priority: 'default',
+        ttl: 43_200,
+        channelId: 'default',
       },
     ]);
   });

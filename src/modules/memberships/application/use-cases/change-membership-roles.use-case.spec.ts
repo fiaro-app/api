@@ -1,9 +1,14 @@
+import type { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
 import { describe, expect, it, vi } from 'vitest';
+import type { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import { ChangeMembershipRolesUseCase } from '@/modules/memberships/application/use-cases/change-membership-roles.use-case.js';
 import { Membership } from '@/modules/memberships/domain/entities/membership.entity.js';
 import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
 import { MembershipNotFoundError } from '@/modules/memberships/domain/errors/membership-not-found.error.js';
 import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
+import type { LenderLock } from '@/shared/application/ports/lender-lock.port.js';
+
+const immediateLock: LenderLock = { runExclusive: (_lenderId, work) => work() };
 
 const CREATED_AT = new Date('2026-09-30T00:00:00Z');
 
@@ -31,10 +36,31 @@ function setup(found: Membership | null) {
     findActiveByUserId: vi.fn(),
     findActiveByLenderAndRoles: vi.fn(),
     countActiveByPortfolio: vi.fn(),
+    findByLenderAndNationalId: vi.fn(),
+    countCollectorSeats: vi.fn(),
+    countAdminSeats: vi.fn(),
+    hasHistory: vi.fn(),
+    delete: vi.fn(),
     list: vi.fn(),
     update,
   };
-  return { useCase: new ChangeMembershipRolesUseCase(memberships), update };
+  const assertAvailable = vi.fn(() => Promise.resolve());
+  const seats = { assertAvailable } as unknown as CollectorSeats;
+  const assertAdminAvailable = vi.fn(() => Promise.resolve());
+  const adminSeats = {
+    assertAvailable: assertAdminAvailable,
+  } as unknown as AdminSeats;
+  return {
+    useCase: new ChangeMembershipRolesUseCase(
+      memberships,
+      seats,
+      adminSeats,
+      immediateLock,
+    ),
+    update,
+    assertAvailable,
+    assertAdminAvailable,
+  };
 }
 
 describe('ChangeMembershipRolesUseCase', () => {
@@ -90,5 +116,67 @@ describe('ChangeMembershipRolesUseCase', () => {
     await expect(
       useCase.execute('membership-1', 'lender-1', ['LENDER']),
     ).rejects.toBeInstanceOf(MembershipNotFoundError);
+  });
+
+  it('revisa el cupo del plan cuando una membresía activa pasa a ser cobrador', async () => {
+    const { useCase, assertAvailable } = setup(
+      membershipWith(['LENDER'], null),
+    );
+
+    await useCase.execute(
+      'membership-1',
+      'lender-1',
+      ['LENDER', 'COLLECTOR'],
+      'portfolio-1',
+    );
+
+    expect(assertAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
+  });
+
+  it('revisa el cupo de administrador cuando una membresía activa pasa a administrar', async () => {
+    const { useCase, assertAdminAvailable } = setup(
+      membershipWith(['COLLECTOR'], 'portfolio-1'),
+    );
+
+    await useCase.execute('membership-1', 'lender-1', ['COLLECTOR', 'LENDER']);
+
+    expect(assertAdminAvailable).toHaveBeenCalledExactlyOnceWith('lender-1');
+  });
+
+  it('no revisa el cupo de administrador si ya administraba', async () => {
+    const { useCase, assertAdminAvailable } = setup(
+      membershipWith(['LENDER'], null),
+    );
+
+    await useCase.execute(
+      'membership-1',
+      'lender-1',
+      ['LENDER', 'COLLECTOR'],
+      'portfolio-1',
+    );
+
+    expect(assertAdminAvailable).not.toHaveBeenCalled();
+  });
+
+  it('no revisa el cupo si ya era cobrador', async () => {
+    const collector = setup(membershipWith(['COLLECTOR'], 'portfolio-1'));
+
+    await collector.useCase.execute('membership-1', 'lender-1', [
+      'COLLECTOR',
+      'LENDER',
+    ]);
+
+    expect(collector.assertAvailable).not.toHaveBeenCalled();
+  });
+
+  it('no deja cambiarle los roles al dueño del negocio', async () => {
+    const { useCase, update } = setup(
+      membershipWith(['OWNER', 'LENDER', 'COLLECTOR'], 'portfolio-1'),
+    );
+
+    await expect(
+      useCase.execute('membership-1', 'lender-1', ['LENDER']),
+    ).rejects.toBeInstanceOf(InvalidMembershipDataError);
+    expect(update).not.toHaveBeenCalled();
   });
 });

@@ -16,6 +16,7 @@ export type PasswordWeakness = 'COMMON' | 'PATTERN' | 'PERSONAL';
  */
 export class WeakPasswordError extends DomainError {
   readonly code = 'PASSWORD_TOO_WEAK';
+  readonly errorCode = 'A012V';
   readonly kind: DomainErrorKind = 'INVALID';
 
   /** @param weakness - Por qué se rechaza. */

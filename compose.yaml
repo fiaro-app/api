@@ -110,6 +110,7 @@ services:
       NODE_OPTIONS: --enable-source-maps
       DATABASE_URL: postgresql://${POSTGRES_USER:-fiaro}:${POSTGRES_PASSWORD:-fiaro}@postgres:5432/${POSTGRES_DB:-fiaro}
       REDIS_URL: redis://redis:6379
+      CACHE_REDIS_URL: redis://redis:6379
       MONGODB_URI: mongodb://${MONGO_USER:-fiaro}:${MONGO_PASSWORD:-fiaro}@mongo:27017/fiaro?authSource=admin
       S3_ENDPOINT: http://s3:8333
       S3_REGION: auto

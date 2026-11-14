@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Inject,
   QueryMethod,
   UseGuards,
 } from '@nestjs/common';
@@ -25,9 +26,31 @@ import {
   type LoanListResponseSchema,
 } from '@/modules/collections/infrastructure/controllers/schemas/loan-list-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import type { ReadCache } from '@/shared/application/ports/read-cache.port.js';
+import { READ_CACHE } from '@/shared/application/ports/read-cache.token.js';
+import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
+import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
+import { isCollectorOnly } from '@/shared/application/security/is-collector-only.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+
+/**
+ * Para un cobrador que no administra, la consulta queda atada a su propia cartera, sea cual sea el
+ * filtro que mande. Como el cobrador entra en los filtros, también entra en la clave de la caché:
+ * lo que ve un cobrador nunca se sirve a otro ni al prestamista.
+ *
+ * @param scope - El Lender y la membresía con la que opera la sesión.
+ * @param query - La consulta ya validada.
+ */
+function onlyOwnPortfolio<T extends object>(
+  scope: LenderScope,
+  query: T,
+): T & { collectorMembershipId?: string } {
+  return isCollectorOnly(scope.roles)
+    ? { ...query, collectorMembershipId: scope.membershipId }
+    : query;
+}
 
 /**
  * Las búsquedas de préstamos y de clientes del prestamista con el que opera la sesión, con el
@@ -39,7 +62,7 @@ import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
  * porque cada fila lleva lo que solo `collections` sabe calcular (el saldo y la mora salen de los
  * pagos de las visitas, D-84), y `loans` y `clients` no pueden depender de `collections` sin crear
  * un ciclo de módulos. El resto de las rutas de `/loans` y `/clients` sigue en sus módulos. Cualquier
- * rol puede verlas: no hay un `if` de rol aquí, igual que antes.
+ * rol puede verlas, pero un cobrador que no administra solo ve su propia cartera (`onlyOwnPortfolio`).
  */
 @Controller()
 @UseGuards(LenderScopeGuard)
@@ -47,6 +70,7 @@ export class PortfolioListController {
   constructor(
     private readonly listLoansWithBalanceUseCase: ListLoansWithBalanceUseCase,
     private readonly listClientsWithBalanceUseCase: ListClientsWithBalanceUseCase,
+    @Inject(READ_CACHE) private readonly cache: ReadCache,
   ) {}
 
   /**
@@ -62,11 +86,20 @@ export class PortfolioListController {
     query: z.output<typeof ListLoansWithBalanceRequestSchema>,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof LoanListResponseSchema>> {
-    const page = await this.listLoansWithBalanceUseCase.execute({
-      lenderId: scope.lenderId,
-      ...query,
-    });
-    return toLoanListResponse(page, query);
+    const filters = onlyOwnPortfolio(scope, query);
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('loans', filters),
+      CACHE_TTL_SECONDS.lists,
+      async () =>
+        toLoanListResponse(
+          await this.listLoansWithBalanceUseCase.execute({
+            lenderId: scope.lenderId,
+            ...filters,
+          }),
+          query,
+        ),
+    );
   }
 
   /**
@@ -82,10 +115,19 @@ export class PortfolioListController {
     query: z.output<typeof ListClientsWithBalanceRequestSchema>,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof ClientListResponseSchema>> {
-    const page = await this.listClientsWithBalanceUseCase.execute({
-      lenderId: scope.lenderId,
-      ...query,
-    });
-    return toClientListResponse(page, query);
+    const filters = onlyOwnPortfolio(scope, query);
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('clients', filters),
+      CACHE_TTL_SECONDS.lists,
+      async () =>
+        toClientListResponse(
+          await this.listClientsWithBalanceUseCase.execute({
+            lenderId: scope.lenderId,
+            ...filters,
+          }),
+          query,
+        ),
+    );
   }
 }

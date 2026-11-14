@@ -13,6 +13,8 @@ describe('toCollectorDailySummaryResponse', () => {
       expectedAmount: 50_000,
       collectedAmount: 30_000,
       collectedByMethod: { CASH: 30_000, NEQUI: 0, TRANSFER: 0 },
+      routeLoans: 0,
+      visitedLoans: 0,
       visits: [],
     };
 

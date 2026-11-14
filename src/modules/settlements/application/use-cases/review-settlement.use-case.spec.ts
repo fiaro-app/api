@@ -72,6 +72,8 @@ function setup(current: DailySettlement | null) {
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
     upsert: vi.fn(() => Promise.reject(new Error('no usado'))),
     review,
+    findByCollectorAndDate: vi.fn(() => Promise.resolve(null)),
+    delete: vi.fn(() => Promise.resolve()),
   };
   const getMembershipExecute = vi.fn(() => Promise.resolve(COLLECTOR));
   const getMembership = {

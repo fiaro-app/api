@@ -7,6 +7,8 @@
   "NOT_FOUND": "No encontramos lo que buscas.",
   "CONFLICT": "No se pudo completar porque los datos ya cambiaron o ya existen.",
   "SUBSCRIPTION_READ_ONLY": "La suscripción está en solo lectura: puedes consultar la información, pero no modificarla.",
+  "PLAN_FEATURE_UNAVAILABLE": "Esta función no viene en tu plan. Cambia a un plan Pro para usarla.",
+  "BILLING_UNAVAILABLE": "El pago de la suscripción no está disponible por ahora. Intenta de nuevo más tarde o escríbenos.",
   "MAINTENANCE": "Estamos en mantenimiento. Intenta de nuevo en unos minutos.",
   "INTERNAL_ERROR": "Algo salió mal de nuestro lado. Intenta de nuevo en unos minutos.",
   "TURNSTILE_FAILED": "No pudimos verificar que eres una persona. Intenta de nuevo.",
@@ -31,6 +33,9 @@
   "CONTACT_EMAIL_VERIFICATION_CODE_EXPIRED": "El código venció. Pide uno nuevo.",
   "ACCOUNT_DEACTIVATED": "Esta cuenta está desactivada.",
   "CLIENT_NATIONAL_ID_TAKEN": "Ya existe un cliente con esa cédula para este prestamista.",
+  "COLLABORATOR_NATIONAL_ID_TAKEN": "Ya hay un colaborador con esa cédula en este negocio.",
+  "PLAN_LIMIT_REACHED": "Tu plan llegó a uno de sus límites (cobradores, administradores, carteras o préstamos activos). Libera un cupo o mejora tu plan.",
+  "COLLECTOR_HAS_HISTORY": "Este cobrador ya tiene historial: dalo de baja en lugar de borrarlo.",
   "LOAN_NOT_CANCELABLE": "Este préstamo ya no está activo, así que no se puede cancelar.",
 
   "INVALID_PHONE_NUMBER_OR_PASSWORD": "El celular o la contraseña no son correctos.",

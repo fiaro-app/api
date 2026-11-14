@@ -45,6 +45,9 @@ function setup(found: Notification | null) {
     markAsRead,
     countUnread: vi.fn(),
     markAllAsRead: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+    deleteOlderThan: vi.fn(),
   };
   const clock: Clock = { now: () => READ_AT };
   return {

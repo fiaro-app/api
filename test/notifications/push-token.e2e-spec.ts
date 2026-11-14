@@ -148,7 +148,7 @@ describe('registro de dispositivos para push (D-95)', () => {
     expect(pushedTo(app, DEVICE)).toHaveLength(0);
   });
 
-  it('manda el correo y el push a la vez, cuando la persona tiene los dos disponibles', async () => {
+  it('una notificación informativa llega solo como push aunque haya correo verificado (D-125)', async () => {
     app = await startTestApp({ env: CORS });
     const business = await seedBusinessWithCollector(app);
     await verifyContactEmail(
@@ -166,7 +166,7 @@ describe('registro de dispositivos para push (D-95)', () => {
           email.to === 'cobrador@example.com' &&
           email.subject === 'Fiaro: Préstamo asignado',
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(pushedTo(app, DEVICE)).toHaveLength(1);
   });
 });

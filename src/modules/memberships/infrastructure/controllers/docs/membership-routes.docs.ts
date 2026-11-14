@@ -1,11 +1,17 @@
-import { ApiErrorSchema } from '@fiaro-app/contracts';
 import { applyDecorators } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 import {
+  ApiMembershipNotFoundResponse,
+  ApiUnauthenticatedResponse,
+  ApiValidationFailedResponse,
+  ApiWrongRoleOrPlanLimitResponse,
+  ApiWrongRoleResponse,
+} from '@/modules/memberships/infrastructure/controllers/docs/membership-common-responses.docs.js';
+import {
+  CollaboratorNationalIdTakenSchema,
   MembershipConflictSchema,
   MembershipForbiddenSchema,
-  MembershipNotFoundSchema,
   MembershipValidationErrorSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-errors.schema.js';
 import {
@@ -16,46 +22,6 @@ import {
   ResetMembershipPasswordResponseSchema,
 } from '@/modules/memberships/infrastructure/controllers/schemas/membership-responses.schema.js';
 import { SESSION_SECURITY_SCHEME } from '@/shared/infrastructure/http/session-cookie.js';
-
-/** `401 UNAUTHENTICATED`: sin sesión vigente. */
-const UnauthenticatedErrorSchema = ApiErrorSchema.extend({
-  code: z.literal('UNAUTHENTICATED'),
-}).meta({ id: 'MembershipUnauthenticated' });
-
-/** El 401 de toda ruta protegida: sin sesión vigente. */
-const ApiUnauthenticatedResponse = () =>
-  ApiResponse({
-    status: 401,
-    description: 'No hay sesión vigente (`UNAUTHENTICATED`).',
-    standardSchema: UnauthenticatedErrorSchema,
-  });
-
-/** El 403 de administrar: la membresía activa no tiene rol `OWNER` ni `LENDER`, o es sobre la propia sesión. */
-const ApiWrongRoleResponse = () =>
-  ApiResponse({
-    status: 403,
-    description:
-      'Sin ninguna membresía activa, la membresía activa no tiene rol `OWNER` ni `LENDER`, o el pedido es sobre la propia membresía de la sesión (`FORBIDDEN`).',
-    standardSchema: MembershipForbiddenSchema,
-  });
-
-/** El 404 de una ruta con `:id`: la membresía no existe para el prestamista de la sesión. */
-const ApiMembershipNotFoundResponse = () =>
-  ApiResponse({
-    status: 404,
-    description:
-      'La membresía no existe, o es de otro prestamista (`NOT_FOUND`).',
-    standardSchema: MembershipNotFoundSchema,
-  });
-
-/** El 400 de un cuerpo, roles o cartera que no cumplen el contrato. */
-const ApiValidationFailedResponse = () =>
-  ApiResponse({
-    status: 400,
-    description:
-      'El cuerpo no cumple el contrato, los roles no son válidos, o falta la cartera o la cédula que exige `COLLECTOR` (`VALIDATION_FAILED`).',
-    standardSchema: MembershipValidationErrorSchema,
-  });
 
 /** Documenta `QUERY /memberships`. */
 export const ApiListMemberships = () =>
@@ -115,7 +81,7 @@ export const ApiInviteMembership = () =>
     ApiOperation({
       summary: 'Invitar a un colaborador',
       description:
-        'Si el celular ya tiene cuenta, solo se agrega la membresía (esa persona puede trabajar para más de un prestamista) y `tempPassword` sale `null`. Si no, el backend crea la cuenta con una contraseña temporal, que se muestra una sola vez en `tempPassword` para pasarla por WhatsApp (PRODUCT.md §5). Exige rol `OWNER` o `LENDER` en la membresía activa.',
+        'Si el celular ya tiene cuenta, solo se agrega la membresía (esa persona puede trabajar para más de un prestamista) y `tempPassword` sale `null`. Si no, el backend crea la cuenta con una contraseña temporal, que se muestra una sola vez en `tempPassword` para pasarla por WhatsApp (PRODUCT.md §5). Si un alta anterior se cayó a medias (la cuenta existe sin ninguna membresía y sin estrenar), se completa y `tempPassword` trae una contraseña temporal nueva. La cédula es única dentro del negocio, no en todo el sistema. Si la persona ocupa un cupo de cobrador (tiene `COLLECTOR` y no `OWNER`), el plan debe tener cupo; dos altas simultáneas no pueden pasarse del límite. Exige rol `OWNER` o `LENDER` en la membresía activa.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
@@ -125,12 +91,15 @@ export const ApiInviteMembership = () =>
     }),
     ApiValidationFailedResponse(),
     ApiUnauthenticatedResponse(),
-    ApiWrongRoleResponse(),
+    ApiWrongRoleOrPlanLimitResponse(),
     ApiResponse({
       status: 409,
       description:
-        'Esa persona ya tiene una membresía con este prestamista (`CONFLICT`).',
-      standardSchema: MembershipConflictSchema,
+        'Esa persona ya tiene una membresía con este prestamista (`CONFLICT`), u otra persona del negocio ya tiene esa cédula (`COLLABORATOR_NATIONAL_ID_TAKEN`; la regla es por prestamista: la misma persona puede trabajar para otro).',
+      standardSchema: z.union([
+        MembershipConflictSchema,
+        CollaboratorNationalIdTakenSchema,
+      ]),
     }),
   );
 
@@ -194,6 +163,6 @@ export const ApiChangeMembershipRoles = () =>
     }),
     ApiValidationFailedResponse(),
     ApiUnauthenticatedResponse(),
-    ApiWrongRoleResponse(),
+    ApiWrongRoleOrPlanLimitResponse(),
     ApiMembershipNotFoundResponse(),
   );

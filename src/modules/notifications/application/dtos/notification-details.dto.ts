@@ -60,3 +60,13 @@ export interface UnreadNotificationsInput {
    */
   readonly lenderId?: string;
 }
+
+/** Criterio de {@link DeleteNotificationsUseCase}. */
+export interface DeleteNotificationsInput {
+  /** Quién las recibe, resuelto de la sesión. */
+  readonly recipientUserId: string;
+  /** Solo las de este prestamista; ausente para las de todos. */
+  readonly lenderId?: string;
+  /** Solo las ya leídas. */
+  readonly onlyRead: boolean;
+}

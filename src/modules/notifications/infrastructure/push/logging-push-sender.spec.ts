@@ -11,6 +11,9 @@ const MESSAGE: PushMessage = {
     relatedEntityType: 'LOAN',
     relatedEntityId: 'loan-1',
   },
+  priority: 'default',
+  ttl: 43_200,
+  channelId: 'default',
 };
 
 describe('LoggingPushSender', () => {

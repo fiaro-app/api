@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { verifyLogo } from '@/modules/lenders/application/services/verify-logo.js';
+import type { ObjectStoragePort } from '@/shared/application/ports/object-storage.port.js';
+import { OBJECT_STORAGE } from '@/shared/application/ports/object-storage.token.js';
 import type {
   LenderDetails,
   UpdateLenderInput,
@@ -22,17 +25,24 @@ import { LENDER_REPOSITORY } from '@/modules/lenders/domain/tokens/lender-reposi
 export class UpdateLenderUseCase {
   constructor(
     @Inject(LENDER_REPOSITORY) private readonly lenders: LenderRepository,
+    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStoragePort,
   ) {}
 
   /**
    * @param input - El prestamista y los campos que cambian.
    * @returns El prestamista actualizado.
    * @throws {@link InvalidLenderDataError} Si el resultado no cumple el contrato.
+   * @throws {@link InvalidLenderLogoError} Si `logoUrl` no es un logo subido con la URL firmada de este
+   * prestamista y verificado como PNG o JPEG (D-132).
    */
   async execute(input: UpdateLenderInput): Promise<LenderDetails> {
     const current = await this.lenders.findById(input.lenderId);
     if (current === null) {
       throw new Error(`El prestamista ${input.lenderId} no existe.`);
+    }
+
+    if (typeof input.logoUrl === 'string') {
+      await verifyLogo(this.storage, input.lenderId, input.logoUrl);
     }
 
     const data = validateLenderData({

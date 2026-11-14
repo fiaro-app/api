@@ -1,0 +1,14 @@
+$kind: http-request
+description: Borra la notificación de préstamo asignado del paso 6, sin vuelta atrás. Una ajena o ya borrada responde 404.
+url: "{{baseUrl}}/notifications/{{notifAssignedNotificationId}}"
+method: DELETE
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 204', () => pm.response.to.have.status(204));
+    language: text/javascript
+order: 18000

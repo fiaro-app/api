@@ -10,6 +10,7 @@ import {
  */
 export class CollectorNotAssignedError extends DomainError {
   readonly code = 'FORBIDDEN';
+  readonly errorCode = 'V002A';
   readonly kind: DomainErrorKind = 'FORBIDDEN';
 
   constructor() {

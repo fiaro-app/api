@@ -28,7 +28,7 @@ function respondTo(
     }),
   } as unknown as ArgumentsHost;
 
-  new ApiExceptionFilter(realApiErrors()).catch(exception, host);
+  new ApiExceptionFilter(realApiErrors('production')).catch(exception, host);
   return res;
 }
 

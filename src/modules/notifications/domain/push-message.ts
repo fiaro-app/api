@@ -1,3 +1,11 @@
+import {
+  clampPushText,
+  PUSH_BODY_MAX,
+  PUSH_CHANNEL_ID,
+  PUSH_TITLE_MAX,
+  PUSH_TTL_SECONDS,
+  type PushPriority,
+} from '@/modules/notifications/domain/push-standard.js';
 import type { Notification } from '@/modules/notifications/domain/entities/notification.entity.js';
 import type { NotificationEntityType } from '@/modules/notifications/domain/entities/notification-entity-type.js';
 
@@ -19,8 +27,14 @@ export interface PushMessage {
   readonly title: string;
   /** Texto, igual que el de la notificación del feed. */
   readonly body: string;
-  /** Datos para abrir la notificación al tocarla. */
+  /** Datos para abrir la notificación al tocarla: solo identificadores, nunca datos de personas ni montos. */
   readonly data: PushData;
+  /** `high` para alertas y advertencias, `default` para lo informativo. */
+  readonly priority: PushPriority;
+  /** Segundos que Expo reintenta entregarlo antes de descartarlo. */
+  readonly ttl: number;
+  /** Canal de Android donde se muestra. */
+  readonly channelId: string;
 }
 
 /**
@@ -36,12 +50,18 @@ export function pushMessageFor(
 ): PushMessage {
   return {
     to: token,
-    title: notification.title,
-    body: notification.body,
+    title: clampPushText(notification.title, PUSH_TITLE_MAX),
+    body: clampPushText(notification.body, PUSH_BODY_MAX),
     data: {
       notificationId: notification.id,
       relatedEntityType: notification.relatedEntityType,
       relatedEntityId: notification.relatedEntityId,
     },
+    priority:
+      notification.severity === 'ALERT' || notification.severity === 'WARNING'
+        ? 'high'
+        : 'default',
+    ttl: PUSH_TTL_SECONDS,
+    channelId: PUSH_CHANNEL_ID,
   };
 }

@@ -26,6 +26,40 @@ export interface LoanPortfolioReadRepository {
    * @returns El cobrador que tiene cada préstamo asignado en esa fecha: `loanId` →
    * `collectorMembershipId`. Un préstamo sin asignación vigente no aparece.
    */
+  /**
+   * El nombre de cada cliente, en una sola consulta.
+   *
+   * @param clientIds - Los clientes.
+   * @param lenderId - El prestamista dueño.
+   * @returns `clientId` → nombre completo.
+   */
+  listClientNames(
+    clientIds: readonly string[],
+    lenderId: string,
+  ): Promise<ReadonlyMap<string, string>>;
+
+  /**
+   * El nombre de la persona de cada membresía, en una sola consulta.
+   *
+   * @param membershipIds - Las membresías.
+   * @param lenderId - El prestamista dueño.
+   * @returns `membershipId` → nombre completo.
+   */
+  listMembershipNames(
+    membershipIds: readonly string[],
+    lenderId: string,
+  ): Promise<ReadonlyMap<string, string>>;
+
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario (`AAAA-MM-DD`).
+   * @returns Los clientes que tienen al menos un préstamo asignado a ese cobrador en esa fecha.
+   */
+  listClientIdsByCollector(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<readonly string[]>;
+
   listCollectorsByLoans(
     loanIds: readonly string[],
     date: string,

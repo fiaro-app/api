@@ -9,6 +9,7 @@ import {
  */
 export class InvalidPasswordError extends DomainError {
   readonly code = 'INVALID_PASSWORD_LENGTH';
+  readonly errorCode = 'A006V';
   readonly kind: DomainErrorKind = 'INVALID';
 
   constructor(minLength: number, maxLength: number) {

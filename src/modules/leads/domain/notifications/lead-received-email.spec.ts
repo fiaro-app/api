@@ -17,11 +17,11 @@ describe('leadReceivedEmail', () => {
   it('lleva el nombre en el asunto y todos los datos en ambos cuerpos', () => {
     const email = leadReceivedEmail(lead());
 
-    expect(email.subject).toBe('Nuevo contacto de ventas: Ana Pérez');
+    expect(email.subject).toBe('Fiaro: Nuevo contacto de ventas: Ana Pérez');
     expect(email.text).toContain('Ana Pérez dejó sus datos.');
     expect(email.text).toContain('+573001234567 · ana@ejemplo.co');
     expect(email.html).toContain('+573001234567 · ana@ejemplo.co');
-    expect(email.html).toContain('Quiero probar Fiaro.<br>Tengo 3 cobradores.');
+    expect(email.html).toContain('Quiero probar Fiaro.\nTengo 3 cobradores.');
   });
 
   it('muestra solo el medio de contacto que dejó', () => {
@@ -49,8 +49,6 @@ describe('leadReceivedEmail', () => {
     );
 
     expect(email.subject).not.toMatch(/[\r\n]/);
-    expect(email.subject.length).toBeLessThanOrEqual(
-      'Nuevo contacto de ventas: '.length + 80,
-    );
+    expect(email.subject.length).toBeLessThanOrEqual(60);
   });
 });

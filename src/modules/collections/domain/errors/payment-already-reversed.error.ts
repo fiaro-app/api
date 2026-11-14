@@ -11,6 +11,7 @@ import {
  */
 export class PaymentAlreadyReversedError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'V007A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

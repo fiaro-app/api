@@ -10,6 +10,7 @@ import {
  */
 export class InvalidClientDataError extends DomainError {
   readonly code = 'VALIDATION_FAILED';
+  readonly errorCode = 'C003V';
   readonly kind: DomainErrorKind = 'INVALID';
   declare readonly issues: readonly DomainIssue[];
 

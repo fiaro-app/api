@@ -16,7 +16,14 @@ body:
       "fullName": "Elena Vargas (dueña de prueba de reversiones)",
       "password": "{{reversalOwnerPassword}}",
       "nationalId": "{{reversalOwnerNationalId}}",
-      "businessName": "Créditos Elena (prueba de reversiones)"
+      "contactEmail": "{{reversalOwnerPhone}}@example.com",
+      "businessName": "Créditos Elena (prueba de reversiones)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "acceptedCookies": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-11-14"
     }
 scripts:
   - type: prerequest

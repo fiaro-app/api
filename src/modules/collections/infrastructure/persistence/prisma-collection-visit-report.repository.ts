@@ -4,7 +4,10 @@ import type {
   CollectionVisitReportPage,
   CollectionVisitReportRepository,
   CollectionVisitReportRow,
+  RouteDaySummary,
+  RouteLogCriteria,
 } from '@/modules/collections/domain/repositories/collection-visit-report.repository.js';
+import { summarizeRouteDays } from '@/modules/collections/infrastructure/persistence/route-day-summary.js';
 import { businessRangeInstants } from '@/shared/domain/calendar/business-date.js';
 import type { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
@@ -82,6 +85,23 @@ function toWhere(
   };
 }
 
+/** Lo que el resumen de rutas lee de cada visita. */
+const ROUTE_SELECT = {
+  occurredAt: true,
+  outcome: true,
+  expectedAmount: true,
+  collectorMembershipId: true,
+  membership: { select: { user: { select: { fullName: true } } } },
+  payment: { select: { amount: true, reversal: { select: { id: true } } } },
+} satisfies Prisma.CollectionVisitSelect;
+
+/** @param payment - El pago de la visita, si lo hubo. */
+function collectedOf(
+  payment: { amount: number; reversal: { id: string } | null } | null,
+): number {
+  return payment !== null && payment.reversal === null ? payment.amount : 0;
+}
+
 /** Lee las visitas de todo un prestamista de PostgreSQL con Prisma, en una sola consulta. */
 @Injectable()
 export class PrismaCollectionVisitReportRepository implements CollectionVisitReportRepository {
@@ -103,5 +123,26 @@ export class PrismaCollectionVisitReportRepository implements CollectionVisitRep
       this.prisma.collectionVisit.count({ where }),
     ]);
     return { items: records.map(toReportRow), total };
+  }
+
+  /** @param criteria - Prestamista, fechas y filtros opcionales. */
+  async summarizeRoutes(
+    criteria: RouteLogCriteria,
+  ): Promise<readonly RouteDaySummary[]> {
+    const records = await this.prisma.collectionVisit.findMany({
+      where: toWhere({ ...criteria, page: 1, pageSize: 1 }),
+      select: ROUTE_SELECT,
+      orderBy: { occurredAt: 'asc' },
+    });
+    return summarizeRouteDays(
+      records.map((record) => ({
+        occurredAt: record.occurredAt,
+        outcome: record.outcome,
+        expectedAmount: record.expectedAmount,
+        collectorMembershipId: record.collectorMembershipId,
+        collectorFullName: record.membership.user.fullName,
+        collectedAmount: collectedOf(record.payment),
+      })),
+    );
   }
 }

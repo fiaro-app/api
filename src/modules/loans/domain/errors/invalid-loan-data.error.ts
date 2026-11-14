@@ -10,6 +10,7 @@ import {
  */
 export class InvalidLoanDataError extends DomainError {
   readonly code = 'VALIDATION_FAILED';
+  readonly errorCode = 'L001V';
   readonly kind: DomainErrorKind = 'INVALID';
   declare readonly issues: readonly DomainIssue[];
 

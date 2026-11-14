@@ -1,0 +1,34 @@
+$kind: http-request
+description: "Sin datos del cliente: basta la cédula."
+url: "{{baseUrl}}/loan-requests"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "nationalId": "{{requestNationalId}}",
+      "principalAmount": 200000,
+      "installmentCount": 10,
+      "installmentValue": 22000,
+      "totalPayable": 220000,
+      "frequency": "WEEKLY",
+      "startDate": "2026-12-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('apunta al cliente existente, sin datos personales', () => {
+        pm.expect(body.clientId).to.be.a('string');
+        pm.expect(body.newClient).to.be.null;
+      });
+      pm.collectionVariables.set('loanRequestId', body.id);
+    language: text/javascript
+order: 7000

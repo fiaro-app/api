@@ -53,6 +53,7 @@ function setup(
   const updatePassword = vi.fn(() => Promise.resolve());
   const users: UserRepository = {
     create: vi.fn(),
+    findByVerifiedContactEmail: vi.fn(),
     findByPhone: vi.fn(() => Promise.resolve(found)),
     findById: vi.fn(() => Promise.resolve(found)),
     updatePassword,
@@ -171,7 +172,7 @@ describe('ResetPasswordUseCase.execute', () => {
     const { useCase, updatePassword } = setup();
 
     await expect(
-      useCase.execute({ ...VALID, newPassword: '12345678' }),
+      useCase.execute({ ...VALID, newPassword: 'tequieromucho123' }),
     ).rejects.toBeInstanceOf(WeakPasswordError);
     expect(updatePassword).not.toHaveBeenCalled();
   });

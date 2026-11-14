@@ -175,7 +175,7 @@ export class SendMoraAlertsUseCase {
         this.createNotification.execute({
           recipientUserId: reviewer.userId,
           lenderId,
-          severity: 'WARNING',
+          severity: 'INFO',
           title: MORA_NOTIFICATION_TITLE,
           body: moraNotificationBody(tally),
           relatedEntityType: null,

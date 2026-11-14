@@ -61,6 +61,7 @@ export class PrismaClientRepository implements ClientRepository {
     const search = criteria.search?.trim();
     const where: Prisma.ClientWhereInput = {
       lenderId: criteria.lenderId,
+      ...(criteria.ids ? { id: { in: [...criteria.ids] } } : {}),
       ...(search
         ? {
             OR: [

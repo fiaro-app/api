@@ -6,6 +6,7 @@ import {
 /** La cuenta no tiene un correo de contacto registrado: no hay nada que verificar. */
 export class ContactEmailNotSetError extends DomainError {
   readonly code = 'CONTACT_EMAIL_NOT_SET';
+  readonly errorCode = 'A002A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

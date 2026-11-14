@@ -1,0 +1,23 @@
+$kind: http-request
+description: "Ahora el cliente existe en el negocio."
+url: "{{baseUrl}}/loan-requests/client-lookup"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "nationalId": "{{requestNationalId}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('ahora existe', () => pm.expect(pm.response.json().exists).to.be.true);
+    language: text/javascript
+order: 6000

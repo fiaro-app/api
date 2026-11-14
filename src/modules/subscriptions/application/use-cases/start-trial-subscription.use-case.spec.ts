@@ -15,6 +15,7 @@ describe('StartTrialSubscriptionUseCase', () => {
         return Promise.resolve();
       }),
       findByTenant: vi.fn(),
+      listEndingBetween: vi.fn(),
     };
     const settings: TrialSubscriptionSettings = {
       trialDays: () => 30,
@@ -37,6 +38,9 @@ describe('StartTrialSubscriptionUseCase', () => {
       planCode: 'TRIAL',
       maxActiveLenders: 1,
       maxCollectors: 5,
+      maxAdmins: 3,
+      maxPortfolios: 4,
+      maxActiveLoans: null,
       currentPeriodEndsAt: new Date('2026-11-08T12:00:00Z'),
       createdAt: NOW,
     });

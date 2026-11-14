@@ -4,6 +4,8 @@ import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.
 /** Un préstamo de la lista, con su saldo, su mora y el cobrador que lo tiene hoy. */
 export interface LoanListItem {
   readonly loan: LoanDetails;
+  /** Nombre completo del cliente, para que la lista no tenga que buscarlo aparte. */
+  readonly clientFullName: string;
   /** `totalPayable` menos lo pagado; nunca baja de cero. */
   readonly balance: number;
   /** Cuánto de lo esperado hasta hoy sigue sin pagar; cero si está al día o ya cerró. */
@@ -17,6 +19,17 @@ export interface LoanListItem {
     readonly membershipId: string;
     readonly fullName: string;
   } | null;
+}
+
+/** Entrada de {@link ListLoansWithBalanceUseCase}: la de `ListLoansUseCase` más el cobrador. */
+export interface ListLoansWithBalanceInput {
+  readonly lenderId: string;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly clientId?: string;
+  readonly status?: LoanDetails['status'];
+  /** Solo los préstamos que este cobrador tiene asignados hoy. */
+  readonly collectorMembershipId?: string;
 }
 
 /** Una página de {@link ListLoansWithBalanceUseCase}. */

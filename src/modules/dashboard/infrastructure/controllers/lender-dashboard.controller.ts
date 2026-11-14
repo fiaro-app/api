@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Query,
   QueryMethod,
   Res,
@@ -35,8 +36,15 @@ import {
   type LenderPeriodStatsResponseSchema,
 } from '@/modules/dashboard/infrastructure/controllers/schemas/lender-stats-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import type { ReadCache } from '@/shared/application/ports/read-cache.port.js';
+import type { SubscriptionAccess } from '@/shared/application/ports/subscription-access.port.js';
+import { SUBSCRIPTION_ACCESS } from '@/shared/application/ports/subscription-access.token.js';
+import { READ_CACHE } from '@/shared/application/ports/read-cache.token.js';
+import { cacheKey } from '@/shared/infrastructure/cache/cache-key.js';
+import { CACHE_TTL_SECONDS } from '@/shared/infrastructure/cache/cache-ttl.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
+import { RequiresPlanFeature } from '@/shared/infrastructure/http/requires-plan-feature.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
 
@@ -62,6 +70,9 @@ export class LenderDashboardController {
     private readonly getLenderDashboardUseCase: GetLenderDashboardUseCase,
     private readonly getLenderStatsUseCase: GetLenderStatsUseCase,
     private readonly getLenderStatsExportUseCase: GetLenderStatsExportUseCase,
+    @Inject(READ_CACHE) private readonly cache: ReadCache,
+    @Inject(SUBSCRIPTION_ACCESS)
+    private readonly subscription: SubscriptionAccess,
   ) {}
 
   /**
@@ -79,8 +90,14 @@ export class LenderDashboardController {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
-    return toLenderDashboardResponse(
-      await this.getLenderDashboardUseCase.execute(scope.lenderId, query),
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('dashboard', query),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toLenderDashboardResponse(
+          await this.getLenderDashboardUseCase.execute(scope.lenderId, query),
+        ),
     );
   }
 
@@ -99,15 +116,26 @@ export class LenderDashboardController {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
-    return toLenderPeriodStatsResponse(
-      await this.getLenderStatsUseCase.execute({
-        lenderId: scope.lenderId,
-        from: query.dateRange?.from,
-        to: query.dateRange?.to,
-        collectorMembershipId: query.collectorMembershipId,
-        portfolioId: query.portfolioId,
-        includePrevious: query.includePrevious,
-      }),
+    // El comparativo con el período anterior es de los planes con estadísticas avanzadas (D-151):
+    // quien no lo tiene recibe las mismas estadísticas sin comparativo, no un error.
+    const includePrevious = query.includePrevious
+      ? await this.subscription.hasFeature(scope.lenderId, 'ADVANCED_STATS')
+      : query.includePrevious;
+    return this.cache.getOrLoad(
+      scope.lenderId,
+      cacheKey('stats', { ...query, includePrevious }),
+      CACHE_TTL_SECONDS.stats,
+      async () =>
+        toLenderPeriodStatsResponse(
+          await this.getLenderStatsUseCase.execute({
+            lenderId: scope.lenderId,
+            from: query.dateRange?.from,
+            to: query.dateRange?.to,
+            collectorMembershipId: query.collectorMembershipId,
+            portfolioId: query.portfolioId,
+            includePrevious,
+          }),
+        ),
     );
   }
 
@@ -119,6 +147,7 @@ export class LenderDashboardController {
    * @param scope - El Lender con el que opera la sesión.
    * @param res - Respuesta de Express, para escribir el PDF directamente.
    */
+  @RequiresPlanFeature('ADVANCED_STATS')
   @QueryMethod('stats/export')
   @HttpCode(HttpStatus.OK)
   @ApiGetLenderStatsExport()
@@ -131,7 +160,7 @@ export class LenderDashboardController {
     if (!hasAnyRole(scope.roles, VIEWER_ROLES)) {
       throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
     }
-    const { stats, lenderName } =
+    const { stats, lenderName, brand } =
       await this.getLenderStatsExportUseCase.execute({
         lenderId: scope.lenderId,
         from: query.dateRange?.from,
@@ -139,7 +168,7 @@ export class LenderDashboardController {
         collectorMembershipId: query.collectorMembershipId,
         portfolioId: query.portfolioId,
       });
-    const pdf = await renderLenderStatsPdf(stats, lenderName);
+    const pdf = await renderLenderStatsPdf(stats, lenderName, brand);
     res.status(HttpStatus.OK);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(

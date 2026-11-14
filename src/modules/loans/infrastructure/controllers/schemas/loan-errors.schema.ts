@@ -11,6 +11,11 @@ export const LoanForbiddenSchema = ApiErrorSchema.extend({
   code: z.literal('FORBIDDEN'),
 }).meta({ id: 'LoanForbidden' });
 
+/** `403 PLAN_LIMIT_REACHED`: el negocio ya tiene todos los préstamos activos que permite su plan. */
+export const LoanPlanLimitReachedSchema = ApiErrorSchema.extend({
+  code: z.literal('PLAN_LIMIT_REACHED'),
+}).meta({ id: 'LoanPlanLimitReached' });
+
 /** `404 NOT_FOUND`: el préstamo, o el cliente, no existe para el prestamista de la sesión. */
 export const LoanNotFoundSchema = ApiErrorSchema.extend({
   code: z.literal('NOT_FOUND'),

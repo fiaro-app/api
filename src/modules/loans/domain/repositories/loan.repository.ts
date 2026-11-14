@@ -13,6 +13,13 @@ export interface ListLoansCriteria {
   readonly clientId?: string;
   /** Solo los préstamos en este estado; ausente para listar todos. */
   readonly status?: LoanStatus;
+  /** Solo estos préstamos (por ejemplo, los que un cobrador tiene asignados hoy); ausente para no acotar. */
+  readonly ids?: readonly string[];
+  /**
+   * Solo los que estaban abiertos justo antes de este instante: creados antes y sin cerrar o
+   * cerrados desde entonces. Lo usan las estadísticas del período anterior (D-122).
+   */
+  readonly openAt?: Date;
 }
 
 /** Una página de {@link LoanRepository.list}. */
@@ -54,6 +61,13 @@ export interface LoanRepository {
     lenderId: string,
     clientIds: readonly string[],
   ): Promise<readonly Loan[]>;
+
+  /**
+   * Cuántos préstamos `ACTIVE` tiene el prestamista: lo que cuenta contra el tope del plan.
+   *
+   * @param lenderId - El prestamista dueño.
+   */
+  countActive(lenderId: string): Promise<number>;
 
   /**
    * Los prestamistas que tienen préstamos en ese estado, sin repetir. Es la única consulta que

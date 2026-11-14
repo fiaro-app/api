@@ -45,6 +45,39 @@ export interface CollectionVisitReportRow {
   } | null;
 }
 
+/** Criterio de {@link CollectionVisitReportRepository.summarizeRoutes}. */
+export interface RouteLogCriteria {
+  /** Solo las visitas de préstamos de este prestamista. */
+  readonly lenderId: string;
+  /** Primera fecha (`AAAA-MM-DD`, hora de Bogotá), inclusive. */
+  readonly from: string;
+  /** Última fecha (`AAAA-MM-DD`, hora de Bogotá), inclusive. */
+  readonly to: string;
+  /** Solo las de este cobrador. */
+  readonly collectorMembershipId?: string;
+  /** Solo las de los cobradores de esta cartera. */
+  readonly portfolioId?: string;
+}
+
+/** La ruta de un cobrador en un día, resumida a partir de sus visitas. */
+export interface RouteDaySummary {
+  /** El día (`AAAA-MM-DD`, hora de Bogotá). */
+  readonly date: string;
+  readonly collectorMembershipId: string;
+  readonly collectorFullName: string;
+  /** Hora de su primera visita del día: cuando empezó la ruta. */
+  readonly startedAt: Date;
+  /** Hora de su última visita del día: cuando terminó la ruta. */
+  readonly endedAt: Date;
+  readonly visitsCount: number;
+  /** Cuántas visitas terminaron en pago. */
+  readonly paidCount: number;
+  /** La suma de las cuotas que se esperaba cobrar en esas visitas. */
+  readonly expectedAmount: number;
+  /** Lo cobrado, sin contar los pagos revertidos. */
+  readonly collectedAmount: number;
+}
+
 /** Una página de {@link CollectionVisitReportRepository.search}. */
 export interface CollectionVisitReportPage {
   readonly items: readonly CollectionVisitReportRow[];
@@ -69,4 +102,13 @@ export interface CollectionVisitReportRepository {
   search(
     criteria: CollectionVisitReportCriteria,
   ): Promise<CollectionVisitReportPage>;
+
+  /**
+   * @param criteria - Prestamista, fechas y filtros opcionales.
+   * @returns Un resumen por cada cobrador y día con visitas, del día más reciente al más antiguo y, dentro de
+   * un día, por nombre del cobrador.
+   */
+  summarizeRoutes(
+    criteria: RouteLogCriteria,
+  ): Promise<readonly RouteDaySummary[]>;
 }

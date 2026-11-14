@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { CollectionsModule } from '@/modules/collections/collections.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
+import { SubscriptionsModule } from '@/modules/subscriptions/subscriptions.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { alertsProviders } from '@/modules/alerts/infrastructure/alerts.providers.js';
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
 
 /**
- * Alertas diarias para el prestamista (D-96): el aviso de mora de las 08:00 de Bogotá. No publica
+ * Alertas diarias (D-96, D-150): el aviso de mora al prestamista y los recordatorios de vencimiento del plan a la dueña, a las 08:00 de Bogotá. No publica
  * rutas: es un proceso que corre dentro de la aplicación.
  *
  * @remarks
@@ -23,6 +24,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
     CollectionsModule,
     MembershipsModule,
     NotificationsModule,
+    SubscriptionsModule,
   ],
   providers: alertsProviders,
 })

@@ -11,6 +11,9 @@ export const LoanListItemResponseSchema = z
   .object({
     id: z.uuid().meta({ description: 'Identificador del préstamo.' }),
     clientId: z.uuid().meta({ description: 'El cliente que lo solicitó.' }),
+    clientFullName: z.string().meta({
+      description: 'Nombre completo del cliente.',
+    }),
     principalAmount: z.int().meta({
       description: 'Monto prestado, en pesos colombianos.',
     }),
@@ -80,9 +83,10 @@ export function toLoanListResponse(
   pageQuery: { page: number; pageSize: number },
 ): z.output<typeof LoanListResponseSchema> {
   return {
-    data: page.items.map(({ loan, collector, ...balance }) => ({
+    data: page.items.map(({ loan, collector, clientFullName, ...balance }) => ({
       id: loan.id,
       clientId: loan.clientId,
+      clientFullName,
       principalAmount: loan.principalAmount,
       installmentCount: loan.installmentCount,
       installmentValue: loan.installmentValue,

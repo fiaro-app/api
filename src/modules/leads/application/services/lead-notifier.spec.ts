@@ -35,7 +35,7 @@ describe('LeadNotifier', () => {
     expect(send).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         to: 'ventas@fiaro.co',
-        subject: 'Nuevo contacto de ventas: Ana Pérez',
+        subject: 'Fiaro: Nuevo contacto de ventas: Ana Pérez',
       }),
     );
   });

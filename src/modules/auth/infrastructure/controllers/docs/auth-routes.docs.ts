@@ -45,6 +45,33 @@ export const ApiSignIn = () =>
     ApiSignInRateLimitedResponse(),
   );
 
+/** Documenta `POST /auth/sign-in`. */
+export const ApiSignInWithIdentifier = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Iniciar sesión con celular o correo',
+      description:
+        'Como `POST /auth/sign-in/phone-number`, pero `identifier` acepta el celular (E.164) o el correo de contacto. Un correo solo sirve si ya está verificado; uno desconocido o sin verificar responde, tarda y se bloquea igual que una contraseña incorrecta, para no revelar qué correos tienen cuenta. Mismos límites: 5 intentos por minuto y por IP, y bloqueo de 15 minutos tras 5 contraseñas incorrectas seguidas para la misma identidad (`SIGN_IN_LOCKED`).',
+    }),
+    ApiOriginHeaders(),
+    ApiResponse({
+      status: 200,
+      description:
+        'Sesión abierta. La cookie de sesión llega en `Set-Cookie`; `user.mustChangePassword` indica si debe cambiar una contraseña temporal antes de operar.',
+      standardSchema: SignInResponseSchema,
+      headers: sessionCookieHeaders,
+    }),
+    ApiValidationFailedResponse(),
+    ApiResponse({
+      status: 401,
+      description:
+        'La identidad o la contraseña son incorrectas (`INVALID_PHONE_NUMBER_OR_PASSWORD`).',
+      standardSchema: AuthErrorSchema,
+    }),
+    ApiOriginRejectedResponse(),
+    ApiSignInRateLimitedResponse(),
+  );
+
 /** Documenta `GET /auth/get-session`. */
 export const ApiGetSession = () =>
   applyDecorators(

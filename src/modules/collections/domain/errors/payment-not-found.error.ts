@@ -10,6 +10,7 @@ import {
  */
 export class PaymentNotFoundError extends DomainError {
   readonly code = 'NOT_FOUND';
+  readonly errorCode = 'V008A';
   readonly kind: DomainErrorKind = 'NOT_FOUND';
 
   /** @param id - El pago que no se encontró. */

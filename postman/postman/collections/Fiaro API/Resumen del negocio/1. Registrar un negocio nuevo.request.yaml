@@ -16,7 +16,14 @@ body:
       "fullName": "Diana Salazar (dueña de prueba del resumen)",
       "password": "{{dashboardOwnerPassword}}",
       "nationalId": "{{dashboardOwnerNationalId}}",
-      "businessName": "Créditos Diana (prueba del resumen)"
+      "contactEmail": "{{dashboardOwnerPhone}}@example.com",
+      "businessName": "Créditos Diana (prueba del resumen)",
+      "acceptedTerms": true,
+      "acceptedPrivacy": true,
+      "acceptedDataResponsibility": true,
+      "acceptedCookies": true,
+      "marketingConsent": false,
+      "legalVersion": "2026-11-14"
     }
 scripts:
   - type: prerequest

@@ -28,6 +28,8 @@ function setup() {
     list,
     upsert: vi.fn(() => Promise.reject(new Error('no usado'))),
     review: vi.fn(() => Promise.reject(new Error('no usado'))),
+    findByCollectorAndDate: vi.fn(() => Promise.resolve(null)),
+    delete: vi.fn(() => Promise.resolve()),
   };
   return { useCase: new ListSettlementsUseCase(settlements), list };
 }

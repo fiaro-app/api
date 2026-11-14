@@ -138,7 +138,7 @@ describe('writeAuthResponse', () => {
 
       expect(res.statusCode).toBe(401);
       expect(res.headers.get('content-type')).toBe('application/json');
-      expect(JSON.parse(res.body ?? '')).toEqual({
+      expect(JSON.parse(res.body ?? '')).toMatchObject({
         statusCode: 401,
         code: 'INVALID_PHONE_NUMBER_OR_PASSWORD',
         message: 'El celular o la contraseña no son correctos.',

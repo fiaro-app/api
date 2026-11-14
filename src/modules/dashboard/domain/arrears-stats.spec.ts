@@ -143,6 +143,13 @@ describe('totalCollection', () => {
     });
   });
 
+  it('cobrar de más no pasa la efectividad de 100 %', () => {
+    expect(
+      totalCollection([{ expectedAmount: 100_000, collectedAmount: 250_000 }])
+        .effectiveness,
+    ).toBe(1);
+  });
+
   it('sin nada esperado la efectividad es null, no 0 ni 1', () => {
     expect(totalCollection([])).toEqual({
       expectedAmount: 0,

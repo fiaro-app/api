@@ -15,8 +15,25 @@ import type { PushTokenRepository } from '@/modules/notifications/domain/reposit
 import { PUSH_TOKEN_REPOSITORY } from '@/modules/notifications/domain/tokens/push-token-repository.token.js';
 
 /**
+ * El correo es para lo necesario: lo crítico (`ALERT`) siempre, y lo que merece atención
+ * (`WARNING`) solo si no hay un celular al que mandárselo. Lo demás llega únicamente como push y
+ * en el feed de la app. La excepción es el comprobante de un pago de la suscripción (`SUCCESS` sobre
+ * una `SUBSCRIPTION`, D-150): es la prueba de que se pagó y siempre va por correo.
+ */
+function needsEmail(notification: Notification, hasDevices: boolean): boolean {
+  if (
+    notification.severity === 'ALERT' ||
+    (notification.severity === 'SUCCESS' &&
+      notification.relatedEntityType === 'SUBSCRIPTION')
+  ) {
+    return true;
+  }
+  return notification.severity === 'WARNING' && !hasDevices;
+}
+
+/**
  * Entrega una notificación ya guardada por los canales de quien la recibe: correo y push (D-94,
- * D-95). Si `auth` dice que la cuenta no existe o está desactivada, no sale nada. El correo solo
+ * D-95). El push va siempre; el correo solo según `needsEmail`. Si `auth` dice que la cuenta no existe o está desactivada, no sale nada. El correo solo
  * sale si la persona lo verificó, y el push, a cada dispositivo que tenga registrado.
  *
  * @remarks
@@ -48,8 +65,10 @@ export class DeliverNotificationUseCase {
       if (recipient === null) {
         return;
       }
-      this.sendEmail(recipient, notification);
-      await this.sendPush(notification);
+      const hasDevices = await this.sendPush(notification);
+      if (needsEmail(notification, hasDevices)) {
+        this.sendEmail(recipient, notification);
+      }
     } catch (error) {
       this.logger.error(
         `No se pudo entregar la notificación ${notification.id}: ${String(error)}.`,
@@ -74,16 +93,20 @@ export class DeliverNotificationUseCase {
     });
   }
 
-  /** @param notification - La notificación; se manda a cada dispositivo de su destinatario. */
-  private async sendPush(notification: Notification): Promise<void> {
+  /**
+   * @param notification - La notificación; se manda a cada dispositivo de su destinatario.
+   * @returns Si la persona tiene al menos un dispositivo registrado.
+   */
+  private async sendPush(notification: Notification): Promise<boolean> {
     const tokens = await this.pushTokens.listByUser(
       notification.recipientUserId,
     );
     if (tokens.length === 0) {
-      return;
+      return false;
     }
     this.pushSender.send(
       tokens.map((token) => pushMessageFor(token.token, notification)),
     );
+    return true;
   }
 }

@@ -120,3 +120,46 @@ describe('PrismaLoanPortfolioReadRepository.listCollectorsByLoans', () => {
     expect(assignmentFindMany).not.toHaveBeenCalled();
   });
 });
+
+describe('PrismaLoanPortfolioReadRepository: nombres en lote', () => {
+  function namesSetup() {
+    const clientFindMany = vi.fn(() =>
+      Promise.resolve([{ id: 'client-1', fullName: 'Ana' }]),
+    );
+    const membershipFindMany = vi.fn(() =>
+      Promise.resolve([{ id: 'm1', user: { fullName: 'Luis' } }]),
+    );
+    const repository = new PrismaLoanPortfolioReadRepository({
+      client: { findMany: clientFindMany },
+      membership: { findMany: membershipFindMany },
+    } as unknown as PrismaService);
+    return { repository, clientFindMany, membershipFindMany };
+  }
+
+  it('trae los nombres de clientes y cobradores en una consulta cada uno, del prestamista', async () => {
+    const { repository, clientFindMany, membershipFindMany } = namesSetup();
+
+    const clients = await repository.listClientNames(['client-1'], 'lender-1');
+    const members = await repository.listMembershipNames(['m1'], 'lender-1');
+
+    expect(clients.get('client-1')).toBe('Ana');
+    expect(members.get('m1')).toBe('Luis');
+    expect(clientFindMany).toHaveBeenCalledExactlyOnceWith({
+      where: { lenderId: 'lender-1', id: { in: ['client-1'] } },
+      select: { id: true, fullName: true },
+    });
+    expect(membershipFindMany).toHaveBeenCalledExactlyOnceWith({
+      where: { lenderId: 'lender-1', id: { in: ['m1'] } },
+      select: { id: true, user: { select: { fullName: true } } },
+    });
+  });
+
+  it('sin ids no consulta', async () => {
+    const { repository, clientFindMany, membershipFindMany } = namesSetup();
+
+    expect((await repository.listClientNames([], 'lender-1')).size).toBe(0);
+    expect((await repository.listMembershipNames([], 'lender-1')).size).toBe(0);
+    expect(clientFindMany).not.toHaveBeenCalled();
+    expect(membershipFindMany).not.toHaveBeenCalled();
+  });
+});

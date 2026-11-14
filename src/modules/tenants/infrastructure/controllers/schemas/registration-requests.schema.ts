@@ -32,14 +32,38 @@ export const RegisterOwnerRequestSchema = z.strictObject({
       'Cédula de ciudadanía, con o sin separadores. Obligatoria: quien se registra recibe el rol COLLECTOR, que la exige.',
     example: '1020304050',
   }),
-  contactEmail: z.email().optional().meta({
+  contactEmail: z.email().meta({
     description:
-      'Correo real, opcional: sirve para recuperar la contraseña más adelante.',
+      'Correo real, obligatorio y único: sirve para recuperar la contraseña y para iniciar sesión (una vez verificado).',
     example: 'ana@example.com',
   }),
   businessName: z.string().min(1).meta({
     description: 'Nombre del negocio.',
     example: 'Préstamos Ana Pérez',
+  }),
+  acceptedTerms: z.literal(true).meta({
+    description:
+      'Aceptó los Términos y Condiciones. Obligatorio: debe ser `true`.',
+  }),
+  acceptedPrivacy: z.literal(true).meta({
+    description:
+      'Autorizó el tratamiento de sus datos según la Política de Privacidad (Ley 1581 de 2012). Obligatorio: debe ser `true`.',
+  }),
+  acceptedDataResponsibility: z.literal(true).meta({
+    description:
+      'Se comprometió a tener la autorización de sus clientes y a cumplir la ley en su cobranza. Obligatorio: debe ser `true`.',
+  }),
+  acceptedCookies: z.literal(true).meta({
+    description: 'Aceptó la Política de Cookies. Obligatorio: debe ser `true`.',
+  }),
+  marketingConsent: z.boolean().default(false).meta({
+    description:
+      'Autoriza recibir novedades y ofertas. Opcional: nunca condiciona el registro.',
+  }),
+  legalVersion: z.string().min(1).meta({
+    description:
+      'Versión de los documentos legales que la persona vio (la vigente está publicada en la web, en `/terminos`). Si ya no es la vigente, el registro responde `P930V`.',
+    example: '2026-11-14',
   }),
   turnstileToken: TurnstileTokenSchema.optional(),
 });

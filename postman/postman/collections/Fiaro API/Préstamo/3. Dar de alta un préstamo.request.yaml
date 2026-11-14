@@ -1,5 +1,5 @@
 $kind: http-request
-description: "Acuerdo de pago para el cliente de prueba. Exige rol OWNER o LENDER en la membresía activa (Ana los tiene los tres, del registro). Nace ACTIVE."
+description: "Acuerdo de pago para el cliente de prueba. Exige rol OWNER o LENDER en la membresía activa (Ana los tiene los tres, del registro). Nace ACTIVE. Si el plan ya tiene todos sus préstamos activos responde 403 PLAN_LIMIT_REACHED (errorCode L004A, con maxActiveLoans); cobrar los que ya existen no se bloquea."
 url: "{{baseUrl}}/loans"
 method: POST
 headers:

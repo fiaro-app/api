@@ -3,6 +3,7 @@ import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { GetManagedCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-managed-collector-stats.use-case.js';
 import { ManagedCollectorStatsController } from '@/modules/collections/infrastructure/controllers/managed-collector-stats.controller.js';
+import { PassthroughReadCache } from '@/shared/infrastructure/cache/passthrough-read-cache.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
 const STATS = {
@@ -17,9 +18,10 @@ const STATS = {
 
 function setup() {
   const execute = vi.fn(() => Promise.resolve(STATS));
-  const controller = new ManagedCollectorStatsController({
-    execute,
-  } as unknown as GetManagedCollectorStatsUseCase);
+  const controller = new ManagedCollectorStatsController(
+    { execute } as unknown as GetManagedCollectorStatsUseCase,
+    new PassthroughReadCache(),
+  );
   return { controller, execute };
 }
 

@@ -48,6 +48,7 @@ async function inviteSecondCollector(
       phone: identity.phone,
       fullName: 'Segundo Cobrador',
       nationalId: identity.nationalId,
+      contactEmail: `cobrador-${identity.nationalId}@example.com`,
       roles: ['COLLECTOR'],
       portfolioId: generalPortfolio.id,
     });

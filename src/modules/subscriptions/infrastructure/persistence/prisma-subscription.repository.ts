@@ -26,4 +26,19 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     });
     return row === null ? null : toSubscription(row);
   }
+
+  /**
+   * @param from - Inicio de la ventana (inclusive).
+   * @param to - Fin de la ventana (inclusive).
+   */
+  async listEndingBetween(
+    from: Date,
+    to: Date,
+  ): Promise<readonly Subscription[]> {
+    const rows = await this.prisma.subscription.findMany({
+      where: { currentPeriodEndsAt: { gte: from, lte: to } },
+      orderBy: { currentPeriodEndsAt: 'asc' },
+    });
+    return rows.map(toSubscription);
+  }
 }

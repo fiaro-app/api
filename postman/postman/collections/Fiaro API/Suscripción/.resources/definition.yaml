@@ -1,6 +1,6 @@
 $kind: collection
 description: |-
   El plan del negocio (`GET /subscription`, D-115): estado (`ACTIVE`, `GRACE_PERIOD`, `READ_ONLY`),
-  fechas, límites y uso. Cualquier rol puede verlo; solo informa, no bloquea nada. Autocontenida:
+  fechas, límites y uso. Cualquier rol puede verlo. Con READ_ONLY las escrituras responden 403 SUBSCRIPTION_READ_ONLY, salvo visitas, pagos y cuadres (D-148). Autocontenida:
   empieza con su propio inicio de sesión de Ana.
 order: 1996

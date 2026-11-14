@@ -50,7 +50,7 @@ export const ApiSubmitSettlement = () =>
     ApiOperation({
       summary: 'Cerrar el día (cuadre)',
       description:
-        'Crea el cuadre de hoy del cobrador de la sesión, o lo reemplaza y lo devuelve a `PENDING` si ya lo había enviado. Los montos son los que declara el cobrador: Fiaro no los recalcula contra sus visitas del día. Exige rol `COLLECTOR` en la membresía activa.',
+        'Crea el cuadre de hoy del cobrador de la sesión, o —si el de hoy fue rechazado— lo reemplaza y lo devuelve a `PENDING`. Si el de hoy sigue en revisión o ya está aprobado, responde `409 CONFLICT`: hay que cancelarlo antes (solo en revisión). Los montos son los que declara el cobrador: Fiaro no los recalcula contra sus visitas del día. Exige rol `COLLECTOR` en la membresía activa.',
     }),
     ApiCookieAuth(SESSION_SECURITY_SCHEME),
     ApiResponse({
@@ -70,6 +70,33 @@ export const ApiSubmitSettlement = () =>
       description:
         'Sin ninguna membresía activa, o la membresía activa no tiene rol `COLLECTOR` (`FORBIDDEN`).',
       standardSchema: SettlementForbiddenSchema,
+    }),
+    ApiResponse({
+      status: 409,
+      description:
+        'Hoy ya envió un cuadre que sigue en revisión o está aprobado (`CONFLICT`).',
+      standardSchema: SettlementConflictSchema,
+    }),
+  );
+
+/** Documenta `POST /daily-settlements/:id/cancel`. */
+export const ApiCancelSettlement = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Cancelar el cuadre enviado',
+      description:
+        'El cobrador retira su propio cuadre mientras sigue en revisión (`PENDING`), para cambiarlo o porque lo envió por error. El cuadre se borra: puede volver a cobrar ese día y enviar uno nuevo. Exige rol `COLLECTOR`.',
+    }),
+    ApiCookieAuth(SESSION_SECURITY_SCHEME),
+    ApiResponse({ status: 204, description: 'Cuadre cancelado.' }),
+    ApiUnauthenticatedResponse(),
+    ApiNoActiveMembershipResponse(),
+    ApiNotFoundResponse(),
+    ApiResponse({
+      status: 409,
+      description:
+        'El cuadre ya fue revisado, no se puede cancelar (`CONFLICT`).',
+      standardSchema: SettlementConflictSchema,
     }),
   );
 

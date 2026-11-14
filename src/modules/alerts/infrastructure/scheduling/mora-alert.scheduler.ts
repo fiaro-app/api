@@ -8,6 +8,7 @@ import {
 import { toBusinessDate } from '@fiaro-app/contracts';
 import type { Env } from '@/config/env.js';
 import { ENV } from '@/config/env.token.js';
+import { RunSubscriptionRemindersUseCase } from '@/modules/alerts/application/use-cases/run-subscription-reminders.use-case.js';
 import { RunMoraAlertsUseCase } from '@/modules/alerts/application/use-cases/run-mora-alerts.use-case.js';
 import {
   moraRunMomentOn,
@@ -17,7 +18,7 @@ import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
 
 /**
- * Envía el aviso diario de mora a las 08:00 de Bogotá (D-96). Corre dentro del proceso, con un
+ * Envía los avisos diarios a las 08:00 de Bogotá: el de mora (D-96) y los recordatorios de vencimiento del plan (D-150). Corre dentro del proceso, con un
  * temporizador: no necesita Redis ni una cola, y como el envío se reclama por día, varias
  * instancias no lo duplican.
  *
@@ -36,6 +37,7 @@ export class MoraAlertScheduler
   constructor(
     @Inject(ENV) private readonly env: Env,
     private readonly runMoraAlerts: RunMoraAlertsUseCase,
+    private readonly runReminders: RunSubscriptionRemindersUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -73,15 +75,34 @@ export class MoraAlertScheduler
   /** @param runMoment - Momento de envío; su día de negocio es el de Bogotá. */
   private async runFor(runMoment: Date): Promise<void> {
     const businessDate = toBusinessDate(runMoment);
+    await this.runJob(this.runMoraAlerts, businessDate, {
+      sent: `Aviso de mora del ${businessDate} enviado.`,
+      failed: `El aviso de mora del ${businessDate} falló`,
+    });
+    await this.runJob(this.runReminders, businessDate, {
+      sent: `Recordatorios de vencimiento del plan del ${businessDate} enviados.`,
+      failed: `Los recordatorios de vencimiento del plan del ${businessDate} fallaron`,
+    });
+  }
+
+  /**
+   * Corre un envío del día; si falla, lo escribe en el log y deja que el otro siga.
+   *
+   * @param job - El caso de uso que reclama el día y envía.
+   * @param businessDate - El día de negocio.
+   * @param messages - Qué escribir en el log cuando se envía y cuando falla.
+   */
+  private async runJob(
+    job: { execute(businessDate: string): Promise<boolean> },
+    businessDate: string,
+    messages: { readonly sent: string; readonly failed: string },
+  ): Promise<void> {
     try {
-      const sent = await this.runMoraAlerts.execute(businessDate);
-      if (sent) {
-        this.logger.log(`Aviso de mora del ${businessDate} enviado.`);
+      if (await job.execute(businessDate)) {
+        this.logger.log(messages.sent);
       }
     } catch (error) {
-      this.logger.error(
-        `El aviso de mora del ${businessDate} falló: ${String(error)}.`,
-      );
+      this.logger.error(`${messages.failed}: ${String(error)}.`);
     }
   }
 }

@@ -1,0 +1,35 @@
+$kind: http-request
+description: "La serie diaria de cobro contra lo que vencía, la ganancia (interés) y el capital que regresa, lo cobrado por medio de pago, lo prestado, la mezcla de resultados de las visitas, los cuadres que no cuadraron y lo que vence en los próximos 7 días, con el período anterior para la tendencia (D-133). Método QUERY."
+url: "{{baseUrl}}/lenders/me/stats/insights"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('trae la serie diaria del mes hasta hoy', () => pm.expect(body.daily).to.be.an('array').that.is.not.empty);
+      pm.test('cobró los 30.000 de la visita de la carpeta', () => {
+        pm.expect(body.income.collected).to.eql(30000);
+        pm.expect(body.income.byMethod.CASH).to.eql(30000);
+        pm.expect(body.income.interest + body.income.principalRecovered).to.eql(30000);
+      });
+      pm.test('cuenta la visita y el cuadre con diferencia', () => {
+        pm.expect(body.visits.PAID).to.eql(1);
+        pm.expect(body.settlements.withDifference).to.eql(1);
+      });
+      pm.test('proyecta 7 días y trae el período anterior', () => {
+        pm.expect(body.forecast).to.have.lengthOf(7);
+        pm.expect(body.previous).to.have.property('collected');
+      });
+    language: text/javascript
+order: 22000

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ListClientsWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-clients-with-balance.use-case.js';
 import type { ListLoansWithBalanceUseCase } from '@/modules/collections/application/use-cases/list-loans-with-balance.use-case.js';
 import { PortfolioListController } from '@/modules/collections/infrastructure/controllers/portfolio-list.controller.js';
+import { PassthroughReadCache } from '@/shared/infrastructure/cache/passthrough-read-cache.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
 const LOAN_PAGE = {
@@ -60,6 +61,7 @@ function setup() {
   const controller = new PortfolioListController(
     listLoans as unknown as ListLoansWithBalanceUseCase,
     listClients as unknown as ListClientsWithBalanceUseCase,
+    new PassthroughReadCache(),
   );
   return { controller, listLoans, listClients };
 }
@@ -68,6 +70,12 @@ const SCOPE: LenderScope = {
   membershipId: 'membership-1',
   lenderId: 'lender-1',
   roles: ['COLLECTOR'],
+};
+
+const MANAGER: LenderScope = {
+  membershipId: 'membership-9',
+  lenderId: 'lender-1',
+  roles: ['OWNER', 'LENDER'],
 };
 
 function routeOf(name: 'listLoans' | 'listClients') {
@@ -94,7 +102,7 @@ describe('PortfolioListController', () => {
   });
 
   describe('listLoans', () => {
-    it('devuelve la página con el saldo, la mora y el cobrador, para cualquier rol', async () => {
+    it('devuelve la página con el saldo, la mora y el cobrador; un cobrador solo ve su cartera', async () => {
       const { controller, listLoans } = setup();
 
       const response = await controller.listLoans(
@@ -107,6 +115,7 @@ describe('PortfolioListController', () => {
         page: 1,
         pageSize: 20,
         status: 'ACTIVE',
+        collectorMembershipId: 'membership-1',
       });
       expect(response.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
       expect(response.data[0]).toMatchObject({
@@ -118,6 +127,41 @@ describe('PortfolioListController', () => {
         overdueDays: 2,
         nextDueDate: '2026-10-02',
         collector: { membershipId: 'membership-2', fullName: 'Ana Cobradora' },
+      });
+    });
+
+    it('un cobrador no puede pedir la cartera de otro: su filtro se pisa', async () => {
+      const { controller, listLoans } = setup();
+
+      await controller.listLoans(
+        { page: 1, pageSize: 20, collectorMembershipId: 'membership-2' },
+        SCOPE,
+      );
+
+      expect(listLoans.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ collectorMembershipId: 'membership-1' }),
+      );
+    });
+
+    it('quien administra ve todo, o filtra por el cobrador que elija', async () => {
+      const { controller, listLoans } = setup();
+
+      await controller.listLoans(
+        { page: 1, pageSize: 20, collectorMembershipId: 'membership-2' },
+        MANAGER,
+      );
+      await controller.listLoans({ page: 1, pageSize: 20 }, MANAGER);
+
+      expect(listLoans.execute).toHaveBeenNthCalledWith(1, {
+        lenderId: 'lender-1',
+        page: 1,
+        pageSize: 20,
+        collectorMembershipId: 'membership-2',
+      });
+      expect(listLoans.execute).toHaveBeenNthCalledWith(2, {
+        lenderId: 'lender-1',
+        page: 1,
+        pageSize: 20,
       });
     });
 
@@ -151,6 +195,7 @@ describe('PortfolioListController', () => {
         page: 1,
         pageSize: 20,
         search: 'Gómez',
+        collectorMembershipId: 'membership-1',
       });
       expect(response).toEqual({
         data: [

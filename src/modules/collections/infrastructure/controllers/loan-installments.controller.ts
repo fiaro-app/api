@@ -18,6 +18,7 @@ import type { LenderScope } from '@/shared/application/ports/lender-scope-resolv
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
+import { RestrictCollectorTo } from '@/shared/infrastructure/http/restrict-collector.decorator.js';
 
 /**
  * Calendario de cuotas de un préstamo del prestamista con el que opera la sesión. Exige
@@ -41,6 +42,7 @@ export class LoanInstallmentsController {
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get()
+  @RestrictCollectorTo('loan')
   @HttpCode(HttpStatus.OK)
   @ApiGetLoanInstallments()
   async getLoanInstallments(

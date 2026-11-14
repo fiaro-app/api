@@ -1,5 +1,7 @@
 import type { Provider } from '@nestjs/common';
+import { CancelSettlementUseCase } from '@/modules/settlements/application/use-cases/cancel-settlement.use-case.js';
 import { GetSettlementUseCase } from '@/modules/settlements/application/use-cases/get-settlement.use-case.js';
+import { IsDaySettledUseCase } from '@/modules/settlements/application/use-cases/is-day-settled.use-case.js';
 import { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
 import { ReviewSettlementUseCase } from '@/modules/settlements/application/use-cases/review-settlement.use-case.js';
 import { SubmitSettlementUseCase } from '@/modules/settlements/application/use-cases/submit-settlement.use-case.js';
@@ -13,10 +15,12 @@ export const settlementsProviders: Provider[] = [
     useClass: PrismaDailySettlementRepository,
   },
   SubmitSettlementUseCase,
+  CancelSettlementUseCase,
+  IsDaySettledUseCase,
   GetSettlementUseCase,
   ListSettlementsUseCase,
   ReviewSettlementUseCase,
 ];
 
 /** Lo que `settlements` expone a otros módulos: los cuadres `PENDING`, que usa el resumen del Lender (D-99). */
-export const settlementsExports = [ListSettlementsUseCase];
+export const settlementsExports = [ListSettlementsUseCase, IsDaySettledUseCase];

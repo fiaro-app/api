@@ -24,9 +24,18 @@ export function buildCorsOptions(origins: readonly string[]): CorsOptions {
   return {
     origin: [...origins],
     methods: [...CORS_METHODS],
-    allowedHeaders: ['Content-Type', 'Authorization', API_VERSION_HEADER],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      API_VERSION_HEADER,
+      'X-Request-Id',
+      'X-Session-Id',
+      'X-Client-Screen',
+      'traceparent',
+    ],
     exposedHeaders: [
       'Retry-After',
+      'X-Request-Id',
       'X-RateLimit-Limit',
       'X-RateLimit-Remaining',
       'X-RateLimit-Reset',

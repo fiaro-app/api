@@ -7,6 +7,7 @@ import type {
   SubmitSettlementInput,
 } from '@/modules/settlements/application/dtos/settlement-details.dto.js';
 import { toSettlementDetails } from '@/modules/settlements/application/dtos/settlement-details.mapper.js';
+import { SettlementLockedError } from '@/modules/settlements/domain/errors/settlement-locked.error.js';
 import { SettlementNoteRequiredError } from '@/modules/settlements/domain/errors/settlement-note-required.error.js';
 import type { DailySettlementRepository } from '@/modules/settlements/domain/repositories/daily-settlement.repository.js';
 import { DAILY_SETTLEMENT_REPOSITORY } from '@/modules/settlements/domain/tokens/daily-settlement-repository.token.js';
@@ -19,8 +20,8 @@ import { ID_GENERATOR } from '@/shared/application/ports/id-generator.token.js';
 const REVIEWER_ROLES = ['OWNER', 'LENDER'] as const;
 
 /**
- * Cierra el día de un cobrador: crea su cuadre de hoy si no existía, o lo reemplaza y lo devuelve
- * a `PENDING` si ya lo había enviado (D-36). Siempre es el propio cuadre de quien llama
+ * Cierra el día de un cobrador: crea su cuadre de hoy, o —si el anterior fue rechazado— lo reemplaza
+ * y lo devuelve a `PENDING` (D-36). Un cuadre en revisión o aprobado no se puede reenviar (D-130). Siempre es el propio cuadre de quien llama
  * (`collectorMembershipId` sale de la sesión, nunca del body): quién puede llamarlo lo decide el
  * controller (rol `COLLECTOR`).
  *
@@ -48,6 +49,7 @@ export class SubmitSettlementUseCase {
 
   /**
    * @param input - El prestamista y el cobrador de la sesión, y los montos declarados.
+   * @throws {@link SettlementLockedError} Si hoy ya envió un cuadre que sigue `PENDING` o está `APPROVED`.
    * @throws {@link SettlementNoteRequiredError} Si lo cobrado difiere de lo esperado y no vino
    * `collectorNote`.
    */
@@ -62,10 +64,18 @@ export class SubmitSettlementUseCase {
     }
 
     const now = this.clock.now();
+    const date = toBusinessDate(now);
+    const current = await this.settlements.findByCollectorAndDate(
+      input.collectorMembershipId,
+      date,
+    );
+    if (current !== null && current.status !== 'REJECTED') {
+      throw new SettlementLockedError();
+    }
     const settlement = await this.settlements.upsert({
       id: this.ids.next(),
       collectorMembershipId: input.collectorMembershipId,
-      date: toBusinessDate(now),
+      date,
       expectedAmount: input.expectedAmount,
       collectedAmount,
       collectedCash: input.collectedCash,

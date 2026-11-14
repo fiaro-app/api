@@ -53,4 +53,26 @@ export interface CollectionVisitRepository {
     from: string,
     to: string,
   ): Promise<readonly CollectionVisitRecord[]>;
+
+  /**
+   * Cuántas visitas hizo un cobrador en un rango y cuánto cobró (pagos sin reversión), sumado en la
+   * base de datos: lo que piden las estadísticas, sin traer cada visita (D-122). Mismo rango y
+   * mismo criterio que `sumNetPayments` sobre {@link listByCollectorAndDateRange}.
+   *
+   * @param collectorMembershipId - El cobrador.
+   * @param from - Primera fecha del rango (`AAAA-MM-DD`), inclusive.
+   * @param to - Última fecha del rango (`AAAA-MM-DD`), inclusive.
+   */
+  summarizeByCollectorAndDateRange(
+    collectorMembershipId: string,
+    from: string,
+    to: string,
+  ): Promise<CollectorVisitsSummary>;
+}
+
+/** Totales de las visitas de un cobrador en un rango. */
+export interface CollectorVisitsSummary {
+  readonly visitsCount: number;
+  /** Suma de los pagos de esas visitas que no tienen reversión. */
+  readonly collectedAmount: number;
 }

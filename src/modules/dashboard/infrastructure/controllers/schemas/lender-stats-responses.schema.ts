@@ -18,7 +18,7 @@ const ArrearsBucketResponseSchema = z
   .meta({ id: 'ArrearsBucketResponse' });
 
 /** Un cliente en el ranking de mayor mora. */
-const TopArrearsEntryResponseSchema = z
+export const TopArrearsEntryResponseSchema = z
   .object({
     clientId: z.uuid().meta({ description: 'El cliente.' }),
     clientFullName: z.string().meta({ description: 'Su nombre completo.' }),
@@ -34,7 +34,7 @@ const TopArrearsEntryResponseSchema = z
   .meta({ id: 'TopArrearsEntryResponse' });
 
 /** El desempeño de un cobrador en el período, visto por el Lender. */
-const LenderStatsCollectorPerformanceResponseSchema = z
+export const LenderStatsCollectorPerformanceResponseSchema = z
   .object({
     collectorMembershipId: z.uuid().meta({ description: 'El cobrador.' }),
     fullName: z.string().meta({ description: 'Su nombre completo.' }),
@@ -104,12 +104,13 @@ export const LenderPeriodStatsResponseSchema = z
     }),
     topArrears: z.array(TopArrearsEntryResponseSchema).meta({
       description:
-        'Los clientes con mayor mora, descendente por días y luego por monto.',
+        'Los 5 clientes con mayor mora, descendente por días y luego por monto. El ranking completo, paginado: `QUERY /lenders/me/stats/top-arrears`.',
     }),
     collectorPerformance: z
       .array(LenderStatsCollectorPerformanceResponseSchema)
       .meta({
-        description: 'El desempeño de cada cobrador que cumple los filtros.',
+        description:
+          'El desempeño de los primeros 5 cobradores que cumplen los filtros (del más antiguo al más nuevo). Todos, paginados: `QUERY /lenders/me/stats/collector-performance`.',
       }),
     expectedAmount: z.int().nonnegative().meta({
       description:

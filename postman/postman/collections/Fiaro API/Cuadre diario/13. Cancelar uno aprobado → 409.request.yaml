@@ -1,0 +1,17 @@
+$kind: http-request
+description: 'Solo se cancela un cuadre en revisión (PENDING): uno ya aprobado no se toca (D-130).'
+url: "{{baseUrl}}/daily-settlements/{{settlementId}}/cancel"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 409', () => pm.response.to.have.status(409));
+      pm.test('código CONFLICT', () => pm.expect(pm.response.json().code).to.eql('CONFLICT'));
+    language: text/javascript
+order: 13000

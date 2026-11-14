@@ -1,12 +1,13 @@
 import {
   CopAmountSchema,
-  DateRangeSchema,
+  boundedDateRange,
   IdSchema,
   NoteSchema,
   PageQuerySchema,
   SettlementStatusSchema,
 } from '@fiaro-app/contracts';
 import { z } from 'zod';
+import { DATE_RANGE_LIMITS } from '@/shared/infrastructure/http/schemas/date-range-limits.js';
 
 /** Cuerpo de `POST /daily-settlements`. */
 export const SubmitSettlementRequestSchema = z.strictObject({
@@ -52,7 +53,7 @@ export const ListSettlementsRequestSchema = PageQuerySchema.extend({
     description:
       'Solo los cuadres de los cobradores de esta cartera. Ausente para listar los de todas.',
   }),
-  dateRange: DateRangeSchema.optional().meta({
+  dateRange: boundedDateRange(DATE_RANGE_LIMITS.settlements).optional().meta({
     description:
       'Solo los cuadres de estas fechas (la fecha del cuadre, ambos extremos incluidos). Ausente para no acotar.',
   }),

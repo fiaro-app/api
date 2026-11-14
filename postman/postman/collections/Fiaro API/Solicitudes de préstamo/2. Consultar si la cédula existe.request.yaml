@@ -1,0 +1,27 @@
+$kind: http-request
+description: "Solo responde si existe, sin ningún dato del cliente: así el cobrador sabe si debe registrarlo. La cédula es nueva en cada corrida."
+url: "{{baseUrl}}/loan-requests/client-lookup"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "nationalId": "{{requestNationalId}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      pm.collectionVariables.set('requestNationalId', '1' + String(Date.now()).slice(-9));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('la cédula nueva no existe', () => pm.expect(pm.response.json().exists).to.be.false);
+    language: text/javascript
+order: 2000

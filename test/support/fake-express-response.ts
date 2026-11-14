@@ -16,6 +16,8 @@ export class FakeExpressResponse {
   /** Lo que se escribió con `json()`. */
   jsonBody: unknown;
   ended = false;
+  /** Los datos de la respuesta (`res.locals` en Express): el filtro deja ahí lo que va al log. */
+  readonly locals: Record<string, unknown> = {};
 
   /** Todo lo que se pidió en `Vary`, o `undefined` si nada. */
   get varyValue(): string | undefined {

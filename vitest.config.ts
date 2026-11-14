@@ -46,7 +46,12 @@ export default defineConfig({
        * (`main.ts` solo hace `listen`; el smoke test del CI arranca la imagen de producción) y el
        * cliente que genera Prisma. Lo demás cuenta, incluido lo que solo cubren las pruebas e2e.
        */
-      exclude: ['src/**/*.spec.ts', 'src/main.ts', 'src/**/generated/**'],
+      exclude: [
+        'src/**/*.spec.ts',
+        'src/**/__fixtures__/**',
+        'src/main.ts',
+        'src/**/generated/**',
+      ],
       // lcov es el formato que lee SonarCloud; text lo muestra en la terminal.
       reporter: ['text', 'lcov'],
       thresholds: {

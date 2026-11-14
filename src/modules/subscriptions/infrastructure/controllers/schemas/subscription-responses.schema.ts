@@ -1,12 +1,15 @@
 import { SubscriptionStatusSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
+import { PLAN_FEATURES } from '@/shared/domain/subscriptions/plan-features.js';
+import { SUBSCRIPTION_PLAN_CODES } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
 import type { SubscriptionDetails } from '@/modules/subscriptions/application/dtos/subscription-details.dto.js';
 
 /** Respuesta de `GET /subscription`: el plan del negocio, su estado y cuánto de él se usa. */
 export const SubscriptionResponseSchema = z
   .object({
-    planCode: z.literal('TRIAL').meta({
-      description: 'Qué plan es. Hoy solo existe `TRIAL`, la prueba inicial.',
+    planCode: z.enum(SUBSCRIPTION_PLAN_CODES).meta({
+      description:
+        'Qué plan es: `TRIAL` (la prueba inicial), `INDIVIDUAL`, `PRO` o `TEAM`.',
     }),
     status: SubscriptionStatusSchema.meta({
       description:
@@ -26,7 +29,11 @@ export const SubscriptionResponseSchema = z
     }),
     isReadOnly: z.boolean().meta({
       description:
-        'Si el negocio está en solo lectura. Hoy la API solo lo informa: no bloquea escrituras (D-115).',
+        'Si el negocio está en solo lectura: pasó la gracia. Las escrituras responden `403 SUBSCRIPTION_READ_ONLY`, salvo registrar visitas y pagos y los cuadres (D-148).',
+    }),
+    features: z.array(z.enum(PLAN_FEATURES)).meta({
+      description:
+        'Funciones propias del plan: `ADVANCED_STATS` (PDF, comparativo y reportes de riesgo) y `EXCEL_IMPORT` (importar desde una hoja de cálculo). Individual no trae ninguna (D-151).',
     }),
     limits: z
       .object({
@@ -35,6 +42,17 @@ export const SubscriptionResponseSchema = z
         }),
         maxCollectors: z.int().meta({
           description: 'Cuántos cobradores activos admite el plan.',
+        }),
+        maxAdmins: z.int().meta({
+          description: 'Cuántos administradores admite cada prestamista.',
+        }),
+        maxPortfolios: z.int().meta({
+          description:
+            'Cuántas carteras admite cada prestamista, la «General» incluida.',
+        }),
+        maxActiveLoans: z.int().nullable().meta({
+          description:
+            'Cuántos préstamos activos admite cada prestamista; `null` si no hay tope.',
         }),
       })
       .meta({ description: 'Los topes del plan.' }),
@@ -45,7 +63,14 @@ export const SubscriptionResponseSchema = z
         }),
         activeCollectors: z.int().meta({
           description:
-            'Membresías activas con rol `COLLECTOR` del prestamista de la sesión; incluye a la dueña, que nace con ese rol.',
+            'Cobradores activos del prestamista de la sesión que ocupan cupo: la dueña no cuenta.',
+        }),
+        activeAdmins: z.int().meta({
+          description:
+            'Administradores activos del prestamista de la sesión (`LENDER` u `OWNER`): la dueña cuenta como uno.',
+        }),
+        activeLoans: z.int().meta({
+          description: 'Préstamos activos del prestamista de la sesión.',
         }),
       })
       .meta({ description: 'Cuánto del plan usa el negocio hoy.' }),
@@ -67,6 +92,7 @@ export function toSubscriptionResponse(
     daysRemaining: details.daysRemaining,
     graceDaysRemaining: details.graceDaysRemaining,
     isReadOnly: details.isReadOnly,
+    features: [...details.features],
     limits: { ...details.limits },
     usage: { ...details.usage },
     createdAt: details.createdAt.toISOString(),

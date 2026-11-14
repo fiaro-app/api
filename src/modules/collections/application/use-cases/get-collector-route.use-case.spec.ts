@@ -75,7 +75,8 @@ function setup(
     findById: vi.fn(),
     listByLoan: vi.fn(),
     listByCollectorAndPromisedDate,
-    listByCollectorAndDateRange: vi.fn(),
+    listByCollectorAndDateRange: vi.fn(() => Promise.resolve([])),
+    summarizeByCollectorAndDateRange: vi.fn(),
   };
   const loans = options.loans ?? {};
   const getLoanExecute = vi.fn((loanId: string) => {
@@ -177,6 +178,7 @@ describe('GetCollectorRouteUseCase', () => {
         overdueAmount: 10_000,
         overdueDays: 2,
         nextDueDate: '2026-10-03',
+        collectedToday: 0,
       },
     ]);
   });

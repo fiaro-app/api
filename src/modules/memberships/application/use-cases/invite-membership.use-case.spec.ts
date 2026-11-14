@@ -1,10 +1,15 @@
+import type { AdminSeats } from '@/modules/memberships/application/services/admin-seats.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CreatedUser } from '@/modules/auth/application/dtos/create-user.dto.js';
 import type { CreateUserUseCase } from '@/modules/auth/application/use-cases/create-user.use-case.js';
 import type { GetUserByPhoneUseCase } from '@/modules/auth/application/use-cases/get-user-by-phone.use-case.js';
+import type { AdminResetPasswordUseCase } from '@/modules/auth/application/use-cases/admin-reset-password.use-case.js';
+import type { CollectorSeats } from '@/modules/memberships/application/services/collector-seats.js';
 import type { CreateMembershipUseCase } from '@/modules/memberships/application/use-cases/create-membership.use-case.js';
 import { InviteMembershipUseCase } from '@/modules/memberships/application/use-cases/invite-membership.use-case.js';
 import { InvalidMembershipDataError } from '@/modules/memberships/domain/errors/invalid-membership-data.error.js';
+import type { MembershipRepository } from '@/modules/memberships/domain/repositories/membership.repository.js';
+import type { LenderLock } from '@/shared/application/ports/lender-lock.port.js';
 import type { EmailMessage } from '@/modules/notifications/domain/email-message.js';
 import type { EmailSender } from '@/modules/notifications/application/ports/email-sender.port.js';
 import type { TempPasswordGenerator } from '@/shared/application/ports/temp-password-generator.port.js';
@@ -64,10 +69,21 @@ function setup(foundUser: typeof EXISTING_USER | null) {
   const sent: EmailMessage[] = [];
   const emailSender: EmailSender = { send: (message) => sent.push(message) };
 
+  const memberships = {
+    findByLenderAndNationalId: () => Promise.resolve(null),
+    findActiveByUserId: () => Promise.resolve([]),
+  } as unknown as MembershipRepository;
+  const lock: LenderLock = { runExclusive: (_lenderId, work) => work() };
+
   const useCase = new InviteMembershipUseCase(
     getUserByPhone,
     createUser,
     createMembership,
+    { execute: vi.fn() } as unknown as AdminResetPasswordUseCase,
+    { assertAvailable: vi.fn() } as unknown as CollectorSeats,
+    { assertAvailable: vi.fn() } as unknown as AdminSeats,
+    memberships,
+    lock,
     tempPasswords,
     emailSender,
   );
@@ -110,6 +126,7 @@ describe('InviteMembershipUseCase', () => {
       phone: '+573109998877',
       fullName: 'Luis Gómez',
       nationalId: '1030405060',
+      contactEmail: 'luis@example.com',
       roles: ['COLLECTOR'],
       portfolioId: 'portfolio-1',
     });
@@ -119,7 +136,7 @@ describe('InviteMembershipUseCase', () => {
       fullName: 'Luis Gómez',
       password: 'TempAbc23456',
       nationalId: '1030405060',
-      contactEmail: undefined,
+      contactEmail: 'luis@example.com',
       mustChangePassword: true,
     });
     expect(createMembershipExecute).toHaveBeenCalledExactlyOnceWith({
@@ -164,6 +181,26 @@ describe('InviteMembershipUseCase', () => {
     });
 
     expect(sent).toHaveLength(0);
+  });
+
+  it('rechaza una persona nueva con rol COLLECTOR sin correo, señalando el campo', async () => {
+    const { useCase, createUserExecute } = setup(null);
+
+    const error = await useCase
+      .execute({
+        lenderId: 'lender-1',
+        phone: '+573109998877',
+        fullName: 'Luis Gómez',
+        nationalId: '1030405060',
+        roles: ['COLLECTOR'],
+        portfolioId: 'portfolio-1',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(
+      (error as InvalidMembershipDataError).issues.map((issue) => issue.path),
+    ).toEqual([['contactEmail']]);
+    expect(createUserExecute).not.toHaveBeenCalled();
   });
 
   it('rechaza una persona nueva con rol COLLECTOR sin cédula', async () => {

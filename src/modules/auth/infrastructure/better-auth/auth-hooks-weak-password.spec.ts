@@ -49,7 +49,7 @@ describe('hooks.before al cambiar la contraseña: una nueva demasiado fácil de 
   });
 
   it('rechaza una contraseña de las más usadas con PASSWORD_TOO_WEAK (400) y lo audita', async () => {
-    await expect(run(changeContext('password123'))).rejects.toMatchObject({
+    await expect(run(changeContext('tequieromucho12'))).rejects.toMatchObject({
       statusCode: 400,
       body: { code: 'PASSWORD_TOO_WEAK' },
     });
@@ -62,7 +62,7 @@ describe('hooks.before al cambiar la contraseña: una nueva demasiado fácil de 
   });
 
   it.each([
-    ['un patrón', 'abcdefghij'],
+    ['un patrón', 'abcdefghijklmnop'],
     ['el celular de la persona', 'ana-3001234567-x'],
     ['la cédula de la persona', 'mi-cedula-1032456789'],
   ])('rechaza una contraseña que es %s', async (_caso, newPassword) => {

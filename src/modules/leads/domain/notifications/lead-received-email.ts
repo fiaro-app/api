@@ -1,5 +1,5 @@
 import type { Lead } from '@/modules/leads/domain/entities/lead.entity.js';
-import { escapeHtml } from '@/shared/domain/text/escape-html.js';
+import { renderEmail } from '@/shared/domain/email/email-layout.js';
 
 /** El asunto y los dos cuerpos de un correo, listos para enviar. */
 export interface LeadEmailContent {
@@ -19,13 +19,17 @@ export interface LeadEmailContent {
  * @param lead - El contacto recién guardado.
  */
 export function leadReceivedEmail(lead: Lead): LeadEmailContent {
-  const name = lead.name.replace(/[\r\n]+/g, ' ').slice(0, 80);
+  const name = lead.name.replaceAll(/\s+/g, ' ').slice(0, 80);
   const contact = [lead.phone, lead.email]
     .filter((value): value is string => value !== null)
     .join(' · ');
-  return {
-    subject: `Nuevo contacto de ventas: ${name}`,
-    text: `${lead.name} dejó sus datos.\nContacto: ${contact}\n\n${lead.message}`,
-    html: `<p><strong>${escapeHtml(lead.name)}</strong> dejó sus datos.</p><p>Contacto: ${escapeHtml(contact)}</p><p>${escapeHtml(lead.message).replace(/\n/g, '<br>')}</p>`,
-  };
+  return renderEmail({
+    title: `Nuevo contacto de ventas: ${name}`,
+    preheader: `${name} dejó sus datos en el formulario de contacto.`,
+    paragraphs: [
+      `${lead.name} dejó sus datos.`,
+      `Contacto: ${contact}`,
+      lead.message,
+    ],
+  });
 }

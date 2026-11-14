@@ -1,0 +1,6 @@
+$kind: collection
+description: |-
+  Importar clientes y préstamos en curso desde una hoja: `POST /imports`, protegida por
+  `LenderScopeGuard`, con rol `OWNER` o `LENDER` y un plan con importación (la prueba, Pro o Team).
+  Autocontenida: empieza con su propia sesión. Primero se revisa (`dryRun: true`) y luego se confirma.
+order: 5300

@@ -10,6 +10,7 @@ const ENTRY: CollectorRouteEntry = {
   overdueAmount: 10_000,
   overdueDays: 2,
   nextDueDate: '2026-10-03',
+  collectedToday: 0,
 };
 
 describe('toCollectorRouteResponse', () => {
@@ -23,6 +24,7 @@ describe('toCollectorRouteResponse', () => {
         overdueAmount: 10_000,
         overdueDays: 2,
         nextDueDate: '2026-10-03',
+        collectedToday: 0,
       },
     ]);
   });

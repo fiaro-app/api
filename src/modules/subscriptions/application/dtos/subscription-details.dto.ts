@@ -1,5 +1,6 @@
+import type { PlanFeature } from '@/shared/domain/subscriptions/plan-features.js';
 import type { SubscriptionPlanCode } from '@/modules/subscriptions/domain/entities/subscription.entity.js';
-import type { SubscriptionStatus } from '@/modules/subscriptions/domain/policies/subscription-status.js';
+import type { SubscriptionStatus } from '@/shared/domain/subscriptions/subscription-status.js';
 
 /** La suscripción de un negocio, con su estado y su uso, en el momento en que se consultó. */
 export interface SubscriptionDetails {
@@ -15,15 +16,25 @@ export interface SubscriptionDetails {
   readonly graceDaysRemaining: number;
   /** Si el negocio está en solo lectura: pasó la gracia. */
   readonly isReadOnly: boolean;
+  /** Funciones propias del plan (D-151). */
+  readonly features: readonly PlanFeature[];
   readonly limits: {
     readonly maxActiveLenders: number;
     readonly maxCollectors: number;
+    readonly maxAdmins: number;
+    readonly maxPortfolios: number;
+    /** `null` si el plan no limita los préstamos activos. */
+    readonly maxActiveLoans: number | null;
   };
   readonly usage: {
     /** Prestamistas del negocio. */
     readonly activeLenders: number;
     /** Cobradores activos del prestamista con el que opera la sesión. */
     readonly activeCollectors: number;
+    /** Administradores activos del prestamista de la sesión; la dueña cuenta. */
+    readonly activeAdmins: number;
+    /** Préstamos activos del prestamista de la sesión. */
+    readonly activeLoans: number;
   };
   readonly createdAt: Date;
 }

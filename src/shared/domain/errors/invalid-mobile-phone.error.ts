@@ -6,6 +6,7 @@ import {
 /** El valor no es un celular colombiano en formato E.164. */
 export class InvalidMobilePhoneError extends DomainError {
   readonly code = 'INVALID_PHONE';
+  readonly errorCode = 'P001V';
   readonly kind: DomainErrorKind = 'INVALID';
 
   constructor() {

@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { LendersModule } from '@/modules/lenders/lenders.module.js';
+import { LoansModule } from '@/modules/loans/loans.module.js';
+import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
+import { SubscriptionPaymentsController } from '@/modules/subscriptions/infrastructure/controllers/subscription-payments.controller.js';
+import { SubscriptionCheckoutController } from '@/modules/subscriptions/infrastructure/controllers/subscription-checkout.controller.js';
+import { WompiWebhookController } from '@/modules/subscriptions/infrastructure/controllers/wompi-webhook.controller.js';
 import { SubscriptionController } from '@/modules/subscriptions/infrastructure/controllers/subscription.controller.js';
 import {
   subscriptionsExports,
@@ -11,12 +16,23 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
 /**
  * Suscripciones (PRODUCT.md §7, D-115): el plan de cada Tenant. Publica `GET /subscription` y
  * ofrece `StartTrialSubscriptionUseCase`, que `tenants` usa al crear un negocio. Importa
- * `LendersModule` y `MembershipsModule` para el uso del plan (prestamistas y cobradores) y
+ * `LendersModule`, `LoansModule` y `MembershipsModule` para el uso del plan (prestamistas, cobradores, administradores y préstamos) y
  * porque `LenderScopeGuard` necesita el puerto de membresías.
  */
 @Module({
-  imports: [PersistenceModule, LendersModule, MembershipsModule],
-  controllers: [SubscriptionController],
+  imports: [
+    PersistenceModule,
+    LendersModule,
+    LoansModule,
+    MembershipsModule,
+    NotificationsModule,
+  ],
+  controllers: [
+    SubscriptionController,
+    SubscriptionCheckoutController,
+    SubscriptionPaymentsController,
+    WompiWebhookController,
+  ],
   providers: subscriptionsProviders,
   exports: subscriptionsExports,
 })

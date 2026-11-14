@@ -1,0 +1,23 @@
+$kind: http-request
+description: "El correo del registro todavía no está verificado, así que no sirve para iniciar sesión: responde igual que una contraseña incorrecta (no revela si el correo existe). Verifícalo con el código que llega por correo y vuelve a intentar."
+url: "{{baseUrl}}/auth/sign-in"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "identifier": "{{registerPhone}}@example.com",
+      "password": "{{registerPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 401: correo sin verificar', () => pm.response.to.have.status(401));
+    language: text/javascript
+order: 6000

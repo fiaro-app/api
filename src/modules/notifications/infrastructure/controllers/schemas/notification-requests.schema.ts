@@ -32,3 +32,20 @@ export const CountUnreadNotificationsQuerySchema = z.strictObject({
       'Solo las de este prestamista. Ausente para contar las de todos.',
   }),
 });
+
+/**
+ * Cuerpo de `POST /notifications/clear`: borra de una vez las notificaciones propias. Sin cuerpo
+ * equivale a `{}`: borra todas, de todos los prestamistas.
+ */
+export const ClearNotificationsRequestSchema = z
+  .strictObject({
+    lenderId: IdSchema.optional().meta({
+      description:
+        'Solo las de este prestamista. Ausente para borrar las de todos.',
+    }),
+    onlyRead: z.boolean().default(false).meta({
+      description:
+        'true: borra solo las ya leídas y conserva las que siguen sin leer.',
+    }),
+  })
+  .prefault({});

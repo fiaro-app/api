@@ -1,5 +1,5 @@
 $kind: http-request
-description: "URL firmada de subida (PUT) y URL pública del logo una vez subido (D-102): el archivo va directo del dispositivo al bucket, nunca por la API. Esta carpeta no lo sube de verdad ni llama PATCH /lender { logoUrl } después: solo pide la URL."
+description: "URL firmada de subida (PUT) y URL pública del logo una vez subido (D-102): el archivo va directo del dispositivo al bucket, nunca por la API. Solo se acepta PNG o JPEG de hasta 2 MB: la URL firma el tipo y el peso exactos (`sizeBytes`), y el bucket rechaza otra subida (D-132). Al guardar el logo, `PATCH /lender { logoUrl }` verifica que el archivo subido sea de verdad un PNG/JPEG de este negocio. Esta carpeta no lo sube de verdad ni llama PATCH /lender después: solo pide la URL."
 url: "{{baseUrl}}/lender/logo-upload-url"
 method: POST
 headers:
@@ -12,7 +12,8 @@ body:
   type: json
   content: |-
     {
-      "contentType": "image/png"
+      "contentType": "image/png",
+      "sizeBytes": 48213
     }
 scripts:
   - type: afterResponse
@@ -23,6 +24,7 @@ scripts:
         pm.expect(body.uploadUrl).to.be.a('string').that.includes('logos/');
         pm.expect(body.publicUrl).to.be.a('string').that.includes('logos/');
       });
+      pm.test('firma el tipo y el peso', () => pm.expect(body.uploadUrl).to.include('X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost'));
       pm.test('vence en el futuro', () => pm.expect(new Date(body.expiresAt).getTime()).to.be.above(Date.now()));
     language: text/javascript
 order: 5000

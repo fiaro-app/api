@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { TrialSubscriptionSettings } from '@/modules/subscriptions/application/ports/trial-subscription-settings.port.js';
 import { TRIAL_SUBSCRIPTION_SETTINGS } from '@/modules/subscriptions/application/ports/trial-subscription-settings.token.js';
+import { PLAN_CATALOG } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
 import { Subscription } from '@/modules/subscriptions/domain/entities/subscription.entity.js';
 import type { SubscriptionRepository } from '@/modules/subscriptions/domain/repositories/subscription.repository.js';
 import { SUBSCRIPTION_REPOSITORY } from '@/modules/subscriptions/domain/tokens/subscription-repository.token.js';
@@ -37,6 +38,9 @@ export class StartTrialSubscriptionUseCase {
         planCode: 'TRIAL',
         maxActiveLenders: this.settings.maxActiveLenders(),
         maxCollectors: this.settings.maxCollectors(),
+        maxAdmins: PLAN_CATALOG.TRIAL.maxAdmins,
+        maxPortfolios: PLAN_CATALOG.TRIAL.maxPortfolios,
+        maxActiveLoans: PLAN_CATALOG.TRIAL.maxActiveLoans,
         currentPeriodEndsAt: new Date(
           now.getTime() + this.settings.trialDays() * MS_PER_DAY,
         ),

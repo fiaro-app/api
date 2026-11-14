@@ -10,6 +10,7 @@ import {
  */
 export class MaintenanceModeError extends DomainError {
   readonly code = 'MAINTENANCE';
+  readonly errorCode = 'W001H';
   readonly kind: DomainErrorKind = 'UNAVAILABLE';
 
   constructor() {

@@ -49,4 +49,64 @@ export class PrismaLoanPortfolioReadRepository implements LoanPortfolioReadRepos
     });
     return new Map(rows.map((row) => [row.loanId, row.collectorMembershipId]));
   }
+
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param date - Fecha de calendario (`AAAA-MM-DD`).
+   */
+  async listClientIdsByCollector(
+    collectorMembershipId: string,
+    date: string,
+  ): Promise<readonly string[]> {
+    const rows = await this.prisma.loan.findMany({
+      where: {
+        collectionAssignments: {
+          some: {
+            collectorMembershipId,
+            effectiveFrom: { lte: date },
+            OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
+          },
+        },
+      },
+      distinct: ['clientId'],
+      select: { clientId: true },
+    });
+    return rows.map((row) => row.clientId);
+  }
+
+  /**
+   * @param clientIds - Los clientes.
+   * @param lenderId - El prestamista dueño.
+   */
+  async listClientNames(
+    clientIds: readonly string[],
+    lenderId: string,
+  ): Promise<ReadonlyMap<string, string>> {
+    if (clientIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.client.findMany({
+      where: { lenderId, id: { in: [...clientIds] } },
+      select: { id: true, fullName: true },
+    });
+    return new Map(rows.map((row) => [row.id, row.fullName]));
+  }
+
+  /**
+   * @param membershipIds - Las membresías.
+   * @param lenderId - El prestamista dueño.
+   */
+  async listMembershipNames(
+    membershipIds: readonly string[],
+    lenderId: string,
+  ): Promise<ReadonlyMap<string, string>> {
+    if (membershipIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.membership.findMany({
+      where: { lenderId, id: { in: [...membershipIds] } },
+      select: { id: true, user: { select: { fullName: true } } },
+    });
+    return new Map(rows.map((row) => [row.id, row.user.fullName]));
+  }
 }

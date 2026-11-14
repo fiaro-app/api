@@ -22,6 +22,7 @@ describe('la documentación de las rutas de autenticación', () => {
       'POST /auth/reset-password',
       'POST /auth/revoke-other-sessions',
       'POST /auth/revoke-sessions',
+      'POST /auth/sign-in',
       'POST /auth/sign-in/phone-number',
       'POST /auth/sign-out',
     ]);
@@ -131,7 +132,7 @@ describe('la documentación de las rutas de autenticación', () => {
     };
     expect(change.required).toEqual(['currentPassword', 'newPassword']);
     expect(change.properties.newPassword).toMatchObject({
-      minLength: 8,
+      minLength: 15,
       maxLength: 128,
     });
   });

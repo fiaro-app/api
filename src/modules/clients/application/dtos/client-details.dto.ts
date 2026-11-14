@@ -60,6 +60,8 @@ export interface ListClientsInput {
   readonly pageSize: number;
   /** Texto libre contra el nombre o la cédula; ausente para listar todos. */
   readonly search?: string;
+  /** Solo estos clientes; vacío no devuelve ninguno, ausente no filtra. */
+  readonly ids?: readonly string[];
 }
 
 /** Una página de clientes. */

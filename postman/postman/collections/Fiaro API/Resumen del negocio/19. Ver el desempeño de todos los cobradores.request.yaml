@@ -1,0 +1,24 @@
+$kind: http-request
+description: "Efectividad del período (sin dateRange, el mes actual) y mora de hoy de cada cobrador activo, paginados (10 por defecto, máximo 50); las métricas se calculan solo para la página. QUERY /lenders/me/stats trae solo los 5 primeros (D-117)."
+url: "{{baseUrl}}/lenders/me/stats/collector-performance"
+method: QUERY
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: '{ "page": 1, "pageSize": 10 }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('incluye al cobrador invitado', () => {
+        const ids = body.data.map((c) => c.collectorMembershipId);
+        pm.expect(ids).to.include(pm.collectionVariables.get('dashboardCollectorMembershipId'));
+      });
+    language: text/javascript
+order: 19000

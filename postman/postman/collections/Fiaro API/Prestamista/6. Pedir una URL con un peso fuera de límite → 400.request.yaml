@@ -1,0 +1,24 @@
+$kind: http-request
+description: "El logo pesa a lo sumo 2 MB (D-132): con `sizeBytes` mayor, la API ni siquiera firma la URL."
+url: "{{baseUrl}}/lender/logo-upload-url"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "contentType": "image/png",
+      "sizeBytes": 5000000
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('código VALIDATION_FAILED', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_FAILED'));
+    language: text/javascript
+order: 6000

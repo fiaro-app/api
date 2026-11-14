@@ -15,6 +15,7 @@ body:
       "phone": "{{deactivateCollectorNewPhone}}",
       "fullName": "Cobrador Entrante (prueba de baja de cobradores)",
       "nationalId": "{{deactivateCollectorNewNationalId}}",
+      "contactEmail": "cobrador-{{deactivateCollectorNewNationalId}}@example.com",
       "roles": ["COLLECTOR"],
       "portfolioId": "{{deactivateCollectorPortfolioId}}"
     }

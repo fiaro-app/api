@@ -26,14 +26,14 @@ const DEV_USERS = [
   {
     phone: '+573001234567',
     fullName: 'Ana Pérez',
-    password: 'fiaro-dev-2026', // NOSONAR: contraseña de desarrollo, pública a propósito (ver el comentario del archivo).
+    password: 'fiaro-dev-2026-ana', // NOSONAR: contraseña de desarrollo, pública a propósito (ver el comentario del archivo).
     nationalId: '1020304050',
     contactEmail: 'ana@fiaro.dev',
   },
   {
     phone: '+573109998877',
     fullName: 'Luis Gómez (cobrador nuevo)',
-    password: 'temporal-2026', // NOSONAR: contraseña de desarrollo, pública a propósito.
+    password: 'temporal-2026-luis', // NOSONAR: contraseña de desarrollo, pública a propósito.
     nationalId: '1030405060',
     mustChangePassword: true,
   },

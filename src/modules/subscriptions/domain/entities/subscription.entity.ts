@@ -1,5 +1,6 @@
-/** Qué plan es. Hoy solo existe la prueba con la que nace todo negocio. */
-export type SubscriptionPlanCode = 'TRIAL';
+import type { SubscriptionPlanCode } from '@/modules/subscriptions/domain/plans/plan-catalog.js';
+
+export type { SubscriptionPlanCode };
 
 /** Datos con los que se construye una {@link Subscription}. */
 export interface SubscriptionProps {
@@ -12,6 +13,12 @@ export interface SubscriptionProps {
   readonly maxActiveLenders: number;
   /** Cuántos cobradores activos puede tener el negocio. */
   readonly maxCollectors: number;
+  /** Cuántos administradores puede tener cada prestamista. */
+  readonly maxAdmins: number;
+  /** Cuántas carteras puede tener cada prestamista. */
+  readonly maxPortfolios: number;
+  /** Cuántos préstamos activos puede tener cada prestamista; `null` si no hay tope. */
+  readonly maxActiveLoans: number | null;
   /** Hasta cuándo está pagado el período vigente. */
   readonly currentPeriodEndsAt: Date;
   /** Cuándo se creó. */
@@ -29,6 +36,9 @@ export class Subscription {
     public readonly planCode: SubscriptionPlanCode,
     public readonly maxActiveLenders: number,
     public readonly maxCollectors: number,
+    public readonly maxAdmins: number,
+    public readonly maxPortfolios: number,
+    public readonly maxActiveLoans: number | null,
     public readonly currentPeriodEndsAt: Date,
     public readonly createdAt: Date,
   ) {}
@@ -45,6 +55,9 @@ export class Subscription {
       props.planCode,
       props.maxActiveLenders,
       props.maxCollectors,
+      props.maxAdmins,
+      props.maxPortfolios,
+      props.maxActiveLoans,
       props.currentPeriodEndsAt,
       props.createdAt,
     );

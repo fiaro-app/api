@@ -1,10 +1,15 @@
-import { ForbiddenException, RequestMethod } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  RequestMethod,
+} from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { GetSettlementUseCase } from '@/modules/settlements/application/use-cases/get-settlement.use-case.js';
 import type { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
 import type { ReviewSettlementUseCase } from '@/modules/settlements/application/use-cases/review-settlement.use-case.js';
 import type { SubmitSettlementUseCase } from '@/modules/settlements/application/use-cases/submit-settlement.use-case.js';
+import type { CancelSettlementUseCase } from '@/modules/settlements/application/use-cases/cancel-settlement.use-case.js';
 import { DailySettlementController } from '@/modules/settlements/infrastructure/controllers/daily-settlement.controller.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
 
@@ -50,6 +55,7 @@ function setup() {
   };
   const controller = new DailySettlementController(
     submitSettlementUseCase as unknown as SubmitSettlementUseCase,
+    { execute: vi.fn() } as unknown as CancelSettlementUseCase,
     getSettlementUseCase as unknown as GetSettlementUseCase,
     listSettlementsUseCase as unknown as ListSettlementsUseCase,
     reviewSettlementUseCase as unknown as ReviewSettlementUseCase,
@@ -70,7 +76,7 @@ const scopeWith = (roles: readonly string[]): LenderScope => ({
 });
 
 describe('DailySettlementController', () => {
-  it('publica POST, GET, QUERY y dos POST de revisión, todas colgando de /daily-settlements', () => {
+  it('publica POST, GET, QUERY, dos POST de revisión y uno de cancelar, todas colgando de /daily-settlements', () => {
     const publishedRoutes = Object.getOwnPropertyNames(
       DailySettlementController.prototype,
     )
@@ -86,7 +92,7 @@ describe('DailySettlementController', () => {
       .sort();
 
     expect(publishedRoutes).toEqual(
-      ['POST', 'GET', 'QUERY', 'POST', 'POST'].sort(),
+      ['POST', 'GET', 'QUERY', 'POST', 'POST', 'POST'].sort(),
     );
     expect(Reflect.getMetadata(PATH_METADATA, DailySettlementController)).toBe(
       'daily-settlements',
@@ -143,24 +149,39 @@ describe('DailySettlementController', () => {
   });
 
   describe('getSettlement', () => {
-    it('devuelve el cuadre para cualquier rol', async () => {
+    it('devuelve el cuadre propio a un cobrador y cualquiera a quien administra', async () => {
       const { controller, getSettlementUseCase } = setup();
 
       const response = await controller.getSettlement(
         'settlement-1',
         scopeWith(['COLLECTOR']),
       );
+      await controller.getSettlement('settlement-1', {
+        ...scopeWith(['OWNER']),
+        membershipId: 'otro',
+      });
 
-      expect(getSettlementUseCase.execute).toHaveBeenCalledExactlyOnceWith(
+      expect(getSettlementUseCase.execute).toHaveBeenCalledWith(
         'settlement-1',
         'lender-1',
       );
       expect(response.id).toBe('settlement-1');
     });
+
+    it('un cobrador no ve el cuadre de otro: 404, como si no existiera', async () => {
+      const { controller } = setup();
+
+      await expect(
+        controller.getSettlement('settlement-1', {
+          ...scopeWith(['COLLECTOR']),
+          membershipId: 'otro-cobrador',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe('listSettlements', () => {
-    it('devuelve la página de cuadres del prestamista de la sesión', async () => {
+    it('devuelve la página de cuadres del prestamista; un cobrador solo ve los suyos', async () => {
       const { controller, listSettlementsUseCase } = setup();
 
       const response = await controller.listSettlements(
@@ -172,6 +193,7 @@ describe('DailySettlementController', () => {
         lenderId: 'lender-1',
         page: 1,
         pageSize: 20,
+        collectorMembershipId: 'membership-1',
       });
       expect(response.meta).toEqual({ page: 1, pageSize: 20, total: 1 });
       expect(response.data).toHaveLength(1);

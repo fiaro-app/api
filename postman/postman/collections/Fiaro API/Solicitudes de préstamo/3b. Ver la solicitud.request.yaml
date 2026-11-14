@@ -1,0 +1,15 @@
+$kind: http-request
+description: "Una solicitud del negocio. El administrador ve cualquiera; un cobrador, solo las suyas (de otro responde 404)."
+url: "{{baseUrl}}/loan-requests/{{loanRequestId}}"
+method: GET
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('es la solicitud creada', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('loanRequestId')));
+    language: text/javascript
+order: 3500

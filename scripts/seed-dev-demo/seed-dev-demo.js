@@ -5,7 +5,11 @@
  * reversiones y cuadres diarios. Solo desarrollo.
  *
  * Uso (con el stack de Docker arriba y `pnpm build` hecho):
- *   node scripts/seed-dev-demo/seed-dev-demo.js [--national-id 1092851497] [--reset]
+ *   node scripts/seed-dev-demo/seed-dev-demo.js [--national-id 1092851497] [--reset] [--clients 90]
+ *
+ * `--clients` cambia cuántos deudores se siembran (90 por defecto; 900 da el conjunto ×10 de
+ * PERFORMANCE.md). `--reset` solo borra los deudores de ese mismo número: para cambiarlo, usar una
+ * base de datos nueva.
  *
  * `--reset` borra lo que sembró antes (sus deudores, con préstamos, visitas y pagos, y los cuadres
  * de sus cobradores) y vuelve a sembrar. Sin `--reset`, si ya hay datos de la demo, no hace nada.
@@ -39,13 +43,14 @@ const { values: args } = parseArgs({
   options: {
     'national-id': { type: 'string', default: '1092851497' },
     reset: { type: 'boolean', default: false },
+    clients: { type: 'string', default: '90' },
   },
 });
 const today = new Date().toLocaleDateString('en-CA', {
   timeZone: 'America/Bogota',
 });
 const rand = seededRandom(1092851497);
-const clients = buildClients(rand, 90);
+const clients = buildClients(rand, Number(args.clients));
 
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
@@ -86,6 +91,9 @@ const app = await NestFactory.createApplicationContext(AppModule, {
   logger: false,
 });
 const createUser = app.get(CreateUserUseCase, { strict: false });
+const { READ_CACHE } =
+  await import('../../dist/shared/application/ports/read-cache.token.js');
+const readCache = app.get(READ_CACHE, { strict: false });
 for (const collector of COLLECTORS) {
   try {
     await createUser.execute({ ...collector, password: COLLECTOR_PASSWORD });
@@ -93,7 +101,6 @@ for (const collector of COLLECTORS) {
     if (error.code !== 'PHONE_ALREADY_REGISTERED') throw error;
   }
 }
-await app.close();
 
 await db.query('begin');
 try {
@@ -213,4 +220,7 @@ try {
   throw error;
 } finally {
   await db.end();
+  // Escribe directo en la base de datos, sin pasar por la API: lo que la caché guardó ya no vale (D-123).
+  await readCache.invalidateAll();
+  await app.close();
 }

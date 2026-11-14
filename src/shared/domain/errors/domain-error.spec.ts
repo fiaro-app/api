@@ -6,6 +6,7 @@ import {
 
 class ProbeError extends DomainError {
   readonly code = 'PROBE_FAILED';
+  readonly errorCode = 'P999U';
   readonly kind = 'INVALID';
 
   constructor(detail?: DomainErrorDetail) {

@@ -36,6 +36,16 @@ export interface UnreadNotificationsCriteria {
   readonly lenderId?: string;
 }
 
+/** Criterio de {@link NotificationRepository.deleteMany}. */
+export interface DeleteNotificationsCriteria {
+  /** Quién las recibe. */
+  readonly recipientUserId: string;
+  /** Solo las de este prestamista; ausente para las de todos. */
+  readonly lenderId?: string;
+  /** Solo las ya leídas (las que siguen sin leer se conservan). */
+  readonly onlyRead: boolean;
+}
+
 /** Puerto de persistencia de las notificaciones. */
 export interface NotificationRepository {
   /** @param notification - Notificación nueva. */
@@ -77,4 +87,26 @@ export interface NotificationRepository {
     criteria: UnreadNotificationsCriteria,
     readAt: Date,
   ): Promise<number>;
+
+  /**
+   * @param id - La notificación, ya validada como propia.
+   * @param recipientUserId - Quién la recibe.
+   */
+  delete(id: string, recipientUserId: string): Promise<void>;
+
+  /**
+   * Borra, en una sola operación, las notificaciones propias que cumplan el criterio.
+   *
+   * @param criteria - Quién las recibe, de qué prestamista y si solo las leídas.
+   * @returns Cuántas borró.
+   */
+  deleteMany(criteria: DeleteNotificationsCriteria): Promise<number>;
+
+  /**
+   * Retención: borra las de cualquier persona creadas antes de `before`.
+   *
+   * @param before - Lo creado antes de este momento se borra.
+   * @returns Cuántas borró.
+   */
+  deleteOlderThan(before: Date): Promise<number>;
 }

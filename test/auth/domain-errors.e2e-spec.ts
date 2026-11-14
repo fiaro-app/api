@@ -67,7 +67,7 @@ describe('los errores de dominio salen por HTTP', () => {
       .send(VALID)
       .expect(409);
 
-    expect(ApiErrorSchema.parse(body)).toEqual(body);
+    expect(body).toMatchObject(ApiErrorSchema.parse(body));
     expect(body).toMatchObject({
       statusCode: 409,
       code: 'PHONE_ALREADY_REGISTERED',
@@ -104,7 +104,7 @@ describe('los errores de dominio salen por HTTP', () => {
 
     expect(body).toMatchObject({
       code: 'INVALID_PASSWORD_LENGTH',
-      message: 'La contraseña debe tener entre 8 y 128 caracteres.',
+      message: 'La contraseña debe tener entre 15 y 128 caracteres.',
     });
   });
 

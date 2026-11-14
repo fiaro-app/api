@@ -4,6 +4,7 @@ import type { IdGenerator } from '@/shared/application/ports/id-generator.port.j
 import { Prisma } from '@/shared/infrastructure/persistence/generated/client.js';
 import { PrismaService } from '@/shared/infrastructure/persistence/prisma.service.js';
 import type { User } from '@/modules/auth/domain/entities/user.entity.js';
+import { ContactEmailAlreadyRegisteredError } from '@/modules/auth/domain/errors/contact-email-already-registered.error.js';
 import { PhoneAlreadyRegisteredError } from '@/modules/auth/domain/errors/phone-already-registered.error.js';
 import type {
   ProfileUpdate,
@@ -18,6 +19,23 @@ import {
 /** Código de Prisma para una restricción de unicidad violada. */
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
+/** Si el error es una restricción de unicidad violada. */
+function isUniqueViolation(
+  error: unknown,
+): error is Prisma.PrismaClientKnownRequestError {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === UNIQUE_CONSTRAINT_VIOLATION
+  );
+}
+
+/** Si la restricción violada es la del correo de contacto (el nombre del índice la delata). */
+function violatesContactEmail(
+  error: Prisma.PrismaClientKnownRequestError,
+): boolean {
+  return JSON.stringify(error.meta ?? {}).includes('contact_email');
+}
+
 /** Guarda a las personas en PostgreSQL con Prisma. */
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
@@ -28,13 +46,15 @@ export class PrismaUserRepository implements UserRepository {
 
   /**
    * @remarks
-   * Las dos únicas restricciones de unicidad que puede violar un alta son el celular y el email
-   * técnico, que sale del mismo celular: cualquier `P2002` significa «ya tiene cuenta». La
-   * base de datos decide, así que dos altas simultáneas del mismo celular no pasan las dos.
+   * Las restricciones de unicidad que puede violar un alta son el celular, el email técnico (que
+   * sale del mismo celular) y el correo de contacto: salvo que sea este último, un `P2002`
+   * significa «ya tiene cuenta». La base de datos decide, así que dos altas simultáneas del mismo
+   * celular o correo no pasan las dos.
    *
    * @param user - Persona nueva.
    * @param passwordHash - Hash de su contraseña.
    * @throws {@link PhoneAlreadyRegisteredError} Si el celular ya tiene cuenta.
+   * @throws {@link ContactEmailAlreadyRegisteredError} Si el correo de contacto ya está en uso.
    */
   async create(user: User, passwordHash: string): Promise<void> {
     try {
@@ -42,14 +62,24 @@ export class PrismaUserRepository implements UserRepository {
         data: toUserCreateInput(user, this.ids.next(), passwordHash),
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === UNIQUE_CONSTRAINT_VIOLATION
-      ) {
-        throw new PhoneAlreadyRegisteredError();
+      if (isUniqueViolation(error)) {
+        throw violatesContactEmail(error)
+          ? new ContactEmailAlreadyRegisteredError()
+          : new PhoneAlreadyRegisteredError();
       }
       throw error;
     }
+  }
+
+  /** @param email - Correo de contacto; se compara sin distinguir mayúsculas. */
+  async findByVerifiedContactEmail(email: string): Promise<User | null> {
+    const row = await this.prisma.user.findFirst({
+      where: {
+        contactEmail: { equals: email, mode: 'insensitive' },
+        contactEmailVerified: true,
+      },
+    });
+    return row === null ? null : toUser(row);
   }
 
   /** @param phone - Celular en formato E.164. */
@@ -122,14 +152,21 @@ export class PrismaUserRepository implements UserRepository {
    * @param update - Los datos nuevos.
    */
   async updateProfile(userId: string, update: ProfileUpdate): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        fullName: update.fullName,
-        contactEmail: update.contactEmail,
-        contactEmailVerified: update.contactEmailVerified,
-      },
-    });
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          fullName: update.fullName,
+          contactEmail: update.contactEmail,
+          contactEmailVerified: update.contactEmailVerified,
+        },
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ContactEmailAlreadyRegisteredError();
+      }
+      throw error;
+    }
   }
 
   /** @param userId - La persona. */

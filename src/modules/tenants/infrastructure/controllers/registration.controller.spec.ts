@@ -69,16 +69,35 @@ describe('RegistrationController', () => {
         fullName: 'Ana Pérez',
         password: 'una-contraseña-larga',
         nationalId: '1020304050',
+        contactEmail: 'ana@example.com',
         businessName: 'Préstamos Ana',
+        acceptedTerms: true as const,
+        acceptedPrivacy: true as const,
+        acceptedDataResponsibility: true as const,
+        acceptedCookies: true as const,
+        marketingConsent: true,
+        legalVersion: '2026-11-14',
       };
 
       const response = await controller.register(body, undefined, {
         ip: '203.0.113.1',
+        headers: { 'user-agent': 'vitest' },
       } as never);
 
-      expect(registerOwnerUseCase.execute).toHaveBeenCalledExactlyOnceWith(
-        body,
-      );
+      expect(registerOwnerUseCase.execute).toHaveBeenCalledExactlyOnceWith({
+        phone: '+573001234567',
+        fullName: 'Ana Pérez',
+        password: 'una-contraseña-larga',
+        nationalId: '1020304050',
+        contactEmail: 'ana@example.com',
+        businessName: 'Préstamos Ana',
+        legal: {
+          version: '2026-11-14',
+          marketing: true,
+          ipAddress: '203.0.113.1',
+          userAgent: 'vitest',
+        },
+      });
       expect(response.user.id).toBe('user-1');
       expect(response.membership.roles).toEqual([
         'OWNER',
@@ -92,6 +111,35 @@ describe('RegistrationController', () => {
       );
     });
 
+    it('guarda null cuando la petición no trae IP ni dispositivo', async () => {
+      const { controller, registerOwnerUseCase } = setup();
+
+      await controller.register(
+        {
+          phone: '+573001234567',
+          fullName: 'Ana Pérez',
+          password: 'una-contraseña-larga',
+          nationalId: '1020304050',
+          contactEmail: 'ana@example.com',
+          businessName: 'Préstamos Ana',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+          acceptedDataResponsibility: true,
+          acceptedCookies: true,
+          marketingConsent: false,
+          legalVersion: '2026-11-14',
+        },
+        undefined,
+        { headers: {} } as never,
+      );
+
+      expect(registerOwnerUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          legal: expect.objectContaining({ ipAddress: null, userAgent: null }),
+        }),
+      );
+    });
+
     it('no crea la cuenta cuando Turnstile rechaza el token', async () => {
       const { controller, registerOwnerUseCase, validateToken } = setup();
       validateToken.mockResolvedValue(false);
@@ -100,12 +148,22 @@ describe('RegistrationController', () => {
         fullName: 'Ana Pérez',
         password: 'una-contraseña-larga',
         nationalId: '1020304050',
+        contactEmail: 'ana@example.com',
         businessName: 'Préstamos Ana',
+        acceptedTerms: true as const,
+        acceptedPrivacy: true as const,
+        acceptedDataResponsibility: true as const,
+        acceptedCookies: true as const,
+        marketingConsent: true,
+        legalVersion: '2026-11-14',
         turnstileToken: 'token',
       };
 
       await expect(
-        controller.register(body, undefined, { ip: '203.0.113.1' } as never),
+        controller.register(body, undefined, {
+          ip: '203.0.113.1',
+          headers: {},
+        } as never),
       ).rejects.toBeInstanceOf(TurnstileVerificationError);
       expect(registerOwnerUseCase.execute).not.toHaveBeenCalled();
     });

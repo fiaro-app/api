@@ -25,6 +25,7 @@ model User {
   memberships   Membership[]
   notifications Notification[]
   pushTokens    PushToken[]
+  legalAcceptances LegalAcceptance[]
 
   @@map("users")
 }

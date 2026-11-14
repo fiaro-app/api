@@ -1,0 +1,29 @@
+$kind: http-request
+description: 'Tras cancelar, el cobrador envía un cuadre nuevo: nace PENDING con otro id.'
+url: "{{baseUrl}}/daily-settlements"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "expectedAmount": 100000,
+      "collectedCash": 100000,
+      "collectedNequi": 0,
+      "collectedTransfer": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('nace PENDING', () => pm.expect(body.status).to.eql('PENDING'));
+      pm.test('es un cuadre nuevo', () => pm.expect(body.id).to.not.eql(pm.collectionVariables.get('settlementId')));
+      pm.collectionVariables.set('settlementId', body.id);
+    language: text/javascript
+order: 9000

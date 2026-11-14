@@ -27,6 +27,9 @@ function setup() {
     markAsRead: vi.fn(() => Promise.reject(new Error('no usado'))),
     countUnread: vi.fn(() => Promise.reject(new Error('no usado'))),
     markAllAsRead: vi.fn(() => Promise.reject(new Error('no usado'))),
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+    deleteOlderThan: vi.fn(),
   };
   return { useCase: new ListNotificationsUseCase(notifications), list };
 }

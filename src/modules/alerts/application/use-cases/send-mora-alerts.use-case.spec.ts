@@ -122,7 +122,7 @@ describe('SendMoraAlertsUseCase', () => {
         {
           recipientUserId: 'owner-1',
           lenderId: 'lender-1',
-          severity: 'WARNING',
+          severity: 'INFO',
           title: 'Préstamos en mora',
           body: 'Hoy tienes 1 préstamo en mora por $ 20.000 en total.',
           relatedEntityType: null,

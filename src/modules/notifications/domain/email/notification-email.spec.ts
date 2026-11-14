@@ -9,12 +9,11 @@ describe('notificationEmail', () => {
     );
 
     expect(email.subject).toBe('Fiaro: Préstamo asignado');
-    expect(email.text).toBe(
+    expect(email.text).toContain(
       'Préstamo asignado\n\nTe asignaron un préstamo para cobrar.\n\nAbre Fiaro en tu celular para ver los detalles.',
     );
-    expect(email.html).toBe(
-      '<p><strong>Préstamo asignado</strong></p><p>Te asignaron un préstamo para cobrar.</p><p>Abre Fiaro en tu celular para ver los detalles.</p>',
-    );
+    expect(email.html).toContain('Te asignaron un préstamo para cobrar.');
+    expect(email.html).toContain('<html lang="es">');
   });
 
   it('escapa la nota de quien revisó en el HTML, sin tocar el texto plano', () => {
@@ -22,8 +21,9 @@ describe('notificationEmail', () => {
     const email = notificationEmail('Cuadre rechazado', note);
 
     expect(email.html).toContain(
-      '<p>Faltan $5.000 &lt;a href=&quot;https://evil.example&quot;&gt;aclara&lt;/a&gt;</p>',
+      'Faltan $5.000 &lt;a href=&quot;https://evil.example&quot;&gt;aclara&lt;/a&gt;',
     );
+    expect(email.html).not.toContain('<a href="https://evil.example">');
     expect(email.text).toContain(note);
   });
 });

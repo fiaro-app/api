@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import type { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
-import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
+import type {
+  CollectionVisitRepository,
+  CollectorVisitsSummary,
+} from '@/modules/collections/domain/repositories/collection-visit.repository.js';
 import {
   toCollectionVisit,
   toCollectionVisitCreateInput,
@@ -96,5 +99,30 @@ export class PrismaCollectionVisitRepository implements CollectionVisitRepositor
       orderBy: { occurredAt: 'asc' },
     });
     return rows.map(toCollectionVisitRecord);
+  }
+
+  /**
+   * @param collectorMembershipId - El cobrador.
+   * @param from - Primera fecha del rango (`AAAA-MM-DD`), inclusive.
+   * @param to - Última fecha del rango (`AAAA-MM-DD`), inclusive.
+   */
+  async summarizeByCollectorAndDateRange(
+    collectorMembershipId: string,
+    from: string,
+    to: string,
+  ): Promise<CollectorVisitsSummary> {
+    const range = businessRangeInstants(from, to);
+    const inRange = {
+      collectorMembershipId,
+      occurredAt: { gte: range.start, lt: range.end },
+    };
+    const [visitsCount, collected] = await Promise.all([
+      this.prisma.collectionVisit.count({ where: inRange }),
+      this.prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { visit: inRange, reversal: null },
+      }),
+    ]);
+    return { visitsCount, collectedAmount: collected._sum.amount ?? 0 };
   }
 }

@@ -1,0 +1,45 @@
+$kind: http-request
+description: "Hace lo que haría Wompi: avisa que la orden de la petición 3 quedó APROBADA. Sin sesión: se autentica con el checksum SHA-256 que este script calcula con la variable de colección wompiEventsSecret (el secreto de eventos de SANDBOX; ponlo antes de enviar y no lo subas a ningún repositorio). Enviarlo dos veces no suma otro mes. Después, la petición 2 muestra el plan nuevo."
+url: "{{baseUrl}}/webhooks/wompi"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "event": "transaction.updated",
+      "data": {
+        "transaction": {
+          "id": "{{wompiTransactionId}}",
+          "reference": "{{checkoutReference}}",
+          "status": "APPROVED",
+          "amount_in_cents": 6900000,
+          "currency": "COP",
+          "payment_method_type": "PSE"
+        }
+      },
+      "signature": {
+        "properties": ["transaction.id", "transaction.status", "transaction.amount_in_cents"],
+        "checksum": "{{wompiChecksum}}"
+      },
+      "timestamp": {{wompiTimestamp}},
+      "sent_at": "2026-10-16T12:00:00.000Z"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const secret = pm.collectionVariables.get('wompiEventsSecret');
+      if (!secret) { throw new Error('Define la variable de colección wompiEventsSecret (secreto de eventos de sandbox).'); }
+      const id = 'postman-' + Date.now();
+      const timestamp = Math.floor(Date.now() / 1000);
+      pm.collectionVariables.set('wompiTransactionId', id);
+      pm.collectionVariables.set('wompiTimestamp', String(timestamp));
+      pm.collectionVariables.set('wompiChecksum', CryptoJS.SHA256(id + 'APPROVED' + '6900000' + timestamp + secret).toString());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 5000

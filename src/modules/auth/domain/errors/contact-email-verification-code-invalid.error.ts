@@ -9,6 +9,7 @@ import {
  */
 export class ContactEmailVerificationCodeInvalidError extends DomainError {
   readonly code = 'CONTACT_EMAIL_VERIFICATION_CODE_INVALID';
+  readonly errorCode = 'A004A';
   readonly kind: DomainErrorKind = 'INVALID';
 
   constructor() {

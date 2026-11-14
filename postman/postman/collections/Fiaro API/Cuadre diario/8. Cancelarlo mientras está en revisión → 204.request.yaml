@@ -1,0 +1,16 @@
+$kind: http-request
+description: 'El cobrador retira su propio cuadre mientras sigue PENDING (D-130): se borra, y puede volver a cobrar ese día y enviar uno nuevo. Aquí la dueña actúa con su rol COLLECTOR.'
+url: "{{baseUrl}}/daily-settlements/{{settlementId}}/cancel"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 204', () => pm.response.to.have.status(204));
+    language: text/javascript
+order: 8000

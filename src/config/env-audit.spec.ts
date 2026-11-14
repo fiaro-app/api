@@ -31,6 +31,19 @@ describe('variables de la auditoría durable', () => {
       expect(load().redisUrl).toBeUndefined();
       expect(load({ NODE_ENV: 'test' }).redisUrl).toBeUndefined();
     });
+
+    it('la caché usa CACHE_REDIS_URL o, si no está, REDIS_URL (D-118)', () => {
+      expect(load({ REDIS_URL: 'redis://localhost:6390' }).cacheRedisUrl).toBe(
+        'redis://localhost:6390',
+      );
+      expect(
+        load({
+          REDIS_URL: 'redis://localhost:6390',
+          CACHE_REDIS_URL: 'redis://cache:6379',
+        }).cacheRedisUrl,
+      ).toBe('redis://cache:6379');
+      expect(load().cacheRedisUrl).toBeUndefined();
+    });
   });
 
   describe('MONGODB_URI', () => {

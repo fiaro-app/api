@@ -1,0 +1,51 @@
+$kind: http-request
+description: "Crea los clientes y préstamos de las filas válidas, una a una; una fila que falla no deshace las demás. Un cliente que ya existe se reutiliza. Vuelve a correrla y la primera fila reutilizará al cliente. Ojo: la fila con errores nunca se importa."
+url: "{{baseUrl}}/imports"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "dryRun": false,
+      "rows": [
+        {
+          "nationalId": "1098765432",
+          "fullName": "María Pérez",
+          "occupation": "Tendera",
+          "phone": "3001234567",
+          "address": "Calle 1 # 2-3",
+          "loan": {
+            "remainingInstallments": 10,
+            "installmentValue": 30000,
+            "frequency": "WEEKLY",
+            "nextInstallmentDate": "2026-11-03"
+          }
+        },
+        {
+          "nationalId": "1",
+          "fullName": "Fila con errores",
+          "occupation": "",
+          "phone": "123",
+          "address": ""
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('dryRun como se pidió', () => pm.expect(body.dryRun).to.eql(false));
+      pm.test('la primera fila pasa y la segunda trae errores', () => {
+        pm.expect(body.rows[0].status).to.eql('IMPORTED');
+        pm.expect(body.rows[1].status).to.eql('INVALID');
+        pm.expect(body.rows[1].issues.length).to.be.above(0);
+      });
+    language: text/javascript
+order: 3000

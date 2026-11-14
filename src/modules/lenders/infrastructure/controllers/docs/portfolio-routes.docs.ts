@@ -80,6 +80,12 @@ export const ApiCreatePortfolio = () =>
     ApiUnauthenticatedResponse(),
     ApiWrongRoleResponse(),
     ApiNameTakenResponse(),
+    ApiResponse({
+      status: 403,
+      description:
+        'El negocio ya tiene 4 carteras, la «General» incluida (`PLAN_LIMIT_REACHED`, con `maxPortfolios`).',
+      standardSchema: PortfolioForbiddenSchema,
+    }),
   );
 
 /** Documenta `GET /portfolios`. */

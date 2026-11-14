@@ -1,0 +1,26 @@
+$kind: http-request
+description: "`PATCH /lender { logoUrl }` solo guarda logos subidos con la URL firmada de este negocio (D-132): cualquier otra URL se rechaza con 400 en `logoUrl`."
+url: "{{baseUrl}}/lender"
+method: PATCH
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "logoUrl": "https://evil.example/logo.png"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 400', () => pm.response.to.have.status(400));
+      pm.test('el error es del logo', () => {
+        const body = pm.response.json();
+        pm.expect(body.code).to.eql('VALIDATION_FAILED');
+      });
+    language: text/javascript
+order: 7000

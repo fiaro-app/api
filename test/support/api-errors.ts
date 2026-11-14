@@ -6,6 +6,10 @@ import { TranslationService } from '@/shared/infrastructure/i18n/translation.ser
  * La fábrica de errores con los catálogos reales, para las pruebas unitarias que no levantan
  * Nest.
  */
-export function realApiErrors(): ApiErrorFactory {
-  return new ApiErrorFactory(new TranslationService(FLAT_CATALOGS));
+export function realApiErrors(
+  nodeEnv: 'test' | 'development' | 'production' = 'test',
+): ApiErrorFactory {
+  return new ApiErrorFactory(new TranslationService(FLAT_CATALOGS), {
+    nodeEnv,
+  });
 }

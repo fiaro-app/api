@@ -45,7 +45,7 @@ function list(testApp: TestApp, cookie: string, body: object) {
 }
 
 describe('QUERY /daily-settlements con filtros', () => {
-  it('el rango de fechas incluye el día del cuadre en ambos extremos y excluye lo demás', async () => {
+  it('el rango de fechas incluye el día del cuadre en ambos extremos, excluye lo demás y rechaza el futuro', async () => {
     app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
     const { ownerCookie } = await seedSubmittedSettlement(app);
 
@@ -62,7 +62,8 @@ describe('QUERY /daily-settlements con filtros', () => {
     expect(exact.status).toBe(200);
     expect(exact.body.meta.total).toBe(1);
     expect(past.body.meta.total).toBe(0);
-    expect(future.body.meta.total).toBe(0);
+    // Un rango que termina en el futuro ya no se acepta (D-117).
+    expect(future.status).toBe(400);
   });
 
   it('filtra por la cartera del cobrador', async () => {

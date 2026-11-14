@@ -48,6 +48,21 @@ export const API_TAGS = {
     description:
       'Acuerdos de pago de un cliente del prestamista con el que opera la sesión (`LenderScopeGuard`). Verlos no pide un rol específico; darlos de alta exige `OWNER` o `LENDER`. Se pueden cancelar, pero no editar.',
   },
+  import: {
+    name: 'Importación',
+    description:
+      'Carga clientes y préstamos en curso desde una hoja (Excel o CSV) que la web lee y manda en tandas de hasta 200 filas: primero se revisa (`dryRun`) y luego se confirma. Exige `OWNER` o `LENDER` y un plan con importación (Pro o Team).',
+  },
+  loanRequest: {
+    name: 'Solicitudes de préstamo',
+    description:
+      'Un cobrador sugiere un préstamo (con un cliente nuevo o uno que el negocio ya tiene) y el administrador lo acepta o lo rechaza. Aceptarla crea el cliente, el préstamo y su asignación; rechazarla avisa al cobrador. El cobrador solo ve las suyas y nunca el riesgo ni los datos de un cliente que no conoce.',
+  },
+  attachment: {
+    name: 'Fotos',
+    description:
+      'El comprobante de un pago (`/payments/:id/proof`). El archivo (PNG o JPEG de hasta 5 MB) va directo del dispositivo al bucket con una URL firmada; nunca es público y se ve con otra URL firmada que vence en minutos.',
+  },
   portfolio: {
     name: 'Carteras',
     description:

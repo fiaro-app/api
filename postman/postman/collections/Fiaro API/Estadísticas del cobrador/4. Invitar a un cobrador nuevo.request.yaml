@@ -15,6 +15,7 @@ body:
       "phone": "{{statsCollectorPhone}}",
       "fullName": "Cobrador de prueba de estadísticas",
       "nationalId": "{{statsCollectorNationalId}}",
+      "contactEmail": "cobrador-{{statsCollectorNationalId}}@example.com",
       "roles": ["COLLECTOR"],
       "portfolioId": "{{statsPortfolioId}}"
     }

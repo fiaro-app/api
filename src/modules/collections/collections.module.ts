@@ -19,6 +19,7 @@ import { LendersModule } from '@/modules/lenders/lenders.module.js';
 import { LoansModule } from '@/modules/loans/loans.module.js';
 import { MembershipsModule } from '@/modules/memberships/memberships.module.js';
 import { NotificationsModule } from '@/modules/notifications/notifications.module.js';
+import { SettlementsModule } from '@/modules/settlements/settlements.module.js';
 import { PersistenceModule } from '@/shared/infrastructure/persistence/persistence.module.js';
 
 /**
@@ -46,6 +47,7 @@ import { PersistenceModule } from '@/shared/infrastructure/persistence/persisten
     MembershipsModule,
     LendersModule,
     NotificationsModule,
+    SettlementsModule,
   ],
   controllers: [
     CollectionAssignmentController,

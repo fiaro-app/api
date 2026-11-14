@@ -1,6 +1,8 @@
 import { z } from 'zod';
+import { BILLING_ENV_SHAPE, checkWompiKeys } from '@/config/billing-env.js';
 import {
   buildMoraAlertsConfig,
+  buildNotificationRetentionConfig,
   buildPushConfig,
   buildS3Config,
   buildSubscriptionConfig,
@@ -34,6 +36,7 @@ const EnvSchema = z
     LOG_LEVEL: LogLevelSchema.optional(),
     DATABASE_URL: DatabaseUrlSchema,
     REDIS_URL: RedisUrlSchema.optional(),
+    CACHE_REDIS_URL: RedisUrlSchema.optional(),
     MONGODB_URI: MongoUriSchema.optional(),
     QUEUE_PREFIX: QueuePrefixSchema.default('fiaro'),
     BETTER_AUTH_SECRET: AuthSecretSchema,
@@ -43,9 +46,7 @@ const EnvSchema = z
     RESEND_FROM_EMAIL: z.string().optional(),
     MAILPIT_URL: z.url().optional(),
     LEADS_NOTIFY_EMAIL: z.email().optional(),
-    SUBSCRIPTION_TRIAL_DAYS: integer(1, 3650).default(30),
-    SUBSCRIPTION_TRIAL_MAX_ACTIVE_LENDERS: integer(1, 1000).default(1),
-    SUBSCRIPTION_TRIAL_MAX_COLLECTORS: integer(1, 100_000).default(5),
+    ...BILLING_ENV_SHAPE,
     MOBILE_MIN_SUPPORTED_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_LATEST_VERSION: MobileAppVersionSchema.optional(),
     MOBILE_DOWNLOAD_URL: z.url().optional(),
@@ -53,6 +54,7 @@ const EnvSchema = z
     PUSH_DELIVERY: z.enum(['expo', 'log']).optional(),
     EXPO_ACCESS_TOKEN: z.string().optional(),
     MORA_ALERTS: z.stringbool().optional(),
+    NOTIFICATION_RETENTION_DAYS: integer(0, 3650).optional(),
     S3_ENDPOINT: z.url().optional(),
     S3_REGION: z.string().default('auto'),
     S3_BUCKET: z.string().optional(),
@@ -96,6 +98,7 @@ const EnvSchema = z
         'es obligatoria en producción: GET /mobile/version la usa para bloquear versiones viejas de la app',
     },
   )
+  .superRefine(checkWompiKeys)
   .refine((env) => env.NODE_ENV !== 'production' || env.MOBILE_LATEST_VERSION, {
     path: ['MOBILE_LATEST_VERSION'],
     message:
@@ -152,6 +155,7 @@ const EnvSchema = z
     logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info'),
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
+    cacheRedisUrl: env.CACHE_REDIS_URL ?? env.REDIS_URL,
     mongoUri: env.MONGODB_URI,
     queuePrefix: env.QUEUE_PREFIX,
     auth: {
@@ -176,6 +180,7 @@ const EnvSchema = z
     },
     push: buildPushConfig(env),
     moraAlerts: buildMoraAlertsConfig(env),
+    notificationRetention: buildNotificationRetentionConfig(env),
     s3: buildS3Config(env),
     turnstile: {
       secretKey: env.CLOUDFLARE_TURNSTILE_SECRET_KEY,

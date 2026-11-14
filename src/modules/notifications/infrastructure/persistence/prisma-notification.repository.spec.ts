@@ -48,11 +48,22 @@ function setup() {
   const updateMany = vi.fn<(args: unknown) => Promise<unknown>>(() =>
     Promise.resolve({ count: 0 }),
   );
+  const deleteMany = vi.fn<(args: unknown) => Promise<unknown>>(() =>
+    Promise.resolve({ count: 0 }),
+  );
   const $transaction = vi.fn((operations: Promise<unknown>[]) =>
     Promise.all(operations),
   );
   const repository = new PrismaNotificationRepository({
-    notification: { create, findFirst, findMany, count, update, updateMany },
+    notification: {
+      create,
+      findFirst,
+      findMany,
+      count,
+      update,
+      updateMany,
+      deleteMany,
+    },
     $transaction,
   } as unknown as PrismaService);
   return {
@@ -63,6 +74,7 @@ function setup() {
     count,
     update,
     updateMany,
+    deleteMany,
   };
 }
 
@@ -229,6 +241,66 @@ describe('PrismaNotificationRepository.markAllAsRead', () => {
     expect(updateMany).toHaveBeenCalledExactlyOnceWith({
       where: { recipientUserId: 'user-1', lenderId: 'lender-1', readAt: null },
       data: { readAt: CREATED_AT },
+    });
+  });
+});
+
+describe('PrismaNotificationRepository.delete', () => {
+  it('borra solo la notificación de esa persona', async () => {
+    const { repository, deleteMany } = setup();
+
+    await repository.delete('notification-1', 'user-1');
+
+    expect(deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'notification-1', recipientUserId: 'user-1' },
+    });
+  });
+});
+
+describe('PrismaNotificationRepository.deleteMany', () => {
+  it('borra todas las de esa persona y devuelve cuántas', async () => {
+    const { repository, deleteMany } = setup();
+    deleteMany.mockResolvedValueOnce({ count: 5 });
+
+    const deleted = await repository.deleteMany({
+      recipientUserId: 'user-1',
+      onlyRead: false,
+    });
+
+    expect(deleted).toBe(5);
+    expect(deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { recipientUserId: 'user-1' },
+    });
+  });
+
+  it('con onlyRead conserva las que siguen sin leer, y filtra por prestamista cuando llega', async () => {
+    const { repository, deleteMany } = setup();
+
+    await repository.deleteMany({
+      recipientUserId: 'user-1',
+      lenderId: 'lender-1',
+      onlyRead: true,
+    });
+
+    expect(deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: {
+        recipientUserId: 'user-1',
+        lenderId: 'lender-1',
+        readAt: { not: null },
+      },
+    });
+  });
+});
+
+describe('PrismaNotificationRepository.deleteOlderThan', () => {
+  it('borra lo creado antes del límite, de cualquier persona', async () => {
+    const { repository, deleteMany } = setup();
+    deleteMany.mockResolvedValueOnce({ count: 9 });
+    const before = new Date('2026-07-01T00:00:00Z');
+
+    expect(await repository.deleteOlderThan(before)).toBe(9);
+    expect(deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { createdAt: { lt: before } },
     });
   });
 });

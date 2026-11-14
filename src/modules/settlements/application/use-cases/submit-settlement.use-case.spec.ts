@@ -49,6 +49,8 @@ function setup() {
     list: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
     upsert,
     review: vi.fn(() => Promise.reject(new Error('no usado'))),
+    findByCollectorAndDate: vi.fn(() => Promise.resolve(null)),
+    delete: vi.fn(() => Promise.resolve()),
   };
   const listReviewersExecute = vi.fn(() => Promise.resolve([OWNER]));
   const listReviewers = {

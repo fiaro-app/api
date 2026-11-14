@@ -2,15 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LenderDetails } from '@/modules/lenders/application/dtos/lender-details.dto.js';
 import type { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-lender.use-case.js';
 import type { LoanDetails } from '@/modules/loans/application/dtos/loan-details.dto.js';
-import type { GetLoanUseCase } from '@/modules/loans/application/use-cases/get-loan.use-case.js';
+import type { ListLoansUseCase } from '@/modules/loans/application/use-cases/list-loans.use-case.js';
 import { GetCollectorStatsUseCase } from '@/modules/collections/application/use-cases/get-collector-stats.use-case.js';
-import type { GetLoanBalanceUseCase } from '@/modules/collections/application/use-cases/get-loan-balance.use-case.js';
+import type { ListLoanBalancesUseCase } from '@/modules/collections/application/use-cases/list-loan-balances.use-case.js';
 import { CollectionAssignment } from '@/modules/collections/domain/entities/collection-assignment.entity.js';
 import { CollectionVisit } from '@/modules/collections/domain/entities/collection-visit.entity.js';
 import { Payment } from '@/modules/collections/domain/entities/payment.entity.js';
 import type { CollectionAssignmentRepository } from '@/modules/collections/domain/repositories/collection-assignment.repository.js';
 import type { CollectionVisitRecord } from '@/modules/collections/domain/repositories/collection-visit-record.js';
 import type { CollectionVisitRepository } from '@/modules/collections/domain/repositories/collection-visit.repository.js';
+import { sumNetPayments } from '@/modules/collections/application/services/sum-net-payments.js';
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 
 const NOW = new Date('2026-10-07T15:00:00Z');
@@ -104,46 +105,65 @@ function setup(options: {
   const listByCollectorAndDateRange = vi.fn(() =>
     Promise.resolve(options.visitRecords ?? []),
   );
+  const summarizeByCollectorAndDateRange = vi.fn(() =>
+    Promise.resolve({
+      visitsCount: (options.visitRecords ?? []).length,
+      collectedAmount: sumNetPayments(options.visitRecords ?? []),
+    }),
+  );
   const visits: CollectionVisitRepository = {
     create: vi.fn(),
     findById: vi.fn(),
     listByLoan: vi.fn(),
     listByCollectorAndPromisedDate: vi.fn(),
     listByCollectorAndDateRange,
+    summarizeByCollectorAndDateRange,
   };
   const loansById = options.loans ?? {};
   const getLoanExecute = vi.fn((loanId: string) =>
     Promise.resolve(loansById[loanId] ?? loan(loanId)),
   );
-  const getLoan = { execute: getLoanExecute } as unknown as GetLoanUseCase;
+  const listLoans = {
+    execute: vi.fn((input: { ids: readonly string[]; status: string }) => {
+      const items = input.ids
+        .map((loanId) => getLoanExecute(loanId))
+        .map(async (found) => found);
+      return Promise.all(items).then((all) => {
+        const active = all.filter((item) => item.status === input.status);
+        return { items: active, total: active.length };
+      });
+    }),
+  } as unknown as ListLoansUseCase;
   const getLender = {
     execute: vi.fn(() => Promise.resolve(LENDER)),
   } as unknown as GetLenderUseCase;
   const overdueByLoan = options.overdueAmountByLoan ?? {};
-  const getLoanBalance = {
-    execute: vi.fn((loanId: string) =>
-      Promise.resolve({
-        loanId,
-        asOf: TODAY,
-        balance: 0,
-        totalExpectedToDate: 0,
-        overdueAmount: overdueByLoan[loanId] ?? 0,
-        overdueDays: 0,
-        nextDueDate: null,
-        firstOverdueDate: null,
-      }),
+  const listLoanBalances = {
+    execute: vi.fn((input: { loans: readonly LoanDetails[] }) =>
+      Promise.resolve(
+        new Map(
+          input.loans.map((item) => [
+            item.id,
+            { overdueAmount: overdueByLoan[item.id] ?? 0 },
+          ]),
+        ),
+      ),
     ),
-  } as unknown as GetLoanBalanceUseCase;
+  } as unknown as ListLoanBalancesUseCase;
   const clock: Clock = { now: () => NOW };
   const useCase = new GetCollectorStatsUseCase(
     assignments,
     visits,
-    getLoan,
+    listLoans,
     getLender,
-    getLoanBalance,
+    listLoanBalances,
     clock,
   );
-  return { useCase, findActiveByCollectorAndDate, listByCollectorAndDateRange };
+  return {
+    useCase,
+    findActiveByCollectorAndDate,
+    listByCollectorAndDateRange: summarizeByCollectorAndDateRange,
+  };
 }
 
 describe('GetCollectorStatsUseCase', () => {

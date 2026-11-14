@@ -1,5 +1,9 @@
 import { BusinessDateSchema } from '@fiaro-app/contracts';
 import { z } from 'zod';
+import {
+  addDateRangeIssues,
+  DATE_RANGE_LIMITS,
+} from '@/shared/infrastructure/http/schemas/date-range-limits.js';
 
 /** Parámetros de `GET /lenders/me/dashboard`: el período de las cifras cobradas, opcional. */
 export const GetLenderDashboardQuerySchema = z
@@ -18,7 +22,6 @@ export const GetLenderDashboardQuerySchema = z
     message: 'Debes enviar from y to juntos, o ninguno.',
     path: ['to'],
   })
-  .refine((query) => !query.from || !query.to || query.from <= query.to, {
-    message: 'La fecha final debe ser igual o posterior a la inicial.',
-    path: ['to'],
+  .superRefine((query, ctx) => {
+    addDateRangeIssues(query, DATE_RANGE_LIMITS.stats, ctx);
   });

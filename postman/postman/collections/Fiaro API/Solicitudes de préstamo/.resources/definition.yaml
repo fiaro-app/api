@@ -1,0 +1,7 @@
+$kind: collection
+description: |-
+  Solicitudes de préstamo de un cobrador (`/loan-requests`): consulta si la cédula existe, sugiere
+  el préstamo, y el administrador lo acepta o lo rechaza. Autocontenida: empieza con su propio
+  inicio de sesión; Ana tiene los tres roles, así que hace de cobradora y de administradora. La
+  cédula usa `{{$timestamp}}` para que la carpeta se pueda repetir.
+order: 5100

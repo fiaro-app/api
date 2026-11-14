@@ -1,5 +1,5 @@
 $kind: http-request
-description: "La suscripción del Tenant del prestamista con el que opera la sesión (D-115). Todo negocio nace con una prueba; la API solo informa el estado, no bloquea operaciones."
+description: "La suscripción del Tenant del prestamista con el que opera la sesión (D-115). Todo negocio nace con una prueba. Informa el estado, los topes del plan y cuánto se usa; los topes los aplican quienes crean (cobradores, administradores, carteras y préstamos activos: `PLAN_LIMIT_REACHED`), pasada la gracia las escrituras responden 403 SUBSCRIPTION_READ_ONLY (D-148), salvo visitas, pagos y cuadres."
 url: "{{baseUrl}}/subscription"
 method: GET
 headers:
@@ -12,12 +12,17 @@ scripts:
       pm.test('responde 200', () => pm.response.to.have.status(200));
       const body = pm.response.json();
       pm.test('trae el plan y su estado', () => {
-        pm.expect(body.planCode).to.eql('TRIAL');
+        pm.expect(['TRIAL', 'INDIVIDUAL', 'PRO', 'TEAM']).to.include(body.planCode);
         pm.expect(['ACTIVE', 'GRACE_PERIOD', 'READ_ONLY']).to.include(body.status);
       });
       pm.test('trae los límites y el uso', () => {
         pm.expect(body.limits.maxCollectors).to.be.a('number');
+        pm.expect(body.limits.maxAdmins).to.be.a('number');
+        pm.expect(body.limits.maxPortfolios).to.be.a('number');
         pm.expect(body.usage.activeLenders).to.be.a('number');
+        pm.expect(body.usage.activeAdmins).to.be.a('number');
+        pm.expect(body.usage.activeLoans).to.be.a('number');
+        pm.expect(body.limits.maxActiveLoans === null || typeof body.limits.maxActiveLoans === 'number').to.eql(true);
       });
     language: text/javascript
 order: 2000

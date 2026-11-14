@@ -98,7 +98,7 @@ describe('ListSettlementsRequestSchema', () => {
   it('aplica los valores por defecto de paginación', () => {
     expect(ListSettlementsRequestSchema.parse({})).toEqual({
       page: 1,
-      pageSize: 20,
+      pageSize: 10,
     });
   });
 
@@ -116,10 +116,10 @@ describe('ListSettlementsRequestSchema', () => {
   it('acepta el filtro por cartera y por rango de fechas', () => {
     const parsed = ListSettlementsRequestSchema.parse({
       portfolioId: '01a0f387-97a7-7192-bc0f-4f9d34e0480f',
-      dateRange: { from: '2026-10-01', to: '2026-10-31' },
+      dateRange: { from: '2026-09-01', to: '2026-09-30' },
     });
     expect(parsed.portfolioId).toBe('01a0f387-97a7-7192-bc0f-4f9d34e0480f');
-    expect(parsed.dateRange).toEqual({ from: '2026-10-01', to: '2026-10-31' });
+    expect(parsed.dateRange).toEqual({ from: '2026-09-01', to: '2026-09-30' });
   });
 
   it.each([
@@ -128,6 +128,14 @@ describe('ListSettlementsRequestSchema', () => {
       { dateRange: { from: '2026-10-31', to: '2026-10-01' } },
     ],
     ['una cartera que no es UUID', { portfolioId: 'x' }],
+    [
+      'un rango que termina en el futuro',
+      { dateRange: { from: '2026-10-01', to: '2999-01-01' } },
+    ],
+    [
+      'un rango de más de un año',
+      { dateRange: { from: '2024-01-01', to: '2025-12-31' } },
+    ],
   ])('rechaza %s', (_name, body) => {
     expect(ListSettlementsRequestSchema.safeParse(body).success).toBe(false);
   });

@@ -15,6 +15,12 @@ import { LOAN_PORTFOLIO_READ_REPOSITORY } from '@/modules/collections/domain/tok
 import type { Clock } from '@/shared/application/ports/clock.port.js';
 import { CLOCK } from '@/shared/application/ports/clock.token.js';
 
+/** Entrada de {@link ListClientsWithBalanceUseCase}: la de `ListClientsUseCase` más el cobrador. */
+export type ListClientsWithBalanceInput = ListClientsInput & {
+  /** Solo los clientes con un préstamo que este cobrador tiene asignado hoy. */
+  readonly collectorMembershipId?: string;
+};
+
 /** Lo que se acumula de los préstamos activos de un cliente. */
 interface ClientTotals {
   balance: number;
@@ -45,9 +51,19 @@ export class ListClientsWithBalanceUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** @param input - El prestamista dueño, la paginación y la búsqueda opcional. */
-  async execute(input: ListClientsInput): Promise<ClientsWithBalancePage> {
-    const page = await this.listClients.execute(input);
+  /** @param input - El prestamista dueño, la paginación, la búsqueda y el cobrador, opcionales. */
+  async execute(
+    input: ListClientsWithBalanceInput,
+  ): Promise<ClientsWithBalancePage> {
+    const { collectorMembershipId, ...criteria } = input;
+    const ids =
+      collectorMembershipId === undefined
+        ? undefined
+        : await this.readRepository.listClientIdsByCollector(
+            collectorMembershipId,
+            toBusinessDate(this.clock.now()),
+          );
+    const page = await this.listClients.execute({ ...criteria, ids });
     if (page.items.length === 0) {
       return { items: [], total: page.total };
     }

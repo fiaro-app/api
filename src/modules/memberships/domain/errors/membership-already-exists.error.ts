@@ -11,6 +11,7 @@ import {
  */
 export class MembershipAlreadyExistsError extends DomainError {
   readonly code = 'CONFLICT';
+  readonly errorCode = 'M005A';
   readonly kind: DomainErrorKind = 'CONFLICT';
 
   constructor() {

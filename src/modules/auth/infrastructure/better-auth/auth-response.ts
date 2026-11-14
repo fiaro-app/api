@@ -2,6 +2,7 @@ import { ErrorCodeSchema } from '@fiaro-app/contracts';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { withoutSessionToken } from '@/modules/auth/infrastructure/better-auth/auth-response-body.js';
+import { errorCodeFor } from '@/shared/infrastructure/filters/exception-details.js';
 import type { ApiErrorFactory } from '@/shared/infrastructure/filters/api-error.factory.js';
 import { codeForStatus } from '@/shared/infrastructure/filters/exception-details.js';
 import { markLocalized } from '@/shared/infrastructure/i18n/localized-response.js';
@@ -95,10 +96,13 @@ async function writeError(
       response.headers.get('x-retry-after') ?? DEFAULT_RETRY_AFTER_SECONDS,
     );
   }
+  const code = await errorCodeOf(response);
   const details = {
     statusCode: response.status,
-    code: await errorCodeOf(response),
+    code,
+    errorCode: errorCodeFor(code),
   };
+  errors.annotate(res, details);
   markLocalized(res, errors.language);
   res
     .type('application/json')

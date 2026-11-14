@@ -14,4 +14,8 @@ export const ListLoansWithBalanceRequestSchema = PageQuerySchema.extend({
     description:
       'Solo los préstamos en este estado. Ausente para listar todos.',
   }),
+  collectorMembershipId: IdSchema.optional().meta({
+    description:
+      'Solo los préstamos que este cobrador tiene asignados hoy. Ausente para no acotar.',
+  }),
 });

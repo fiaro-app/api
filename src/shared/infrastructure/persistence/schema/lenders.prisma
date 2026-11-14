@@ -28,6 +28,8 @@ model Lender {
   memberships   Membership[]
   clients       Client[]
   loans         Loan[]
+  loanRequests  LoanRequest[]
+  attachments   Attachment[]
   notifications Notification[]
 
   @@index([tenantId])

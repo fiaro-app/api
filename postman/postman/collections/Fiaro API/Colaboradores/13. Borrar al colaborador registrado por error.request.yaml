@@ -1,0 +1,14 @@
+$kind: http-request
+description: "Borrado definitivo, solo para una membresía sin asignaciones de cobro, visitas ni cuadres (un registro por error). Con historial responde 409 COLLECTOR_HAS_HISTORY: se da de baja. La cuenta de la persona no se toca. Exige rol OWNER o LENDER."
+url: "{{baseUrl}}/memberships/{{membershipsCollectorMembershipId}}"
+method: DELETE
+headers:
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 204', () => pm.response.to.have.status(204));
+    language: text/javascript
+order: 13000

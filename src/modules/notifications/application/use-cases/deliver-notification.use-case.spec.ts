@@ -24,6 +24,45 @@ const NOTIFICATION = Notification.create({
   createdAt: new Date('2026-10-06T00:00:00Z'),
 });
 
+const ALERT = Notification.create({
+  id: 'notification-2',
+  recipientUserId: 'user-1',
+  lenderId: 'lender-1',
+  severity: 'ALERT',
+  title: 'Cuenta desactivada',
+  body: 'Tu cuenta fue desactivada.',
+  relatedEntityType: 'MEMBERSHIP',
+  relatedEntityId: 'membership-1',
+  readAt: null,
+  createdAt: new Date('2026-10-06T00:00:00Z'),
+});
+
+const WARNING = Notification.create({
+  id: 'notification-3',
+  recipientUserId: 'user-1',
+  lenderId: 'lender-1',
+  severity: 'WARNING',
+  title: 'Cuadre rechazado',
+  body: 'Revisa tu cuadre.',
+  relatedEntityType: 'DAILY_SETTLEMENT',
+  relatedEntityId: 'settlement-1',
+  readAt: null,
+  createdAt: new Date('2026-10-06T00:00:00Z'),
+});
+
+const PAYMENT_RECEIPT = Notification.create({
+  id: 'notification-4',
+  recipientUserId: 'user-1',
+  lenderId: 'lender-1',
+  severity: 'SUCCESS',
+  title: 'Pago recibido',
+  body: 'Recibimos tu pago.',
+  relatedEntityType: 'SUBSCRIPTION',
+  relatedEntityId: 'payment-1',
+  readAt: null,
+  createdAt: new Date('2026-10-06T00:00:00Z'),
+});
+
 const DEVICE = PushToken.create({
   id: 'push-1',
   token: 'ExponentPushToken[dispositivo-1]',
@@ -75,31 +114,80 @@ afterEach(() => {
 });
 
 describe('DeliverNotificationUseCase', () => {
-  it('manda el correo verificado y el push a cada dispositivo', async () => {
-    const { useCase, findRecipientExecute, sendEmail, sendPush } = setup({
+  it('una informativa llega solo como push, aunque haya correo verificado', async () => {
+    const { useCase, sendEmail, sendPush } = setup({
       recipient: { verifiedEmail: 'carlos@example.com' },
       tokens: [DEVICE],
     });
 
     await useCase.execute(NOTIFICATION);
 
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendPush).toHaveBeenCalledTimes(1);
+  });
+
+  it('el comprobante de un pago de la suscripción siempre sale por correo, aunque haya celular', async () => {
+    const { useCase, sendEmail, sendPush } = setup({
+      recipient: { verifiedEmail: 'marta@example.com' },
+      tokens: [DEVICE],
+    });
+
+    await useCase.execute(PAYMENT_RECEIPT);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendPush).toHaveBeenCalledTimes(1);
+  });
+
+  it('una advertencia sin celular registrado sí sale por correo', async () => {
+    const { useCase, sendEmail } = setup({
+      recipient: { verifiedEmail: 'carlos@example.com' },
+      tokens: [],
+    });
+
+    await useCase.execute(WARNING);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('una advertencia con celular registrado no sale por correo', async () => {
+    const { useCase, sendEmail } = setup({
+      recipient: { verifiedEmail: 'carlos@example.com' },
+      tokens: [DEVICE],
+    });
+
+    await useCase.execute(WARNING);
+
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('manda el correo verificado y el push a cada dispositivo', async () => {
+    const { useCase, findRecipientExecute, sendEmail, sendPush } = setup({
+      recipient: { verifiedEmail: 'carlos@example.com' },
+      tokens: [DEVICE],
+    });
+
+    await useCase.execute(ALERT);
+
     expect(findRecipientExecute).toHaveBeenCalledWith('user-1');
     expect(sendEmail).toHaveBeenCalledWith({
       to: 'carlos@example.com',
-      subject: 'Fiaro: Préstamo asignado',
-      text: 'Préstamo asignado\n\nTe asignaron un préstamo para cobrar.\n\nAbre Fiaro en tu celular para ver los detalles.',
-      html: '<p><strong>Préstamo asignado</strong></p><p>Te asignaron un préstamo para cobrar.</p><p>Abre Fiaro en tu celular para ver los detalles.</p>',
+      subject: 'Fiaro: Cuenta desactivada',
+      text: expect.stringContaining('Tu cuenta fue desactivada.'),
+      html: expect.stringContaining('Tu cuenta fue desactivada.'),
     });
     expect(sendPush).toHaveBeenCalledWith([
       {
         to: 'ExponentPushToken[dispositivo-1]',
-        title: 'Préstamo asignado',
-        body: 'Te asignaron un préstamo para cobrar.',
+        title: 'Cuenta desactivada',
+        body: 'Tu cuenta fue desactivada.',
         data: {
-          notificationId: 'notification-1',
-          relatedEntityType: 'LOAN',
-          relatedEntityId: 'loan-1',
+          notificationId: 'notification-2',
+          relatedEntityType: 'MEMBERSHIP',
+          relatedEntityId: 'membership-1',
         },
+        priority: 'high',
+        ttl: 43_200,
+        channelId: 'default',
       },
     ]);
   });
@@ -110,19 +198,19 @@ describe('DeliverNotificationUseCase', () => {
       tokens: [DEVICE],
     });
 
-    await useCase.execute(NOTIFICATION);
+    await useCase.execute(ALERT);
 
     expect(sendEmail).not.toHaveBeenCalled();
     expect(sendPush).toHaveBeenCalledTimes(1);
   });
 
-  it('sin dispositivos registrados, manda solo el correo', async () => {
+  it('sin dispositivos registrados, una alerta sale solo por correo', async () => {
     const { useCase, sendEmail, sendPush } = setup({
       recipient: { verifiedEmail: 'carlos@example.com' },
       tokens: [],
     });
 
-    await useCase.execute(NOTIFICATION);
+    await useCase.execute(ALERT);
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendPush).not.toHaveBeenCalled();

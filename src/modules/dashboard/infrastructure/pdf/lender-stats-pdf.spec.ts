@@ -22,9 +22,45 @@ const EMPTY_STATS: LenderPeriodStats = {
   previous: null,
 };
 
+const NO_BRAND = { color: null, logo: null };
+
+/** Un PNG de 1×1 píxel: lo mínimo que `pdfkit` acepta como imagen. */
+const PNG_1X1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 describe('renderLenderStatsPdf', () => {
+  it('con la marca del negocio (color y logo) genera un PDF válido, más grande que el neutro', async () => {
+    const neutral = await renderLenderStatsPdf(
+      EMPTY_STATS,
+      'Créditos Ana',
+      NO_BRAND,
+    );
+    const branded = await renderLenderStatsPdf(EMPTY_STATS, 'Créditos Ana', {
+      color: '#3B3382',
+      logo: PNG_1X1,
+    });
+
+    expect(branded.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(branded.length).toBeGreaterThan(neutral.length);
+  });
+
+  it('un logo que no se puede dibujar no impide el PDF', async () => {
+    const buffer = await renderLenderStatsPdf(EMPTY_STATS, 'Créditos Ana', {
+      color: '#3B3382',
+      logo: Buffer.from('esto no es una imagen'),
+    });
+
+    expect(buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  });
+
   it('genera un PDF válido, incluso sin mora ni cobradores', async () => {
-    const buffer = await renderLenderStatsPdf(EMPTY_STATS, 'Créditos Ana');
+    const buffer = await renderLenderStatsPdf(
+      EMPTY_STATS,
+      'Créditos Ana',
+      NO_BRAND,
+    );
 
     expect(buffer.length).toBeGreaterThan(0);
     expect(buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
@@ -64,7 +100,7 @@ describe('renderLenderStatsPdf', () => {
       previous: null,
     };
 
-    const buffer = await renderLenderStatsPdf(stats, 'Créditos Ana');
+    const buffer = await renderLenderStatsPdf(stats, 'Créditos Ana', NO_BRAND);
 
     expect(buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });

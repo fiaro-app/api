@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { UpdateLenderUseCase } from '@/modules/lenders/application/use-cases/update-lender.use-case.js';
 import { Lender } from '@/modules/lenders/domain/entities/lender.entity.js';
 import { InvalidLenderDataError } from '@/modules/lenders/domain/errors/invalid-lender-data.error.js';
+import type { ObjectStoragePort } from '@/shared/application/ports/object-storage.port.js';
 import type { LenderRepository } from '@/modules/lenders/domain/repositories/lender.repository.js';
 
 const CREATED_AT = new Date('2026-09-30T00:00:00Z');
@@ -29,7 +30,16 @@ function setup(current: Lender | null = CURRENT) {
     findById: vi.fn(() => Promise.resolve(current)),
     update,
   };
-  return { useCase: new UpdateLenderUseCase(lenders), update, saved };
+  const storage = {
+    keyFromPublicUrl: vi.fn(() => null),
+    inspectObject: vi.fn(),
+    deleteObject: vi.fn(),
+  } as unknown as ObjectStoragePort;
+  return {
+    useCase: new UpdateLenderUseCase(lenders, storage),
+    update,
+    saved,
+  };
 }
 
 describe('UpdateLenderUseCase', () => {

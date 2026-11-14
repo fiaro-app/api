@@ -23,7 +23,7 @@ describe('POST /lender/logo-upload-url', () => {
       .set(HEADERS)
       .set('X-Forwarded-For', nextIp())
       .set('Cookie', business.ownerCookie)
-      .send({ contentType: 'image/png' });
+      .send({ contentType: 'image/png', sizeBytes: 48_000 });
 
     expect(response.status).toBe(200);
     const body = response.body as {
@@ -35,6 +35,9 @@ describe('POST /lender/logo-upload-url', () => {
       /^http:\/\/localhost:8333\/fiaro-dev\/logos\//,
     );
     expect(body.uploadUrl).toContain('.png');
+    expect(body.uploadUrl).toContain(
+      'X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost',
+    );
     expect(body.publicUrl).toMatch(
       /^http:\/\/localhost:8333\/fiaro-dev\/logos\/.+\.png$/,
     );
@@ -50,7 +53,7 @@ describe('POST /lender/logo-upload-url', () => {
       .set(HEADERS)
       .set('X-Forwarded-For', nextIp())
       .set('Cookie', business.ownerCookie)
-      .send({ contentType: 'application/pdf' });
+      .send({ contentType: 'application/pdf', sizeBytes: 48_000 });
 
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({ code: 'VALIDATION_FAILED' });
@@ -65,7 +68,7 @@ describe('POST /lender/logo-upload-url', () => {
       .set(HEADERS)
       .set('X-Forwarded-For', nextIp())
       .set('Cookie', business.collectorCookie)
-      .send({ contentType: 'image/png' });
+      .send({ contentType: 'image/png', sizeBytes: 48_000 });
 
     expect(response.status).toBe(403);
     expect(response.body).toMatchObject({ code: 'FORBIDDEN' });
@@ -78,8 +81,52 @@ describe('POST /lender/logo-upload-url', () => {
       .post('/lender/logo-upload-url')
       .set(HEADERS)
       .set('X-Forwarded-For', nextIp())
-      .send({ contentType: 'image/png' });
+      .send({ contentType: 'image/png', sizeBytes: 48_000 });
 
     expect(response.status).toBe(401);
+  });
+
+  it('rechaza un peso de más de 2 MB o sin peso', async () => {
+    const testApp = await startTestApp({
+      env: { CORS_ORIGINS: HEADERS.Origin },
+    });
+    app = testApp;
+    const business = await seedBusinessWithCollector(testApp);
+    const ask = (body: object) =>
+      testApp.http
+        .post('/lender/logo-upload-url')
+        .set(HEADERS)
+        .set('X-Forwarded-For', nextIp())
+        .set('Cookie', business.ownerCookie)
+        .send(body);
+
+    expect((await ask({ contentType: 'image/png' })).status).toBe(400);
+    expect(
+      (await ask({ contentType: 'image/png', sizeBytes: 2 * 1024 * 1024 + 1 }))
+        .status,
+    ).toBe(400);
+  });
+});
+
+describe('PATCH /lender { logoUrl }', () => {
+  it('solo acepta logos subidos con la URL firmada del negocio: cualquier otra URL se rechaza', async () => {
+    app = await startTestApp({ env: { CORS_ORIGINS: HEADERS.Origin } });
+    const business = await seedBusinessWithCollector(app);
+
+    for (const logoUrl of [
+      'https://evil.example/logo.png',
+      'http://localhost:8333/fiaro-dev/logos/otro/archivo.png',
+      'javascript:alert(1)',
+    ]) {
+      const response = await app.http
+        .patch('/lender')
+        .set(HEADERS)
+        .set('X-Forwarded-For', nextIp())
+        .set('Cookie', business.ownerCookie)
+        .send({ logoUrl });
+
+      expect([400]).toContain(response.status);
+      expect(response.body).toMatchObject({ code: 'VALIDATION_FAILED' });
+    }
   });
 });

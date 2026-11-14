@@ -1,3 +1,4 @@
+import { LEGAL_ACCEPTANCE } from '@test/support/legal-acceptance.js';
 import type { Response } from 'supertest';
 import { v7 as uuidv7 } from 'uuid';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -36,7 +37,9 @@ async function seedLoan(
     .post('/register')
     .set(HEADERS)
     .send({
+      ...LEGAL_ACCEPTANCE,
       phone,
+      contactEmail: `${phone.slice(1)}@example.com`,
       fullName: 'Ana Prueba',
       password: 'contraseña-de-prueba-1',
       nationalId,

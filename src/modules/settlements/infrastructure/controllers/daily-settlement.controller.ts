@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Post,
   QueryMethod,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
+import { CancelSettlementUseCase } from '@/modules/settlements/application/use-cases/cancel-settlement.use-case.js';
 import { GetSettlementUseCase } from '@/modules/settlements/application/use-cases/get-settlement.use-case.js';
 import { ListSettlementsUseCase } from '@/modules/settlements/application/use-cases/list-settlements.use-case.js';
 import { ReviewSettlementUseCase } from '@/modules/settlements/application/use-cases/review-settlement.use-case.js';
@@ -21,6 +23,7 @@ import {
   ApiGetSettlement,
   ApiListSettlements,
   apiReviewSettlement,
+  ApiCancelSettlement,
   ApiSubmitSettlement,
 } from '@/modules/settlements/infrastructure/controllers/docs/settlement-routes.docs.js';
 import {
@@ -35,7 +38,9 @@ import {
   type SettlementsPageResponseSchema,
 } from '@/modules/settlements/infrastructure/controllers/schemas/settlement-responses.schema.js';
 import type { LenderScope } from '@/shared/application/ports/lender-scope-resolver.port.js';
+import { isCollectorOnly } from '@/shared/application/security/is-collector-only.js';
 import { hasAnyRole } from '@/shared/application/security/has-any-role.js';
+import { AllowWhenReadOnly } from '@/shared/infrastructure/http/allow-when-read-only.decorator.js';
 import { CurrentLenderScope } from '@/shared/infrastructure/http/current-lender-scope.decorator.js';
 import { LenderScopeGuard } from '@/shared/infrastructure/http/lender-scope.guard.js';
 import { API_TAGS } from '@/shared/infrastructure/swagger/api-tags.js';
@@ -62,6 +67,7 @@ const SettlementIdParamSchema = z.uuid();
 export class DailySettlementController {
   constructor(
     private readonly submitSettlementUseCase: SubmitSettlementUseCase,
+    private readonly cancelSettlementUseCase: CancelSettlementUseCase,
     private readonly getSettlementUseCase: GetSettlementUseCase,
     private readonly listSettlementsUseCase: ListSettlementsUseCase,
     private readonly reviewSettlementUseCase: ReviewSettlementUseCase,
@@ -71,6 +77,7 @@ export class DailySettlementController {
    * @param body - Los montos declarados, ya validados.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiSubmitSettlement()
@@ -97,6 +104,28 @@ export class DailySettlementController {
 
   /**
    * @param id - El cuadre.
+   * @param scope - El Lender y la membresía con la que opera la sesión.
+   */
+  @AllowWhenReadOnly()
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiCancelSettlement()
+  async cancelSettlement(
+    @Param('id', { schema: SettlementIdParamSchema }) id: string,
+    @CurrentLenderScope() scope: LenderScope,
+  ): Promise<void> {
+    if (!hasAnyRole(scope.roles, SUBMITTER_ROLES)) {
+      throw new ForbiddenException({ code: ErrorCodeSchema.enum.FORBIDDEN });
+    }
+    await this.cancelSettlementUseCase.execute({
+      settlementId: id,
+      lenderId: scope.lenderId,
+      collectorMembershipId: scope.membershipId,
+    });
+  }
+
+  /**
+   * @param id - El cuadre.
    * @param scope - El Lender con el que opera la sesión.
    */
   @Get(':id')
@@ -106,9 +135,17 @@ export class DailySettlementController {
     @Param('id', { schema: SettlementIdParamSchema }) id: string,
     @CurrentLenderScope() scope: LenderScope,
   ): Promise<z.output<typeof SettlementResponseSchema>> {
-    return toSettlementResponse(
-      await this.getSettlementUseCase.execute(id, scope.lenderId),
+    const settlement = await this.getSettlementUseCase.execute(
+      id,
+      scope.lenderId,
     );
+    if (
+      isCollectorOnly(scope.roles) &&
+      settlement.collectorMembershipId !== scope.membershipId
+    ) {
+      throw new NotFoundException({ code: ErrorCodeSchema.enum.NOT_FOUND });
+    }
+    return toSettlementResponse(settlement);
   }
 
   /**
@@ -127,7 +164,9 @@ export class DailySettlementController {
       lenderId: scope.lenderId,
       page: query.page,
       pageSize: query.pageSize,
-      collectorMembershipId: query.collectorMembershipId,
+      collectorMembershipId: isCollectorOnly(scope.roles)
+        ? scope.membershipId
+        : query.collectorMembershipId,
       status: query.status,
       portfolioId: query.portfolioId,
       from: query.dateRange?.from,
@@ -141,6 +180,7 @@ export class DailySettlementController {
    * @param body - El comentario opcional, ya validado.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
   @apiReviewSettlement('approve')
@@ -158,6 +198,7 @@ export class DailySettlementController {
    * @param body - El comentario opcional, ya validado.
    * @param scope - El Lender y la membresía con la que opera la sesión.
    */
+  @AllowWhenReadOnly()
   @Post(':id/reject')
   @HttpCode(HttpStatus.OK)
   @apiReviewSettlement('reject')
