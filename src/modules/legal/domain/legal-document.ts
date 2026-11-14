@@ -6,6 +6,7 @@ export const LEGAL_DOCUMENTS = [
   'TERMS',
   'PRIVACY',
   'DATA_RESPONSIBILITY',
+  'COOKIES',
   'MARKETING',
 ] as const;
 
@@ -16,4 +17,4 @@ export type LegalDocument = (typeof LEGAL_DOCUMENTS)[number];
  * Versión vigente de los documentos legales (la fecha en que se publicó el texto). Cuando cambie un texto, se sube esta versión
  * y la web y la app muestran la nueva; quien se registre con una versión vieja recibe `P930V` y debe recargar.
  */
-export const CURRENT_LEGAL_VERSION = '2026-10-16';
+export const CURRENT_LEGAL_VERSION = '2026-11-14';

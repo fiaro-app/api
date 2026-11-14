@@ -37,6 +37,7 @@ Consecuencias, ya reflejadas en los textos:
 | Versionado de los textos | `CURRENT_LEGAL_VERSION`; una versión vieja se rechaza con `P930V` |
 | Cookies (la SIC las trata como medio de recolección de datos personales (*)) | `/cookies`: solo cookies estrictamente necesarias (sesión y antirrobo); aviso informativo en la web |
 | Límite de responsabilidad, uso aceptable, suspensión, ley aplicable | `/terminos` |
+| Aceptación de la política de cookies (la web usa cookies de sesión y de seguridad) | Casilla obligatoria `acceptedCookies` al registrarse; queda como `COOKIES` en `legal_acceptances` con versión, IP y dispositivo |
 | Autorización de comunicaciones comerciales | Casilla opcional `marketingConsent`, nunca condiciona el registro |
 
 ## 4. Obligaciones del **prestamista** que los Términos le trasladan
