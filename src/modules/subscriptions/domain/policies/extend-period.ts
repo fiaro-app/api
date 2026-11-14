@@ -18,6 +18,17 @@ export function addMonths(from: Date, months: number): Date {
 }
 
 /**
+ * Dónde termina el período después de devolver un pago de `months` meses (D-156): se restan esos meses al
+ * final vigente. Puede quedar en el pasado: el negocio entra en gracia o solo lectura como si no hubiera pagado.
+ *
+ * @param currentPeriodEndsAt - Hasta cuándo estaba pagado.
+ * @param months - Meses del pago que se devuelve.
+ */
+export function retractPeriod(currentPeriodEndsAt: Date, months: number): Date {
+  return addMonths(currentPeriodEndsAt, -months);
+}
+
+/**
  * Dónde termina el período después de pagar `months` meses: se suman al final del período vigente,
  * o a hoy si ya venció, así no se pierden los días que ya estaban pagados (ni los de la prueba).
  *

@@ -7,6 +7,7 @@ import type {
   CheckoutParams,
   ParsedEvent,
   PaymentGateway,
+  VoidOutcome,
 } from '@/modules/subscriptions/application/ports/payment-gateway.port.js';
 
 /** Lo que Wompi manda en cada aviso; lo demás se ignora. */
@@ -40,6 +41,9 @@ const REQUIRED_PROPERTIES = [
 ] as const;
 
 const HEX_SHA256 = /^[0-9a-f]{64}$/;
+
+/** Cuánto se espera la respuesta de Wompi a una anulación. */
+const VOID_TIMEOUT_MS = 10_000;
 
 /** @param value - Un valor del aviso que entra en la firma. */
 function isSignable(value: unknown): value is string | number | boolean {
@@ -96,6 +100,30 @@ function sameDigest(a: string, b: string): boolean {
 @Injectable()
 export class WompiPaymentGateway implements PaymentGateway {
   constructor(@Inject(ENV) private readonly env: Env) {}
+
+  canVoid(): boolean {
+    return Boolean(this.env.subscription.wompi.privateKey);
+  }
+
+  async voidTransaction(wompiTransactionId: string): Promise<VoidOutcome> {
+    const { privateKey, apiUrl } = this.env.subscription.wompi;
+    if (!privateKey) {
+      return 'REJECTED';
+    }
+    try {
+      const response = await fetch(
+        `${apiUrl}/transactions/${encodeURIComponent(wompiTransactionId)}/void`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${privateKey}` },
+          signal: AbortSignal.timeout(VOID_TIMEOUT_MS),
+        },
+      );
+      return response.ok ? 'ACCEPTED' : 'REJECTED';
+    } catch {
+      return 'REJECTED';
+    }
+  }
 
   isConfigured(): boolean {
     return this.env.subscription.wompi.enabled;

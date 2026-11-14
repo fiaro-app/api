@@ -224,6 +224,18 @@
       "title": "La orden de pago no existe para este negocio.",
       "hint": "Referencia vieja o de otro negocio."
     },
+    "U004A": {
+      "title": "El pago no se puede reembolsar.",
+      "hint": "Solo los pagos APPROVED se devuelven, una vez: ya estaba devuelto o no se aprobó (D-156)."
+    },
+    "U005A": {
+      "title": "El pago no se puede anular en Wompi.",
+      "hint": "WOMPI_VOID solo sirve para pagos con tarjeta y con WOMPI_PRIVATE_KEY configurada; para el resto, modo MANUAL (D-156)."
+    },
+    "U006A": {
+      "title": "Wompi no aceptó la anulación.",
+      "hint": "Wompi respondió con error o no respondió a POST /transactions/{id}/void: revisa la llave privada y el estado de la transacción, o registra la devolución en modo MANUAL."
+    },
     "W001H": {
       "title": "El sistema está en mantenimiento.",
       "hint": "MAINTENANCE_MODE=true: el balanceador debe sacar la instancia; apágalo al terminar."

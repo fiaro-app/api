@@ -33,6 +33,8 @@ export const AUDIT_ACTIONS = [
   'billing.checkout.created',
   /** Wompi aprobó un pago y se aplicó a la suscripción. */
   'billing.payment.approved',
+  /** Quien opera la plataforma devolvió un pago aprobado y se le restaron sus meses a la suscripción (D-156). */
+  'billing.payment.refunded',
   /** Wompi cerró un pago sin aprobarlo (rechazado, anulado o con error). */
   'billing.payment.not_approved',
   /** Se importaron clientes y préstamos desde una hoja de cálculo (D-152). */

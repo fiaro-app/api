@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { integer } from '@/config/env-fields.js';
+import { commaSeparated, integer, PhoneSchema } from '@/config/env-fields.js';
 
 /**
  * Variables de entorno de la suscripción: la prueba (D-115) y el cobro con Wompi (D-149). Las de
@@ -14,6 +14,9 @@ export const BILLING_ENV_SHAPE = {
   WOMPI_EVENTS_SECRET: z.string().min(1).optional(),
   WOMPI_CHECKOUT_URL: z.url().default('https://checkout.wompi.co/p/'),
   WOMPI_REDIRECT_URL: z.url().optional(),
+  WOMPI_PRIVATE_KEY: z.string().min(1).optional(),
+  WOMPI_API_URL: z.url().default('https://production.wompi.co/v1'),
+  PLATFORM_ADMIN_PHONES: commaSeparated(PhoneSchema),
 };
 
 /**

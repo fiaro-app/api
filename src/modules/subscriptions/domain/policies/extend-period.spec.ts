@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addMonths,
   extendPeriod,
+  retractPeriod,
 } from '@/modules/subscriptions/domain/policies/extend-period.js';
 
 const at = (iso: string) => new Date(`${iso}T12:00:00Z`);
@@ -37,5 +38,16 @@ describe('extendPeriod', () => {
     expect(extendPeriod(at('2026-10-16'), at('2026-10-16'), 1)).toEqual(
       at('2026-11-16'),
     );
+  });
+});
+
+describe('retractPeriod', () => {
+  it('resta los meses del pago al final del período, sin pasarse del último día del mes', () => {
+    expect(
+      retractPeriod(new Date('2026-12-14T10:00:00Z'), 1).toISOString(),
+    ).toBe('2026-11-14T10:00:00.000Z');
+    expect(
+      retractPeriod(new Date('2026-03-31T10:00:00Z'), 1).toISOString(),
+    ).toBe('2026-02-28T10:00:00.000Z');
   });
 });

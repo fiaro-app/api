@@ -7,11 +7,27 @@ export const SUBSCRIPTION_PAYMENT_STATUSES = [
   'DECLINED',
   'VOIDED',
   'ERROR',
+  'REFUNDED',
 ] as const;
 
 /** Estado de un {@link SubscriptionPayment}. */
 export type SubscriptionPaymentStatus =
   (typeof SUBSCRIPTION_PAYMENT_STATUSES)[number];
+
+/** Cómo se devolvió el dinero: con la anulación de Wompi o a mano (D-156). */
+export const REFUND_MODES = ['WOMPI_VOID', 'MANUAL'] as const;
+export type RefundMode = (typeof REFUND_MODES)[number];
+
+/** El reembolso de un pago aprobado. */
+export interface PaymentRefund {
+  readonly refundedAt: Date;
+  /** Quién lo registró. */
+  readonly refundedByUserId: string;
+  readonly mode: RefundMode;
+  /** La referencia de la devolución (de Wompi o del banco), si la hay. */
+  readonly reference: string | null;
+  readonly reason: string;
+}
 
 /** Datos con los que se construye un {@link SubscriptionPayment}. */
 export interface SubscriptionPaymentProps {
@@ -34,6 +50,8 @@ export interface SubscriptionPaymentProps {
   readonly periodEndsAt: Date | null;
   readonly createdAt: Date;
   readonly resolvedAt: Date | null;
+  /** Su reembolso; ausente o `null` si no se devolvió. */
+  readonly refund?: PaymentRefund | null;
 }
 
 /**

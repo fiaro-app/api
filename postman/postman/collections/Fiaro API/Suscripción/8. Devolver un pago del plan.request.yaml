@@ -1,0 +1,27 @@
+$kind: http-request
+description: "Devuelve por completo un pago aprobado (D-156): pasa a REFUNDED y la suscripción pierde los meses que había sumado. mode WOMPI_VOID anula antes la transacción en Wompi (solo tarjeta); mode MANUAL solo registra una devolución hecha por otro lado, con su referencia. Solo quien opera la plataforma (PLATFORM_ADMIN_PHONES): con la cuenta de esta carpeta responde 403. Con una cuenta de plataforma, errores posibles: 404 NOT_FOUND, 422 PAYMENT_NOT_REFUNDABLE, 422 REFUND_METHOD_UNSUPPORTED, 503 REFUND_GATEWAY_FAILED."
+url: "{{baseUrl}}/admin/subscription-payments/{{checkoutReference}}/refund"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "mode": "MANUAL",
+      "reference": "banco-123",
+      "reason": "La dueña pagó dos veces"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('una dueña cualquiera no es quien opera la plataforma: 403 FORBIDDEN', () => {
+        pm.response.to.have.status(403);
+        pm.expect(pm.response.json().code).to.eql('FORBIDDEN');
+      });
+    language: text/javascript
+order: 8000

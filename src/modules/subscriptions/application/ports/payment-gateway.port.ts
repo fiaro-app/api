@@ -32,7 +32,20 @@ export type ParsedEvent =
   | { readonly kind: 'transaction'; readonly event: PaymentEvent };
 
 /** La pasarela de pagos (Wompi): firma las órdenes y comprueba sus avisos. */
+/** Qué contestó Wompi a una anulación (D-156). */
+export type VoidOutcome = 'ACCEPTED' | 'REJECTED';
+
 export interface PaymentGateway {
+  /** ¿Están las llaves para anular transacciones (`WOMPI_PRIVATE_KEY`)? */
+  canVoid(): boolean;
+
+  /**
+   * Pide a Wompi anular una transacción con tarjeta (`POST /transactions/{id}/void`, llave privada). Nunca lanza.
+   *
+   * @param wompiTransactionId - La transacción de Wompi que resolvió la orden.
+   */
+  voidTransaction(wompiTransactionId: string): Promise<VoidOutcome>;
+
   /** Si están configuradas las llaves; sin ellas no se puede cobrar. */
   isConfigured(): boolean;
 

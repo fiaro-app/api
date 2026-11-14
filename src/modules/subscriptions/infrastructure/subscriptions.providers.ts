@@ -1,6 +1,8 @@
 import type { Provider } from '@nestjs/common';
 import { TRIAL_SUBSCRIPTION_SETTINGS } from '@/modules/subscriptions/application/ports/trial-subscription-settings.token.js';
 import { TENANT_OWNERS } from '@/modules/subscriptions/application/ports/tenant-owners.token.js';
+import { ListAllSubscriptionPaymentsUseCase } from '@/modules/subscriptions/application/use-cases/list-all-subscription-payments.use-case.js';
+import { RefundSubscriptionPaymentUseCase } from '@/modules/subscriptions/application/use-cases/refund-subscription-payment.use-case.js';
 import { ListRenewalTargetsUseCase } from '@/modules/subscriptions/application/use-cases/list-renewal-targets.use-case.js';
 import { ListSubscriptionPaymentsUseCase } from '@/modules/subscriptions/application/use-cases/list-subscription-payments.use-case.js';
 import { PrismaTenantOwners } from '@/modules/subscriptions/infrastructure/persistence/prisma-tenant-owners.js';
@@ -37,6 +39,8 @@ export const subscriptionsProviders: Provider[] = [
   ProcessPaymentEventUseCase,
   ListSubscriptionPaymentsUseCase,
   ListRenewalTargetsUseCase,
+  ListAllSubscriptionPaymentsUseCase,
+  RefundSubscriptionPaymentUseCase,
 ];
 
 /** Lo que el módulo ofrece a los demás: el alta de la prueba (`tenants`) y los negocios a punto de vencer (`alerts`, D-150). */

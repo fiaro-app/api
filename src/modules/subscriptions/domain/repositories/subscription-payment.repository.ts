@@ -1,4 +1,5 @@
 import type {
+  RefundMode,
   SubscriptionPayment,
   SubscriptionPaymentStatus,
 } from '@/modules/subscriptions/domain/entities/subscription-payment.entity.js';
@@ -19,6 +20,22 @@ export type ResolveOutcome =
   | 'APPLIED'
   /** Ya estaba resuelta (un aviso repetido): no se tocó nada. */
   | 'ALREADY_RESOLVED';
+
+/** Los datos con que se registra el reembolso de un pago aprobado (D-156). */
+export interface PaymentRefundInput {
+  readonly reference: string;
+  readonly refundedAt: Date;
+  readonly refundedByUserId: string;
+  readonly mode: RefundMode;
+  readonly refundReference: string | null;
+  readonly reason: string;
+}
+
+/** Un pago con el nombre del negocio que lo hizo, para quien opera la plataforma. */
+export interface PaymentWithTenant {
+  readonly payment: SubscriptionPayment;
+  readonly tenantName: string;
+}
 
 /** Puerto de persistencia de las órdenes de pago de la suscripción. */
 export interface SubscriptionPaymentRepository {
@@ -59,6 +76,30 @@ export interface SubscriptionPaymentRepository {
    */
   reject(
     resolution: PaymentResolution,
-    status: Exclude<SubscriptionPaymentStatus, 'PENDING' | 'APPROVED'>,
+    status: Exclude<
+      SubscriptionPaymentStatus,
+      'PENDING' | 'APPROVED' | 'REFUNDED'
+    >,
   ): Promise<ResolveOutcome>;
+
+  /**
+   * Marca el pago como reembolsado y le quita a la suscripción del negocio los meses que ese pago
+   * había sumado, en una sola transacción. Solo lo hace si el pago seguía `APPROVED`: un reembolso
+   * repetido no resta dos veces.
+   *
+   * @param input - Quién, cuándo, cómo y por qué.
+   * @returns `APPLIED`, o `ALREADY_RESOLVED` si el pago no estaba aprobado.
+   */
+  refund(input: PaymentRefundInput): Promise<ResolveOutcome>;
+
+  /**
+   * Los pagos de todos los negocios, del más reciente al más viejo, con el nombre del negocio.
+   *
+   * @param limit - Cuántos como máximo.
+   * @param status - Solo los que están en este estado; ausente para todos.
+   */
+  listAll(
+    limit: number,
+    status?: SubscriptionPaymentStatus,
+  ): Promise<readonly PaymentWithTenant[]>;
 }

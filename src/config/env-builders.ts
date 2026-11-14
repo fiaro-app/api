@@ -74,6 +74,8 @@ export function buildSubscriptionConfig(env: {
   readonly WOMPI_EVENTS_SECRET?: string | undefined;
   readonly WOMPI_CHECKOUT_URL: string;
   readonly WOMPI_REDIRECT_URL?: string | undefined;
+  readonly WOMPI_PRIVATE_KEY?: string | undefined;
+  readonly WOMPI_API_URL: string;
 }) {
   return {
     trialDays: env.SUBSCRIPTION_TRIAL_DAYS,
@@ -91,6 +93,8 @@ export function buildSubscriptionConfig(env: {
       eventsSecret: env.WOMPI_EVENTS_SECRET,
       checkoutUrl: env.WOMPI_CHECKOUT_URL,
       redirectUrl: env.WOMPI_REDIRECT_URL,
+      privateKey: env.WOMPI_PRIVATE_KEY,
+      apiUrl: env.WOMPI_API_URL,
     },
   };
 }

@@ -172,6 +172,7 @@ const EnvSchema = z
     },
     leads: { notifyEmail: env.LEADS_NOTIFY_EMAIL },
     subscription: buildSubscriptionConfig(env),
+    platformAdminPhones: [...new Set(env.PLATFORM_ADMIN_PHONES)],
     maintenanceMode: env.MAINTENANCE_MODE ?? false,
     mobile: {
       minimumSupportedVersion: env.MOBILE_MIN_SUPPORTED_VERSION ?? '0.0.0',
