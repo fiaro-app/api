@@ -31,7 +31,7 @@ export class RequestAttachmentUploadUseCase {
   async execute(
     input: RequestAttachmentUploadInput,
   ): Promise<AttachmentUpload> {
-    await this.owners.assertAccess(input, true);
+    await this.owners.assertAccess(input);
     const prefix = attachmentPrefix(
       input.kind,
       input.actor.lenderId,

@@ -41,12 +41,12 @@ describe('S3ObjectStorageAdapter', () => {
     const adapter = new S3ObjectStorageAdapter(CONFIG);
 
     const url = await adapter.getPresignedDownloadUrl(
-      'client-photos/l/c/a.jpg',
+      'payment-proofs/l/c/a.jpg',
       600,
     );
 
     expect(url).toMatch(
-      /^http:\/\/localhost:8333\/fiaro-dev\/client-photos\/l\/c\/a\.jpg\?/,
+      /^http:\/\/localhost:8333\/fiaro-dev\/payment-proofs\/l\/c\/a\.jpg\?/,
     );
     expect(url).toContain('X-Amz-Signature=');
     expect(url).toContain('X-Amz-Expires=600');

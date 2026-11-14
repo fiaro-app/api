@@ -52,6 +52,14 @@ describe('RecordRegistrationAcceptancesUseCase', () => {
         ipAddress: '10.0.0.1',
         userAgent: 'vitest',
       },
+      {
+        id: 'id-4',
+        userId: 'u1',
+        document: 'COOKIES',
+        version: CURRENT_LEGAL_VERSION,
+        ipAddress: '10.0.0.1',
+        userAgent: 'vitest',
+      },
     ]);
   });
 
@@ -67,6 +75,7 @@ describe('RecordRegistrationAcceptancesUseCase', () => {
       'TERMS',
       'PRIVACY',
       'DATA_RESPONSIBILITY',
+      'COOKIES',
       'MARKETING',
     ]);
   });

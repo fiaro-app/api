@@ -74,8 +74,9 @@ describe('RegistrationController', () => {
         acceptedTerms: true as const,
         acceptedPrivacy: true as const,
         acceptedDataResponsibility: true as const,
+        acceptedCookies: true as const,
         marketingConsent: true,
-        legalVersion: '2026-10-16',
+        legalVersion: '2026-11-14',
       };
 
       const response = await controller.register(body, undefined, {
@@ -91,7 +92,7 @@ describe('RegistrationController', () => {
         contactEmail: 'ana@example.com',
         businessName: 'Préstamos Ana',
         legal: {
-          version: '2026-10-16',
+          version: '2026-11-14',
           marketing: true,
           ipAddress: '203.0.113.1',
           userAgent: 'vitest',
@@ -124,8 +125,9 @@ describe('RegistrationController', () => {
           acceptedTerms: true,
           acceptedPrivacy: true,
           acceptedDataResponsibility: true,
+          acceptedCookies: true,
           marketingConsent: false,
-          legalVersion: '2026-10-16',
+          legalVersion: '2026-11-14',
         },
         undefined,
         { headers: {} } as never,
@@ -151,8 +153,9 @@ describe('RegistrationController', () => {
         acceptedTerms: true as const,
         acceptedPrivacy: true as const,
         acceptedDataResponsibility: true as const,
+        acceptedCookies: true as const,
         marketingConsent: true,
-        legalVersion: '2026-10-16',
+        legalVersion: '2026-11-14',
         turnstileToken: 'token',
       };
 

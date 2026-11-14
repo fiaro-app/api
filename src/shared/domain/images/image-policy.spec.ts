@@ -27,28 +27,28 @@ describe('detectImageType', () => {
 describe('imageTypeOfKey', () => {
   it('acepta solo <prefijo>/<uuid>.<png|jpg>', () => {
     expect(
-      imageTypeOfKey(`client-photos/a/b/${ID}.png`, 'client-photos/a/b'),
+      imageTypeOfKey(`payment-proofs/a/b/${ID}.png`, 'payment-proofs/a/b'),
     ).toBe('image/png');
     expect(
-      imageTypeOfKey(`client-photos/a/b/${ID}.jpg`, 'client-photos/a/b'),
+      imageTypeOfKey(`payment-proofs/a/b/${ID}.jpg`, 'payment-proofs/a/b'),
     ).toBe('image/jpeg');
   });
 
   it('rechaza otra carpeta, otro dueño, otra extensión y subcarpetas', () => {
     expect(
-      imageTypeOfKey(`client-photos/a/c/${ID}.png`, 'client-photos/a/b'),
+      imageTypeOfKey(`payment-proofs/a/c/${ID}.png`, 'payment-proofs/a/b'),
     ).toBeNull();
     expect(
-      imageTypeOfKey(`logos/a/b/${ID}.png`, 'client-photos/a/b'),
+      imageTypeOfKey(`logos/a/b/${ID}.png`, 'payment-proofs/a/b'),
     ).toBeNull();
     expect(
-      imageTypeOfKey(`client-photos/a/b/${ID}.svg`, 'client-photos/a/b'),
+      imageTypeOfKey(`payment-proofs/a/b/${ID}.svg`, 'payment-proofs/a/b'),
     ).toBeNull();
     expect(
-      imageTypeOfKey(`client-photos/a/b/x/${ID}.png`, 'client-photos/a/b'),
+      imageTypeOfKey(`payment-proofs/a/b/x/${ID}.png`, 'payment-proofs/a/b'),
     ).toBeNull();
     expect(
-      imageTypeOfKey(`client-photos/a/b/../${ID}.png`, 'client-photos/a/b'),
+      imageTypeOfKey(`payment-proofs/a/b/../${ID}.png`, 'payment-proofs/a/b'),
     ).toBeNull();
   });
 });

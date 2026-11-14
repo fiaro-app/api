@@ -16,7 +16,7 @@ es la base de casi todo lo demás: Fiaro no es entidad vigilada por la Superfina
 | Datos | Quién es el **Responsable** | Quién es el **Encargado** |
 | --- | --- | --- |
 | Cuenta del prestamista y de sus cobradores (nombre, celular, cédula, correo) | **Fiaro** | — |
-| Clientes del prestamista (nombre, cédula, celular, dirección, foto, historial de pagos, riesgo) | **El prestamista** | **Fiaro** (trata los datos por cuenta de él) |
+| Clientes del prestamista (nombre, cédula, celular, dirección, historial de pagos, riesgo) | **El prestamista** | **Fiaro** (trata los datos por cuenta de él) |
 
 Consecuencias, ya reflejadas en los textos:
 
@@ -37,6 +37,7 @@ Consecuencias, ya reflejadas en los textos:
 | Versionado de los textos | `CURRENT_LEGAL_VERSION`; una versión vieja se rechaza con `P930V` |
 | Cookies (la SIC las trata como medio de recolección de datos personales (*)) | `/cookies`: solo cookies estrictamente necesarias (sesión y antirrobo); aviso informativo en la web |
 | Límite de responsabilidad, uso aceptable, suspensión, ley aplicable | `/terminos` |
+| Aceptación de la política de cookies (la web usa cookies de sesión y de seguridad) | Casilla obligatoria `acceptedCookies` al registrarse; queda como `COOKIES` en `legal_acceptances` con versión, IP y dispositivo |
 | Autorización de comunicaciones comerciales | Casilla opcional `marketingConsent`, nunca condiciona el registro |
 
 ## 4. Obligaciones del **prestamista** que los Términos le trasladan
@@ -51,9 +52,7 @@ Fiaro no puede garantizar que el prestamista cumpla la ley, pero sí puede **exi
 3. **Habeas data financiero (Ley 1266 de 2008 y Ley 2157 de 2021, no verificadas).** Fiaro **no reporta a centrales de riesgo**.
    El puntaje de riesgo es una ayuda interna del prestamista, no un reporte crediticio. El prestamista no debe reportar a centrales
    de riesgo sin ser fuente autorizada.
-4. **Datos sensibles.** La foto de un cliente puede ser dato biométrico si se usa para identificarlo, y el tratamiento de datos
-   sensibles exige autorización **explícita** y que el titular sepa que no está obligado a darla (Ley 1581, art. 6 (*), y Decreto 1377 (*)).
-   Por eso la foto del cliente es opcional, privada, y la **cédula no se fotografía** (D-145).
+4. **Datos sensibles.** Fiaro no pide ni guarda fotos de personas (D-153) y la **cédula no se fotografía**: así no trata datos biométricos. El comprobante de un pago es una captura de Nequi o de una transferencia y es privado.
 5. **Lícito origen y finalidad.** No usar Fiaro para actividades ilícitas (lavado, extorsión, cobro de deudas inexistentes).
 
 ## 5. Pendientes que NO se pueden resolver en código (hay que decidirlos con un abogado o con el titular del negocio)

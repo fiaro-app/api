@@ -11,23 +11,26 @@ const VALID_BODY = {
   acceptedTerms: true,
   acceptedPrivacy: true,
   acceptedDataResponsibility: true,
-  legalVersion: '2026-10-16',
+  acceptedCookies: true,
+  legalVersion: '2026-11-14',
 };
 
 describe('RegisterOwnerRequestSchema', () => {
-  it.each(['acceptedTerms', 'acceptedPrivacy', 'acceptedDataResponsibility'])(
-    'rechaza el registro si no aceptó %s',
-    (field) => {
-      expect(
-        RegisterOwnerRequestSchema.safeParse({ ...VALID_BODY, [field]: false })
-          .success,
-      ).toBe(false);
-      const without = Object.fromEntries(
-        Object.entries(VALID_BODY).filter(([key]) => key !== field),
-      );
-      expect(RegisterOwnerRequestSchema.safeParse(without).success).toBe(false);
-    },
-  );
+  it.each([
+    'acceptedTerms',
+    'acceptedPrivacy',
+    'acceptedDataResponsibility',
+    'acceptedCookies',
+  ])('rechaza el registro si no aceptó %s', (field) => {
+    expect(
+      RegisterOwnerRequestSchema.safeParse({ ...VALID_BODY, [field]: false })
+        .success,
+    ).toBe(false);
+    const without = Object.fromEntries(
+      Object.entries(VALID_BODY).filter(([key]) => key !== field),
+    );
+    expect(RegisterOwnerRequestSchema.safeParse(without).success).toBe(false);
+  });
 
   it('las novedades son opcionales y por defecto no se aceptan', () => {
     const parsed = RegisterOwnerRequestSchema.parse(VALID_BODY);

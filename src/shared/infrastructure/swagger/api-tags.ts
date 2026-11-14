@@ -61,7 +61,7 @@ export const API_TAGS = {
   attachment: {
     name: 'Fotos',
     description:
-      'La foto de un cliente (`/clients/:id/photo`) y el comprobante de un pago (`/payments/:id/proof`). El archivo (PNG o JPEG de hasta 5 MB) va directo del dispositivo al bucket con una URL firmada; nunca es público y se ve con otra URL firmada que vence en minutos.',
+      'El comprobante de un pago (`/payments/:id/proof`). El archivo (PNG o JPEG de hasta 5 MB) va directo del dispositivo al bucket con una URL firmada; nunca es público y se ve con otra URL firmada que vence en minutos.',
   },
   portfolio: {
     name: 'Carteras',

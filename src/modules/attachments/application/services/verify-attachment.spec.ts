@@ -3,7 +3,7 @@ import { verifyAttachment } from '@/modules/attachments/application/services/ver
 import { InvalidAttachmentError } from '@/modules/attachments/domain/errors/invalid-attachment.error.js';
 import type { ObjectStoragePort } from '@/shared/application/ports/object-storage.port.js';
 
-const PREFIX = 'client-photos/lender-1/client-1';
+const PREFIX = 'payment-proofs/lender-1/payment-1';
 const KEY = `${PREFIX}/019dc2d6-0000-7000-8000-000000000001.jpg`;
 const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]);
 
@@ -31,7 +31,7 @@ describe('verifyAttachment', () => {
     const { port } = storage(null);
 
     await expect(
-      verifyAttachment(port, PREFIX, 'client-photos/lender-1/otro/x.jpg'),
+      verifyAttachment(port, PREFIX, 'payment-proofs/lender-1/otro/x.jpg'),
     ).rejects.toBeInstanceOf(InvalidAttachmentError);
   });
 

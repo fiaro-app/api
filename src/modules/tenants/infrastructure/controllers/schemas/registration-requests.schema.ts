@@ -53,6 +53,9 @@ export const RegisterOwnerRequestSchema = z.strictObject({
     description:
       'Se comprometió a tener la autorización de sus clientes y a cumplir la ley en su cobranza. Obligatorio: debe ser `true`.',
   }),
+  acceptedCookies: z.literal(true).meta({
+    description: 'Aceptó la Política de Cookies. Obligatorio: debe ser `true`.',
+  }),
   marketingConsent: z.boolean().default(false).meta({
     description:
       'Autoriza recibir novedades y ofertas. Opcional: nunca condiciona el registro.',
@@ -60,7 +63,7 @@ export const RegisterOwnerRequestSchema = z.strictObject({
   legalVersion: z.string().min(1).meta({
     description:
       'Versión de los documentos legales que la persona vio (la vigente está publicada en la web, en `/terminos`). Si ya no es la vigente, el registro responde `P930V`.',
-    example: '2026-10-16',
+    example: '2026-11-14',
   }),
   turnstileToken: TurnstileTokenSchema.optional(),
 });

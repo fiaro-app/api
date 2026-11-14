@@ -40,6 +40,7 @@ describe('POST /register — aceptaciones legales', () => {
       orderBy: { document: 'asc' },
     });
     expect(rows.map((row) => row.document).sort()).toEqual([
+      'COOKIES',
       'DATA_RESPONSIBILITY',
       'MARKETING',
       'PRIVACY',
