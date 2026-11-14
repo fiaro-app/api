@@ -10,7 +10,7 @@ import { GetLenderUseCase } from '@/modules/lenders/application/use-cases/get-le
 import { ListUserActiveMembershipsUseCase } from '@/modules/memberships/application/use-cases/list-user-active-memberships.use-case.js';
 
 /** Roles con los que se ve el resumen de un negocio (como `LenderDashboardController`). */
-const VIEWER_ROLES: readonly string[] = ['OWNER', 'LENDER'];
+const VIEWER_ROLES: ReadonlySet<string> = new Set(['OWNER', 'LENDER']);
 
 /**
  * @param part - La parte.
@@ -44,8 +44,7 @@ export class GetConsolidatedStatsUseCase {
   async execute(input: GetConsolidatedStatsInput): Promise<ConsolidatedStats> {
     const current = await this.lenders.execute(input.lenderId);
     const administered = (await this.memberships.execute(input.userId)).filter(
-      (membership) =>
-        membership.roles.some((role) => VIEWER_ROLES.includes(role)),
+      (membership) => membership.roles.some((role) => VIEWER_ROLES.has(role)),
     );
     const candidates = await Promise.all(
       administered.map((membership) =>
