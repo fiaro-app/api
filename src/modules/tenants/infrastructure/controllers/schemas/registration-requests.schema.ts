@@ -32,9 +32,9 @@ export const RegisterOwnerRequestSchema = z.strictObject({
       'Cédula de ciudadanía, con o sin separadores. Obligatoria: quien se registra recibe el rol COLLECTOR, que la exige.',
     example: '1020304050',
   }),
-  contactEmail: z.email().optional().meta({
+  contactEmail: z.email().meta({
     description:
-      'Correo real, opcional: sirve para recuperar la contraseña más adelante.',
+      'Correo real, obligatorio y único: sirve para recuperar la contraseña y para iniciar sesión (una vez verificado).',
     example: 'ana@example.com',
   }),
   businessName: z.string().min(1).meta({

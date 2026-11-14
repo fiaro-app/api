@@ -41,6 +41,7 @@ async function seedBusiness(
     .send({
       ...LEGAL_ACCEPTANCE,
       phone,
+      contactEmail: `${phone.slice(1)}@example.com`,
       fullName: 'Gloria Ruta (dueña de prueba de rutas)',
       password: 'contraseña-de-prueba-1',
       nationalId,

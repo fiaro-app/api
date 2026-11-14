@@ -16,6 +16,7 @@ body:
       "fullName": "Persona sin aceptar",
       "password": "contraseña-de-prueba-1",
       "nationalId": "1000000099",
+      "contactEmail": "sin.aceptar@example.com",
       "businessName": "No debe crearse",
       "acceptedTerms": false,
       "acceptedPrivacy": true,

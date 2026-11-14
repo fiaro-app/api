@@ -55,6 +55,7 @@ export async function seedBusinessWithCollector(
     .send({
       ...LEGAL_ACCEPTANCE,
       phone: owner.phone,
+      contactEmail: `${owner.phone.slice(1)}@example.com`,
       fullName: 'Marta Ríos (dueña de prueba de notificaciones)',
       password: OWNER_PASSWORD,
       nationalId: owner.nationalId,

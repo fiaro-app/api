@@ -1,0 +1,24 @@
+$kind: http-request
+description: "POST /auth/sign-in acepta el celular o el correo en `identifier`. Con el celular abre sesión igual que la ruta de celular."
+url: "{{baseUrl}}/auth/sign-in"
+method: POST
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Origin
+    value: "{{baseUrl}}"
+    description: Las peticiones con cookie deben decir de dónde vienen; el origen de la API siempre es de confianza.
+body:
+  type: json
+  content: |-
+    {
+      "identifier": "{{registerPhone}}",
+      "password": "{{registerPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('responde 200', () => pm.response.to.have.status(200));
+      pm.test('llega la cookie de sesión', () => pm.expect(pm.cookies.has('fiaro.session_token')).to.be.true);
+    language: text/javascript
+order: 5000

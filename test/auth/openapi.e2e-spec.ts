@@ -22,6 +22,7 @@ describe('la documentación de las rutas de autenticación', () => {
       'POST /auth/reset-password',
       'POST /auth/revoke-other-sessions',
       'POST /auth/revoke-sessions',
+      'POST /auth/sign-in',
       'POST /auth/sign-in/phone-number',
       'POST /auth/sign-out',
     ]);

@@ -6,6 +6,7 @@ const VALID_BODY = {
   fullName: 'Ana Pérez',
   password: 'una-contraseña-larga',
   nationalId: '1020304050',
+  contactEmail: 'ana@example.com',
   businessName: 'Préstamos Ana',
   acceptedTerms: true,
   acceptedPrivacy: true,
@@ -37,13 +38,17 @@ describe('RegisterOwnerRequestSchema', () => {
     expect(RegisterOwnerRequestSchema.safeParse(VALID_BODY).success).toBe(true);
   });
 
-  it('acepta un correo de contacto opcional', () => {
+  it('exige un correo de contacto válido', () => {
+    const without = Object.fromEntries(
+      Object.entries(VALID_BODY).filter(([key]) => key !== 'contactEmail'),
+    );
+    expect(RegisterOwnerRequestSchema.safeParse(without).success).toBe(false);
     expect(
       RegisterOwnerRequestSchema.safeParse({
         ...VALID_BODY,
-        contactEmail: 'ana@example.com',
+        contactEmail: 'no-es-correo',
       }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('rechaza un celular que no es colombiano', () => {

@@ -16,6 +16,7 @@ body:
       "fullName": "Marta Ríos (dueña de prueba de cuadres)",
       "password": "{{settlementOwnerPassword}}",
       "nationalId": "{{settlementOwnerNationalId}}",
+      "contactEmail": "{{settlementOwnerPhone}}@example.com",
       "businessName": "Créditos Marta (prueba de cuadres)",
       "acceptedTerms": true,
       "acceptedPrivacy": true,

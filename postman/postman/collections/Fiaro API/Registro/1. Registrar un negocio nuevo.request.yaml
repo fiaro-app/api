@@ -16,6 +16,7 @@ body:
       "fullName": "Beatriz Londoño (cuenta de prueba de registro)",
       "password": "{{registerPassword}}",
       "nationalId": "{{registerNationalId}}",
+      "contactEmail": "{{registerPhone}}@example.com",
       "businessName": "Créditos Beatriz (prueba de registro)",
       "acceptedTerms": true,
       "acceptedPrivacy": true,

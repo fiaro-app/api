@@ -9,6 +9,7 @@ function setup() {
   const resetToTemporaryPassword = vi.fn(() => Promise.resolve());
   const users: UserRepository = {
     create: vi.fn(),
+    findByVerifiedContactEmail: vi.fn(),
     findByPhone: vi.fn(),
     findById: vi.fn(),
     updatePassword: vi.fn(),

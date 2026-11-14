@@ -19,8 +19,15 @@ export interface UserRepository {
    * @param user - Persona nueva.
    * @param passwordHash - Hash de su contraseña; la contraseña en claro nunca llega aquí.
    * @throws {@link PhoneAlreadyRegisteredError} Si el celular ya tiene cuenta.
+   * @throws {@link ContactEmailAlreadyRegisteredError} Si el correo de contacto ya está en uso.
    */
   create(user: User, passwordHash: string): Promise<void>;
+
+  /**
+   * @param email - Correo de contacto; se compara sin distinguir mayúsculas.
+   * @returns La persona con ese correo, solo si ya lo verificó; si no, `null`.
+   */
+  findByVerifiedContactEmail(email: string): Promise<User | null>;
 
   /**
    * @param phone - Celular en formato E.164.
@@ -63,6 +70,7 @@ export interface UserRepository {
    *
    * @param userId - La persona.
    * @param update - Los datos nuevos, ya validados.
+   * @throws {@link ContactEmailAlreadyRegisteredError} Si el correo ya es de otra cuenta.
    */
   updateProfile(userId: string, update: ProfileUpdate): Promise<void>;
 

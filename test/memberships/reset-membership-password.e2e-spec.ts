@@ -41,6 +41,7 @@ async function seedBusinessWithCollector(testApp: TestApp): Promise<{
     .send({
       ...LEGAL_ACCEPTANCE,
       phone: owner.phone,
+      contactEmail: `${owner.phone.slice(1)}@example.com`,
       fullName: 'Marta Ríos (dueña de prueba de reset)',
       password: 'contraseña-de-prueba-1',
       nationalId: owner.nationalId,
